@@ -141,12 +141,12 @@ class PSO(object):
     pInertia = 0.7298
     pAcceleration = 2.9922
     
-    def __init__(self,npart,weights,pRange,pEval,**pEvalArgs):
+    def __init__(self,npart,objective_weights,pRange,pEval,**pEvalArgs):
         """
         Create a particle swarm
         """
         # define the particle and the methods associated with its creation, evolution and fitness evaluation
-        declareTypes(weights)
+        declareTypes(objective_weights)
         self.toolbox.register("create", createParticle, prange=pRange)
         self.toolbox.register("evolve", evolveParticle, inertia = self.pInertia, acceleration = self.pAcceleration)
         self.toolbox.register("evaluate",pEval,**pEvalArgs)
@@ -177,7 +177,12 @@ class PSO(object):
         for g in range(ngen):
             for i,part in enumerate(self.swarm):
                 iteration = (g,i)
-                part.fitness.values, part.errors = self.toolbox.evaluate(part.renormalized,iteration)
+                try:
+                    # assume that the evaluator makes use of iteration
+                    part.fitness.values, part.errors = self.toolbox.evaluate(part.renormalized,iteration)
+                except:
+                    # omit iteration from the arguments otherwise
+                    part.fitness.values, part.errors = self.toolbox.evaluate(part.renormalized)
                 if not part.best or part.best.fitness < part.fitness:
                     part.best = creator.Particle(part)
                     part.best.fitness.values = part.fitness.values
