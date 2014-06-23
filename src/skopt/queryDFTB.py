@@ -65,22 +65,22 @@ class DFTBOutput(object):
     def __init__(self, workdir='.', postfix=''):
         self.workdir = workdir
         fp = open(os.path.join(self.workdir, "detailed.out"+postfix,), "r")
-        self.outputdata = DetailedOutput.fromfile(fp)
+        self.data = DetailedOutput.fromfile(fp)
         fp.close()
 
     def getEnergy (self, etag):
 	try:
-	    energy = self.outputdata[etag]
+	    energy = self.data[etag]
 	except:
 	    energy = None
 	return energy
     
     def getOutputElectrons (self):
         try:
-            chrg = self.outputdata['Output electrons']
+            chrg = self.data['Output electrons']
         except:
             try:
-                chrg = self.outputdata['Output charge']
+                chrg = self.data['Output charge']
             except:
                 chrg = None
         return chrg
@@ -90,10 +90,10 @@ class DFTBOutput(object):
     
     def getInputElectrons (self):
         try:
-            chrg = self.outputdata['Input electrons']
+            chrg = self.data['Input electrons']
         except:
             try:
-                chrg = self.outputdata['Input charge']
+                chrg = self.data['Input charge']
             except:
                 chrg = None
         return chrg
@@ -103,7 +103,7 @@ class DFTBOutput(object):
     
     def getNeutralCharge (self):
         try:
-            chrg = self.outputdata['Neutral charge']
+            chrg = self.data['Neutral charge']
         except:
             chrg = None
         return chrg
@@ -112,15 +112,15 @@ class DFTBOutput(object):
         c1 = contacts[0]
         c2 = contacts[1]
         try: 
-            current = self.outputdata["TotalCurrent({0}-{1})".format(c1,c2)]
+            current = self.data["TotalCurrent({0}-{1})".format(c1,c2)]
         except:
             current = None
         return current
     
     def sccConverged (self):
-        return self.outputdata['SCC converged']
+        return self.data['SCC converged']
     
     def withSOC (self):
-        return self.outputdata['Spin orbit coupling']
+        return self.data['Spin orbit coupling']
 
 

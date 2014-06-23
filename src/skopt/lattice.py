@@ -12,7 +12,7 @@ import numpy as np
 # in terms of the reciprocal vectors.
 # The first entry in the list for a symmetry point comes from the above mentioned publication.
 # Eventually, we could expand the list for each SymPt, e.g. (0,1/2,1/2) is also X, etc; Another
-# option being generate the permutations of the components on the fly, in order to exapnd the list...
+# option being generate the permutations of the components on the fly, in order to expand the list...
 SymPts_k = { 'FCC': { 'G': [(0.,0.,0.),], 'Gamma': [(0.,0.,0.),],
                     'K': [(3./8.,3./8.,3./4.), (3./8., 3./4., 3./8.),],
                     'L': [(1./2.,1./2.,1./2.),],
@@ -160,6 +160,39 @@ def get_recipr (A,scale):
         (i1,i2) = np.roll(index,-(i+1))[0:2]
         B.append( scale * np.cross(A[i1],A[i2]) / volume )
     return B
+
+def getSymPtLabel(kvec, lattice, log):
+    """
+    This routine returns the label of a k-space symmetry point, given a tupple, representing the corresponding
+    k-vector.
+    __NOTA BENE:__ The symmetry points are defined as a dictionary for a given lattice type.
+    This dictionary, for each lattice type, is constructed from the tables in 
+    W.Setyawan and S.Curtarolo, _Comp. Mat. Sci._ __49__ (2010) pp.299-312
+    see the lattice.py module for the implementation details
+    """
+#    from skopt.lattice import SymPts_k
+    import sys
+    from fractions import Fraction
+
+    kLabel = None
+    
+    try:
+        for l,klist in SymPts_k[lattice].items():
+            if tuple(kvec) in klist:
+                kLabel = l
+    except KeyError:
+        log.critical("ERROR: No symmetry point definition for the {lattice} lattice are defined.".format(lattice))
+        log.critical("       Please, extend the SymPts dictionary in lattice.py module before continuing.")
+        sys.exit(1)
+            
+    if not kLabel:
+        log.debug("WARNING: Unable to match the given kvector {0} to a symmetry point of the given {1} lattice".format(kvec,lattice))
+        log.debug("         Returnning fractions of reciprocal vectors as a k-point label".format(kvec,lattice))
+        kx,ky,kz = Fraction(kvec[0]).limit_denominator(), Fraction(kvec[1]).limit_denominator(), Fraction(kvec[2]).limit_denominator()
+        kLabel = '({0}/{1}, {2}/{3}, {4}/{5})'.format(kx.numerator, kx.denominator,
+                                                      ky.numerator, ky.denominator,
+                                                      kz.numerator, kz.denominator)
+    return kLabel
 
 
 def test_FCC(a,scale=None):

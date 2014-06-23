@@ -6,8 +6,7 @@ import logging
 
 class RunDFTB(object):
     """
-    Perform dftb calculation, using dftb_in as an input file, and copying the
-    outfiles to their *.postfix version.
+    Perform dftb calculation
     ncpu dictates how many cpu's to use
     exe permits altenative instance of dftb+ to be used
     chargesfile is linked to charges.bin, when initial charges must be provided
@@ -37,9 +36,9 @@ class RunDFTB(object):
         env = os.environ.copy()
         env['OMP_NUM_THREADS'] = '{0}'.format(self.ncpu)
 
-        # link file with input charges, if not with the default charges.bin
+        # copy file with input charges, if not with the default charges.bin
         if self.chargesfile and not self.chargesfile=='charges.bin':
-            subprocess.check_call(['ln','-sf',self.chargesfile,'charges.bin'],stderr=STDOUT)
+            subprocess.check_call(['/bin/cp','-f',self.chargesfile,'charges.bin'],stderr=STDOUT)
 
         # not sure if this will be effective during the subsequent Popen...
         # causes troubles anyway....
@@ -75,7 +74,7 @@ class RunDFTB(object):
 	# copy outfiles with a postfix, if needed
 	if self.output['dftb_success'] and self.postfix:
 	    for f in self.outfiles:
-		subprocess.check_call(['/bin/cp',f,'.'.join([f,self.postfix])])
+          subprocess.check_call(['/bin/cp',f,'.'.join([f,self.postfix])])
 	self.log.debug('\tDone.')
         
         # success of some sort
@@ -127,6 +126,23 @@ class RunSKgen(object):
 class RunDPbands(object):
     """
     This class encapsulates the execution of a dp_bands in the current directory
+    
+    Below is the result of dp_bands --help:
+
+        Usage: dp_bands [options] INPUT OUTPREFIX
+
+        Reads the band structure information stored in the file INPUT created by DFTB+
+        (usually band.out) and converts it to NXY-data (to be visualized by gnuplot,
+        xmgrace, etc.). The outputfile will be called OUTPREFIX_tot.dat and contains the
+        band structure for all spin channels. If spin channel separation is specified,
+        the output files OUTPREFIX_s1.dat, OUTPREFIX_s2.dat, etc. will be created for
+        each spin channel.
+
+        Options:
+        -h, --help            show this help message and exit
+        -N, --no-enumeration  do not use the first column of the output to enumerate
+                                the k-points
+        -s, --separate-spins  create separate band structure for each spin channel
     """
     def __init__(self, infile='band.out', outfile='', log=logging.getLogger(__name__)):
         self.log = log
