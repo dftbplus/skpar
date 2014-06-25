@@ -112,17 +112,26 @@ def rmEquivkPts (bands, kLines, equivpts):
 
 def greekLabels(kLines):
     """
-    Check if Gamma is within the kLines and set it to its latex formulation
-    Could do check for other k-points with greek lables (i.e. points that
-    are inside the BZ, not at the faces.
+    Check if Gamma is within the kLines and set the label to its latex formulation.
+    Note that the routine will accept either list of tupples ('label',int_index) or
+    a list of strings, i.e. either kLines or only the kLinesLabels.
+    Could do check for other k-points with greek lables, byond Gamma
+    (i.e. points that are inside the BZ, not at the faces) but in the future.
     """
-    kLinesFixed = []
-    for i,k in enumerate(kLines):
-        if k[0] == 'Gamma':
-            kLinesFixed.append((r'$\Gamma$',k[1]))
-        else:
-            kLinesFixed.append(k)
-    return kLinesFixed
+    try:
+        lbls,ixs = zip(*kLines)
+    except ValueError:
+        lbls,ixs = kLines,None
+    lbls = list(lbls)
+
+    for i,lbl in enumerate(lbls):
+        if lbl == 'Gamma':
+            lbls[i] = r'$\Gamma$'
+    if ixs is not None:
+        result = zip(lbls,ixs)
+    else:
+        result = lbls
+    return result
 
 
 
