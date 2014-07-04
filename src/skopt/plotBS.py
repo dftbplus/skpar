@@ -1,55 +1,6 @@
 import logging
 
-def preconditionEkPlt_FCC(bands,kLines,kLinesDict):
-    """
-    Take bands, kLines and kLinesDict as input, and return:
-        * bandsPlt less one for the equivalent k-points, e.g. U,K in FCC
-    """
-    import numpy as np
-    nU = kLinesDict['U'][0]
-    bandsPlt = np.delete(bands,nU,0)
-    kLinesPlt = [k for k in kLines if k[0]!='U']
-    for i,k in enumerate(kLinesPlt):
-        if k[0] == 'K':
-            kLinesPlt[i] = ('U,K',kLinesPlt[i][1])
-    return bandsPlt,kLinesPlt
-
-def preconditionEkPlt_TET(bands,kLines,kLinesDict):
-    """
-    Take bands, kLines and kLinesDict as input, and return:
-        * bandsPlt less one for the equivalent k-points, 
-        * update labels accordingly
-    This preconditioning assumes the standard k-lines:
-    Gamma--X--M--Gamma--Z--R--A--Z|X--R|M--A
-    """
-    import numpy as np
-    nk = []
-    nk.append(kLinesDict['X'][1]) # find the second appearance of X
-    nk.append(kLinesDict['M'][1]) # find the second appearance of M
-    bandsPlt = np.delete(bands,nk,0)
-    
-    kLinesPlt = []
-    for i,k in enumerate(kLines):
-        if i>0:
-            kprec = kLines[i-1]
-        if k[0] not in ['X','M']:
-            if k[0] == 'Z' and kLines[i+1][0] == 'X':
-                kLinesPlt.append(('Z|X',k[1]))
-            elif k[0] == 'R' and kLines[i+1][0] == 'M':
-                kLinesPlt.append(('R|M',k[1]-1)) # note the -1
-            elif i == len(kLines)-1:
-                kLinesPlt.append(('A',k[1]-2)) # note the -2
-            else:
-                kLinesPlt.append(k)
-        else:
-            if k[0] == 'X' and kprec[0] != 'Z':
-                kLinesPlt.append(k)
-            if k[0] == 'M' and kprec[0] != 'R':
-                kLinesPlt.append(k)
-    return bandsPlt,kLinesPlt
-
-
-def plotBS (bands,kLines=None,Erange=[-13,13], refEkpts=None, refBands=None,
+def plotBS (bands,kLines=None,Erange=[-13,13], figsize=(6,7), refEkpts=None, refBands=None,
             col='darkred', colref='blue', cycle_colors=False,log=logging.getLogger('__name__'), **kwargs):
     """
     Plot the bands supplied to bands argument, along the k-lines in the kLines argument.
@@ -63,14 +14,14 @@ def plotBS (bands,kLines=None,Erange=[-13,13], refEkpts=None, refBands=None,
     import matplotlib.pyplot as plt
     from matplotlib.ticker import AutoMinorLocator
     import numpy as np
-    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize',20), 'font.family': 'sans'})
+    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize',20), 'font.family': kwargs.get('fontfamily','sans')})
     plt.rc('lines', linewidth=2)
     plt.rc('axes', color_cycle=['Red','Green','Blue','DarkBlue','LightBlue','Purple','Cyan','Olive','Maroon'])
     
     nk,nE = bands.shape
 
     # get a figure object with the desired figures size
-    fig,ax = plt.subplots(figsize=kwargs.get('figsize',(6,7)))
+    fig,ax = plt.subplots(figsize=figsize)
     # set axis labels and ranges
     ax.set_xlabel('$\mathbf{k}$-vector')
     ax.set_ylabel('Energy (eV)')
@@ -115,64 +66,87 @@ def plotBS (bands,kLines=None,Erange=[-13,13], refEkpts=None, refBands=None,
     return fig
 
 
-
-
-
-class PlotterBS(object):
+class Plotter(object):
     """
+    This class plots the bandstructure contained in 'data' to a file 
+    named 'filename'. Energy range, and figure size may be controlled by
+    'Erange' and 'figsize' respectively.
+    'data' is a dictionary {'bands':values, 'kLines':values}; filename is a string.
+    'refEkpts' and 'refBands' can be plotted, if supplied, but
+    note that refBands must have the same number of k-points as data['bands']
+    'refEkpts' is a list of tupples....
+    'col' and 'colref' are used for data and ref* respectively.
+    'data' bands may be plotted with cycling colours too (cycle_colors=True).
     """
-    def __init__(self, data=None, filename=None, refBS=None, 
-                 preconditioner=None, Erange=[-13,+13], figsize=(6,7), log=logging.getLogger(__name__)):
+    def __init__(self, data={}, filename=None, 
+                 Erange=[-13,+13], figsize=(6,7), log=logging.getLogger(__name__), 
+                 refEkpts=None, refBands=None, col='darkred', colref='blue', cycle_colors=False):
         """
         """
+        self.data = data
         self.filename = filename
-        self.preconditioner = preconditioner
         self.Erange = Erange
         self.figsize = figsize
-        self.refBS = refBS
+        self.refEkpts = refEkpts
+        self.refBands = refBands
         self.log = log
-    
-
-    def plot(self, filename=None):
+        self.col = col
+        self.colref = colref
+        self.cycle_colors = cycle_colors
+        
+    def plot(self, *args, **kwargs):
         """
+        This method attempt to plot and save a figure of the bandstructure contained in self.data.
+        self.data may be initialised at self.__init__() and the 'bands' and 'kLines' fields of data
+        may be independently updated. This allows one to call plot() without any arguments.
+        Alternatively, one may pass data explicitely using data = {'bands':values, 'kLines':values} 
+        where 'bands' values are the E-k dispersion, and 'kLines' are the labels for 
+        points of high symmetry.
+        plot() can be called also with two positional arguments: bands,kLines
+        or one positional arguments: data, or two key-value pairs: bands=..., kLines=...
         """
-        import matplotlib.pyplot as plt
-        self.bands  = self.data['bands']
-        self.kLines = self.data['kLines']
-        self.kLinesDict = self.data['kLinesDict']
-        if self.preconditioner is not None:
-            self.bandsPlt, self.kLinesPlt = self.preconditioner(self.bands, self.kLines, self.kLinesDict)
-        else: 
-            self.bandsPlt, self.kLinesPlt = self.bands, self.kLines
-
-        # now try hard to see if we can save the figure
-        if filename is not None:
-            # priority to arguments supplied with call
-            self.filename = filename
-        else:
-            if self.filename is None:
-                # if no filename in the call, and none initialized upon instantiation
-                # check in the data - there should be a name that may be 
-                # continuously updated from the caller
-                try:
-                    self.filename = self.data['plotBSfilename']
-                except KeyError:
-                    pass # self.filename remains unassigned and figure is not saved
-        self.fig = plotBS(self.bandsPlt,self.kLinesPlt,self.Erange,refBS=self.refBS, figsize=self.figsize)
-        if self.filename is not None:
-            self.fig.savefig(self.filename, bbox_inches='tight',pad_inches=0.01)
-        plt.close()
-
-    def execute(self, *args, **kwargs):
-        self.log.debug("Plotting bandstructure to {0}".format(self.filename))
-        self.plot(*args, **kwargs)
-        self.output = None
-        return self.output
-
-    def __call__(self):
         import sys
         if self.filename is None or not self.filename:
             self.log.critical('No filename specified for bandstrcture plot. Aborting execution.')
             sys.exit(0)
         else:
-            self.execute()
+            self.log.debug('Plotting bandstructure to {0}'.format(self.filename))
+            
+        # here we allow plot() to be called with explicit data or 
+        # with explicit (bands,kLines), but retain the capability of 
+        # having self.data assigned during self.__init__() while its
+        # key-values may be independently updated (as mutable object)
+        # or by directly assigning Plotter.data = ... etc.
+        if len(args) == 2:
+            self.data['bands'] = args[0]
+            self.data['kLines'] = args[1]
+        if len(args) == 1:
+            self.data = args[0]
+            
+        if kwargs:
+            if 'data' in kwargs:
+                self.data = kwargs['data']
+            if all([k in kwargs for k in ('bands','kLines')]):
+                self.data['bands'] = kwargs['bands']
+                self.data['kLines'] = kwargs['kLines']
+        
+        try:
+            bands = self.data['bands']
+            kLines = self.data['kLines']
+        except KeyError:
+            self.log.critical('{0} has wrongly assigned data field'.format(self))
+
+        self.fig = plotBS(bands, kLines, Erange=self.Erange, figsize=self.figsize, 
+                        refEkpts=self.refEkpts, refBands=self.refBands,
+                        col=self.col, colref=self.colref, cycle_colors=self.cycle_colors,
+                        log=self.log)
+        self.fig.savefig(self.filename, bbox_inches='tight',pad_inches=0.01)
+        plt.close()    
+        
+        self.output = None
+        return self.output
+
+    
+    def __call__(self,*args,**kwargs):
+        self.plot(*args,**kwargs)
+
