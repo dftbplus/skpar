@@ -140,6 +140,7 @@ class QueryDataDFTB (object):
     Eref     - reference energy for the band-structure; 'bands' will be shifted
                according to Eref, unless it is None. 
                Valid values are None, 'VBtop', or a float.
+    getkLines - analyse dftb_pin.hsd and return kLines and kLinesDict in data
     prepareforplot - logical, if true, 'bandsPlt' and 'kLinesPlt' will be 
                obtained; but a prerequisite is 'lattice' type, so that kLines 
                may be queryied. If 'equivkpts' (a list of tupples) is in data, 
@@ -148,13 +149,14 @@ class QueryDataDFTB (object):
     """
     
     def __init__(self, data, workdir='.', 
-                 getBands=True, Eref=None, getHOMO=True, prepareforplot=True,
-                 log=logging.getLogger('__name__')):
+                 getBands=True, Eref=None, getHOMO=True, getkLines=True,
+		 prepareforplot=True, log=logging.getLogger('__name__')):
         self.workdir = workdir
         self.data = data
         self.getBands = getBands
         self.Eref = Eref
         self.getHOMO = getHOMO
+	self.getkLines = getkLines
         self.prepareforplot = prepareforplot
         self.log = log
         
@@ -186,19 +188,24 @@ class QueryDataDFTB (object):
             # if we pass the try statement, then we have the bs object
             for key,value in bs.data.iteritems():
                 self.data[key] = value
+
+	    if self.Eref is not None:
+		self.data['Bands'] = bs.getBands(self.Eref)[0]
                 
-            # now prepare data for plotting. here we need to know the k-lines, to label them 
-            # properly and therefore we need to know what lattice we have
-            if self.prepareforplot:
-                if 'lattice' in self.data:
-                    kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'])
-                else:
-                    self.log.critical('\tCould not interpret the kLines info without a given lattice in mind'
+            # now prepare data for analysis and plotting. here we need to know the k-lines, 
+	    # to label them properly and therefore we need to know what lattice we have
+	    if self.getkLines:
+		if 'lattice' in self.data:
+		    kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'])
+		    self.data['kLines'] = kLines
+		    self.data['kLinesDict'] = kLinesDict
+		else:
+		    self.log.warning('\tCould not interpret the kLines info without a given lattice in mind'
                                       '\tMake sure data[''lattice''] is specified before quering the band-structure')
-                    sys.exit([1])
+		
+            if self.prepareforplot and self.getkLines and 'lattice' in self.data:
                 bandsPlt,kLinesPlt = rmEquivkPts(bs.getBands(E0=self.Eref)[0], # note that getBands returns (bands,E0)
-                                                kLines,
-                                                self.data.get('equivkpts',[]))
+                                                kLines, self.data.get('equivkpts',[]))
                 self.data['bandsPlt'] = bandsPlt
                 self.data['kLinesPlt'] = greekLabels(kLinesPlt)
                 
