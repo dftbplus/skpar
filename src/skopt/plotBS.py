@@ -106,6 +106,11 @@ class Plotter(object):
         or one positional arguments: data, or two key-value pairs: bands=..., kLines=...
         """
         import sys
+	import matplotlib
+	import matplotlib.pyplot as plt
+	if kwargs and 'filename' in kwargs:
+	    self.filename = kwargs['filename']
+
         if self.filename is None or not self.filename:
             self.log.critical('No filename specified for bandstrcture plot. Aborting execution.')
             sys.exit(0)
@@ -118,23 +123,31 @@ class Plotter(object):
         # key-values may be independently updated (as mutable object)
         # or by directly assigning Plotter.data = ... etc.
         if len(args) == 2:
-            self.data['bands'] = args[0]
-            self.data['kLines'] = args[1]
+            self.data['bandsPlt'] = args[0]
+            self.data['kLinesPlt'] = args[1] 
         if len(args) == 1:
             self.data = args[0]
             
         if kwargs:
             if 'data' in kwargs:
                 self.data = kwargs['data']
-            if all([k in kwargs for k in ('bands','kLines')]):
-                self.data['bands'] = kwargs['bands']
-                self.data['kLines'] = kwargs['kLines']
+	    if all([k in kwargs for k in ('bands','kLines')]):
+                self.data['bandsPlt'] = kwargs['bands']
+                self.data['kLinesPlt'] = kwargs['kLines']
+	    if all([k in kwargs for k in ('bandsPlt','kLinesPlt')]):
+                self.data['bandsPlt'] = kwargs['bandsPlt']
+                self.data['kLinesPlt'] = kwargs['kLinesPlt']
         
         try:
-            bands = self.data['bands']
-            kLines = self.data['kLines']
+            bands = self.data['bandsPlt']
+            kLines = self.data['kLinesPlt']
         except KeyError:
-            self.log.critical('{0} has wrongly assigned data field'.format(self))
+	    try:
+		bands = self.data['bands']
+		kLines = self.data['kLines']
+	    except:
+		self.log.critical('Plotter {0} has wrongly assigned data field'.format(self))
+		sys.exit([1])
 
         self.fig = plotBS(bands, kLines, Erange=self.Erange, figsize=self.figsize, 
                         refEkpts=self.refEkpts, refBands=self.refBands,

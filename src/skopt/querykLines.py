@@ -32,7 +32,6 @@ def getkLines(workdir='./',hsdfile='dftb_pin.hsd',DirectLattice='TET',log=loggin
         {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
     """
     from collections import defaultdict
-    #from skopt.lattice import getSymPtLabel
     from lattice import getSymPtLabel
     import sys,os
 

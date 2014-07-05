@@ -5,8 +5,6 @@ import logging
 import numpy as np
 import sys, os
 from collections import OrderedDict
-#sys.path.append(os.path.expanduser('~/Dropbox/Projects/SKgen/skopt/src/'))
-#from skopt import queryDFTB
 
 class BandsOutput (OrderedDict):
     """
@@ -54,8 +52,9 @@ class Bands(object):
     An object encapsulating the data and methods related to the output by dp_bands.
     """
     
-    def __init__ ( self, nElectrons, workdir='.', prefix='bands', postfix='', 
-                    SeparateSpins = False, Enumeration = True, SOC=False,
+    def __init__ ( self, workdir='.', prefix='bands', postfix='', 
+                    SeparateSpins = False, Enumeration = True, 
+		    nElectrons=0, SOC=False,
                     log=logging.getLogger('__name__') ):
         """
         Read the output file(s) from bands
@@ -76,11 +75,13 @@ class Bands(object):
         self.workdir = workdir
         self.datafile = os.path.join(self.workdir,prefix+"_tot.dat"+postfix)
         self.data = BandsOutput.fromfile(self.datafile,Enumeration,self.log)
-	self.indexVBtop(nElectrons,SOC)
+	if nElectrons:
+	    self.indexVBtop(nElectrons,SOC)
+	    self.getEgap()
         
     def indexVBtop(self,nElectrons,SOC=False):
         """
-        Add 'Index of top VB' to self.data.
+        Add 'Index of top VB' to self.data. Add also a synonym 'nVBtop' which is more convenient.
         nElectrons is necessarily provided from elsewhere.
         SOC is true if spin-orbit coupling was used in the calculation producing the Bands.
         TODO: test with separated spin channels. SOfactor may need to change. The idea is
@@ -93,7 +94,8 @@ class Bands(object):
             SOfactor = 1
         nVBtop = int(nElectrons/2.*SOfactor)-1
         self.data.update({'Index of top VB':nVBtop})
-        return self.data['Index of top VB']
+	self.data.update({'nVBtop':nVBtop})
+        return self.data['nVBtop']
         
     def getBands (self, E0=None):
 	"""
@@ -113,7 +115,7 @@ class Bands(object):
 	"""
 	Return the highest occupied level (HOMO)
 	"""
-	nVBtop = self.data['Index of top VB']
+	nVBtop = self.data['nVBtop']
 	return  max(self.data['Bands'][:, nVBtop])
 
 
@@ -121,13 +123,13 @@ class Bands(object):
         """
 	Return the difference LUMO-HOMO, the LUMO, and the HOMO
         """
-	nVBtop = self.data['Index of top VB']
+	nVBtop = self.data['nVBtop']
         nCBbot = nVBtop + 1
         Ecbbot = min(self.data['Bands'][:, nCBbot])
         Evbtop = max(self.data['Bands'][:, nVBtop])
         Egap = Ecbbot - Evbtop
-        self.Egap = Egap
-        self.Ecbbot = Ecbbot
-        self.Evbtop = Evbtop
+        self.data['Egap'] = Egap
+        self.data['Ecbbot'] = Ecbbot
+        self.data['Evbtop'] = Evbtop
         return Egap, Ecbbot, Evbtop
 

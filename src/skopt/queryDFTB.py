@@ -1,4 +1,4 @@
-import os
+import os, logging
 from collections import OrderedDict
 
 class DetailedOutput (OrderedDict):
@@ -124,3 +124,84 @@ class DFTBOutput(object):
         return self.data['Spin orbit coupling']
 
 
+
+class QueryDataDFTB (object):
+    """
+    This class encapsulates all steps of collecting the information from 
+    the DFTB+ runs to calculate the band-structure and putting the 
+    information in the 'data' dictionary that is passed as argument upon
+    initialisation. The arguments are:
+    data     - obligatory dictionary, possibly containing 'lattice' and 
+               'equivkpts' fields, if we want to get 'bandsPlt' and 'kLinesPlt'
+    workdir  - work directory, where detailed.out, dftb_pin.hsd and 
+               bands_tot.dat must be.
+    getBands - logical, if true, an attempt to query bands_tot.dat will be made
+    getHOMO  - logical, if true, Evbtop, Egap and Ecbtop will be extracted
+    Eref     - reference energy for the band-structure; 'bands' will be shifted
+               according to Eref, unless it is None. 
+               Valid values are None, 'VBtop', or a float.
+    prepareforplot - logical, if true, 'bandsPlt' and 'kLinesPlt' will be 
+               obtained; but a prerequisite is 'lattice' type, so that kLines 
+               may be queryied. If 'equivkpts' (a list of tupples) is in data, 
+               then attempt will be made to eliminate the duplicate.
+    log      - logger for runtime messages
+    """
+    
+    def __init__(self, data, workdir='.', 
+                 getBands=True, Eref=None, getHOMO=True, prepareforplot=True,
+                 log=logging.getLogger('__name__')):
+        self.workdir = workdir
+        self.data = data
+        self.getBands = getBands
+        self.Eref = Eref
+        self.getHOMO = getHOMO
+        self.prepareforplot = prepareforplot
+        self.log = log
+        
+    def query(self):
+        """
+        """
+#        from skopt.queryDFTB import DFTBOutput
+        from queryBands import Bands
+        from querykLines import getkLines, rmEquivkPts, greekLabels
+        # get data from detailed.out of dftb+
+        dftbout = DFTBOutput(self.workdir)
+        for key,value in dftbout.data.iteritems():
+            self.data[key] = value
+        
+        # attempt to obtain the band structure
+        if self.getBands:
+            if self.getHOMO:
+                nElectrons = dftbout.getOutputElectrons() # alt: self.data['Output electrons']
+                withSOC = dftbout.withSOC()               # alt: self.data['Spin orbit couplint']
+            else:
+                nElectrons = 0
+                withSOC = False
+            try:
+                bs = Bands(workdir=self.workdir, nElectrons=nElectrons, SOC=withSOC,)
+            except:
+                self.log.critical('\tCould not parse the bandstructure file.'
+                                  '\tCheck bands_tot.dat exists in {0}'.format(self.workdir))
+                sys.exit([1])
+            # if we pass the try statement, then we have the bs object
+            for key,value in bs.data.iteritems():
+                self.data[key] = value
+                
+            # now prepare data for plotting. here we need to know the k-lines, to label them 
+            # properly and therefore we need to know what lattice we have
+            if self.prepareforplot:
+                if 'lattice' in self.data:
+                    kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'])
+                else:
+                    self.log.critical('\tCould not interpret the kLines info without a given lattice in mind'
+                                      '\tMake sure data[''lattice''] is specified before quering the band-structure')
+                    sys.exit([1])
+                bandsPlt,kLinesPlt = rmEquivkPts(bs.getBands(E0=self.Eref)[0], # note that getBands returns (bands,E0)
+                                                kLines,
+                                                self.data.get('equivkpts',[]))
+                self.data['bandsPlt'] = bandsPlt
+                self.data['kLinesPlt'] = greekLabels(kLinesPlt)
+                
+                
+    def __call__(self):
+        self.query()

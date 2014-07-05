@@ -4,90 +4,60 @@ tasklist of an instance of a Calculator.
 """
 import logging
 
+
 class RunDFTB(object):
     """
     Perform dftb calculation
-    ncpu dictates how many cpu's to use
-    exe permits altenative instance of dftb+ to be used
-    chargesfile is linked to charges.bin, when initial charges must be provided
-    outfiles are the files that need to be copied with .postfix at the end.
     """
-    def __init__(self, dftb_in='dftb_in.hsd', dftb_out='dftb_out.log', chargesfile="",
-             postfix="", outfiles = ['charges.bin', 'detailed.out', 'band.out'], 
-             log=logging.getLogger(__name__),
-             ncpu=4, exe='dftb+'):
-        self.log = log
+    def __init__(self, workdir = '.', exe='dftb+', 
+                dftb_in='dftb_in.hsd', dftb_out='dftb_log.out', chargesfile="",
+                ncpu = 4, log=logging.getLogger(__name__),):
+        self.workdir = workdir
+        self.exe = exe
         self.dftb_in = dftb_in
         self.dftb_out = dftb_out
         self.chargesfile = chargesfile
-        self.outfiles = outfiles
-        self.postfix = postfix
         self.ncpu = ncpu
-        self.exe = exe
-        #
-        self.output = {}
+        self.log = log
 
     def execute(self):
-        import subprocess
+        import subprocess 
         from subprocess import STDOUT
         import os,sys
 
         # prepare the shell environment
         env = os.environ.copy()
         env['OMP_NUM_THREADS'] = '{0}'.format(self.ncpu)
+        
+        os.chdir(self.workdir)
 
         # copy file with input charges, if not with the default charges.bin
         if self.chargesfile and not self.chargesfile=='charges.bin':
-            subprocess.check_call(['/bin/cp','-f',self.chargesfile,'charges.bin'],stderr=STDOUT)
+            subprocess.check_call(['/bin/cp','-f',self.chargesfile,
+                                   os.path.join(self.workdir,'charges.bin')],stderr=STDOUT)
 
         # not sure if this will be effective during the subsequent Popen...
         # causes troubles anyway....
         #subprocess.check_call(['ulimit','-s','unlimited'])
 
-        # link dftb_in to 'dftb_in.hsd'
-        self.log.debug("Running dftb+ with {f} input".format(f=self.dftb_in))
-        if not self.dftb_in == 'dftb_in.hsd':
-            subprocess.check_call(['ln','-sf',self.dftb_in,'dftb_in.hsd'])
+        self.log.debug("Running {0} with in {1}".format(self.exe,self.workdir))
+        self.log.debug("Execution log is in {0}".format(self.dftb_out))
 
         # execute dftb+
         process = subprocess.Popen([self.exe,], stdout=open(self.dftb_out, 'w'),stderr=STDOUT, env=env)
         process.wait()
-        self.output['dftb_success'] = not(process.returncode)
-	if self.output['dftb_success']:
-	    # now poll the log of dftb+ for 'ERROR!', which seems to indicate a clear failure
-	    # at least in the cases of problem with input file or something, e.g. missing SKFs etc.
-	    isError = stringisinfile('ERROR!',self.dftb_out)
-	    isOneIteration = stringisinfile('Max. scc iterations:                      1',self.dftb_out)
-	    isNotConverged = stringisinfile('-> SCC is NOT converged, maximal SCC iterations exceeded',self.dftb_out)
-	    # however, mask ERROR! due to lack of convergence if it is in a non-iterative calculation
-	    if isError:
-		if isOneIteration and isNotConverged:
-		    self.output['dftb_success'] = True
-		else:
-		    self.output['dftb_success'] = False
-
+        success = not(process.returncode)
         # if not success, then bail out crying:
-	if not self.output['dftb_success']:
+        if not success:
             self.log.critical('\tERROR: dftb+ failed somehow. Check {0}!'.format(self.dftb_out))
-	    sys.exit()
+            sys.exit()
 
-	# copy outfiles with a postfix, if needed
-	if self.output['dftb_success'] and self.postfix:
-	    for f in self.outfiles:
-          subprocess.check_call(['/bin/cp',f,'.'.join([f,self.postfix])])
-	self.log.debug('\tDone.')
-        
         # success of some sort
-        return self.output
+        return success
 
     def __call__(self):
         return self.execute()
 
-
-    def fake(self):
-        self.log.debug('Faking the execution of dftb+. No log either.')
-        self.output['dftb_success'] = True
-        return self.output
 
 
 class RunSKgen(object):
@@ -144,36 +114,33 @@ class RunDPbands(object):
                                 the k-points
         -s, --separate-spins  create separate band structure for each spin channel
     """
-    def __init__(self, infile='band.out', outfile='', log=logging.getLogger(__name__)):
-        self.log = log
+    def __init__(self, workdir = '.', exe='dp_bands', infile='band.out', opts = [],
+	         outprefix='bands', log=logging.getLogger(__name__)):
+	self.workdir = workdir
+	self.exe = exe
         self.infile = infile
-        self.outfile = outfile
+        self.outprefix = outprefix
+	self.options = opts
         self.logfile = 'dp_bands.log'
-        self.output = {}
+        self.log = log
     
     def execute(self):
         import subprocess
         from subprocess import STDOUT
-        self.log.debug('Executing dp_bands on {i}, result will be in {o}'.format(i=self.infile, 
-                       o='band_tot.dat' if not self.outfile else self.outfile))
-        process = subprocess.Popen(['dp_bands',self.infile,'band'], stdout=open(self.logfile, 'w'),stderr=STDOUT,)
+        self.log.debug('Executing {e} in {d} on {i}, result will be in {o}'.format(
+			e=self.exe, d=self.workdir, i=self.infile, o=self.outprefix))
+        process = subprocess.Popen([self.exe, self.infile, self.outprefix], 
+				    stdout=open(self.logfile, 'w'), stderr=STDOUT,)
         process.wait()
-        self.output['dpbands_success'] = not(process.returncode)
-        if process.returncode:
-            self.log.error('\tERROR: dp_bands failed somehow. Check {log}!'.format(log=self.outfile))
-        else:
-            if self.outfile:
-                subprocess.check_call(['/bin/cp','band_tot.dat',self.outfile], stdout=open(self.logfile,'w'),stderr=STDOUT)
-            self.log.debug('\tDone.')
-        return self.output
+        success = not(process.returncode)
+	if not success:
+            self.log.critical('\tERROR: dp_bands failed somehow. Check {log}!'.format(log=self.outprefix))
+	    sys.exit()
+        return success
     
     def __call__(self):
         return self.execute()
     
-    def fake(self):
-        self.log.debug('Faking the execution of dp_bands. No log or output either.')
-        self.output['dpbands_success'] = True
-        return self.output
 
 def stringisinfile (s,txtfile):
     """
