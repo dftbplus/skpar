@@ -1,22 +1,28 @@
 import logging
 
-def plotBS (bands,kLines=None,Erange=[-13,13], figsize=(6,7), refEkpts=None, refBands=None,
-            col='darkred', colref='blue', cycle_colors=False,log=logging.getLogger('__name__'), **kwargs):
+def plotBS (bands,kLines=None,Erange=[-13,13], krange=None, figsize=(6,7), \
+            refEkpts=None, refBands=None,\
+            col='darkred', colref='blue', \
+            cycle_colors=False,log=logging.getLogger('__name__'), **kwargs):
     """
     Plot the bands supplied to bands argument, along the k-lines in the kLines argument.
     Note that kLines is a list of tupples of the form (label_string,index_integer)
     Optionally specify refEkPts (e.g. a reference band-structure).
-    Optionally specify the energy range Erange (defaults to [-13,13]) and figure size (dflt: 6x7)
-    Optionally specify whether different colours should be used for each band (default True).
+    Optionally specify the energy range Erange (defaults to [-13,13]) 
+    and figure size (dflt: 6x7)
+    Optionally specify whether different colours should be used for each 
+    band (default True).
     Return a figure.
     """
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib.ticker import AutoMinorLocator
     import numpy as np
-    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize',20), 'font.family': kwargs.get('fontfamily','sans')})
+    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize',20), \
+                                'font.family': kwargs.get('fontfamily','sans')})
     plt.rc('lines', linewidth=2)
-    plt.rc('axes', color_cycle=['Red','Green','Blue','DarkBlue','LightBlue','Purple','Cyan','Olive','Maroon'])
+    plt.rc('axes', color_cycle=['Red','Green','Blue','DarkBlue',\
+                                'LightBlue','Purple','Cyan','Olive','Maroon'])
     
     nk,nE = bands.shape
 
@@ -25,8 +31,10 @@ def plotBS (bands,kLines=None,Erange=[-13,13], figsize=(6,7), refEkpts=None, ref
     # set axis labels and ranges
     ax.set_xlabel('$\mathbf{k}$-vector')
     ax.set_ylabel('Energy (eV)')
-    ax.set_xlim([0,nk-1])
+    if krange is None:
+        krange = [0,nk-1]
     ax.set_ylim(Erange)
+    ax.set_xlim(krange)
     # set ticks; ideally kLines will be obtained in advance from querying dftb_pin.hsd
     if kLines is not None:
         kTicks  = [k[1] for k in kLines]
@@ -47,22 +55,26 @@ def plotBS (bands,kLines=None,Erange=[-13,13], figsize=(6,7), refEkpts=None, ref
         [plt.axvline(x=k,color='k') for k in kTicks]
     # plot reference Ek points with markers if given
     if refEkpts is not None:
-        xx0 = np.transpose(refEk)[0]
-        yy0 = np.transpose(refEk)[1]
+        xx0 = np.transpose(refEkpts)[0]
+        yy0 = np.transpose(refEkpts)[1]
         ax.plot(xx0,yy0,color=colref,marker='o',ls='*',lw='2',markersize=8)
     # TODO:
     # plot reference bands if full band-structure given as reference:
-    # the condition here is that these must be along the same k-lines and same number of k-points
-    # and that there are the same number nE for each nk; note that this latter condition is
-    # relaxed above, for the refEkpts.
-    # Note that if we want to permit different nk, then we cannot plot k-pt index on the x-axis.
-    # we have to scale by actual length of the k-vector and plot that.... too sophisticated for the moment.
+    # the condition here is that these must be along the same k-lines and same 
+    # number of k-points and that there are the same number nE for each nk;
+    # note that this latter condition is relaxed above, for the refEkpts.
+    # Note that if we want to permit different nk, then we cannot plot k-pt 
+    # index on the x-axis.
+    # we have to scale by actual length of the k-vector and plot that.... 
+    # too sophisticated for the moment.
     if refBands is not None:
         if refBands.shape != bands.shape:
-            log.warning('Ignoring refBands since refBands.shape != Bands. Cannot handle different k-pts in refBands.')
+            log.warning('Ignoring refBands since refBands.shape != Bands.'+\
+                        'Cannot handle different k-pts in refBands.')
         else:
             yy0 = np.transpose([refBands[:,i] for i in xrange(nE)])
             ax.plot(xx,yy0,color=colRef)
+    ax.set_xlim(krange)
     return fig
 
 

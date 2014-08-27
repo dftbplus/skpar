@@ -61,6 +61,17 @@ class Evaluate:
 
         return fitness, errors
 
+def relerr(calc,ref):
+    """
+    """
+    if ref == 0:
+        if calc == 0:
+            result = 0
+        else :
+            result = 1
+    else:
+        result = (calc-ref)/ref
+    return result
 
 def evaluate_residues(targets,calculated,verbose=True,log=logging.getLogger(__name__)):
     """ 
@@ -85,7 +96,7 @@ def evaluate_residues(targets,calculated,verbose=True,log=logging.getLogger(__na
 
 def evaluate_RMSD(targets,calculated,verbose=False,log=logging.getLogger(__name__)):
     """ 
-    Evaluate the individual deviation, in absolute and relrative terms, as well as the
+    Evaluate the individual deviation, in absolute and relative terms, as well as the
     RMS deviation, between calculated results and target.
     Requires that calculated is of the same length as targets.
     targets (see targets.py) is supposed to be a list like class, list of tupples,

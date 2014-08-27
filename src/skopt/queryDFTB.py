@@ -149,9 +149,12 @@ class QueryDataDFTB (object):
     """
     
     def __init__(self, data, workdir='.', 
+	         postfix='', bandsprefix='bands',
                  getBands=True, Eref=None, getHOMO=True, getkLines=True,
 		 prepareforplot=True, log=logging.getLogger('__name__')):
         self.workdir = workdir
+	self.postfix = postfix
+	self.bandsprefix = bandsprefix
         self.data = data
         self.getBands = getBands
         self.Eref = Eref
@@ -180,7 +183,8 @@ class QueryDataDFTB (object):
                 nElectrons = 0
                 withSOC = False
             try:
-                bs = Bands(workdir=self.workdir, nElectrons=nElectrons, SOC=withSOC,)
+                bs = Bands(workdir=self.workdir, prefix=self.bandsprefix, postfix=self.postfix,
+			    nElectrons=nElectrons, SOC=withSOC,)
             except:
                 self.log.critical('\tCould not parse the bandstructure file.'
                                   '\tCheck bands_tot.dat exists in {0}'.format(self.workdir))

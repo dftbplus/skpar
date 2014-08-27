@@ -27,6 +27,11 @@ SymPts_k = { 'FCC': { 'G': [(0.,0.,0.),], 'Gamma': [(0.,0.,0.),],
                       'L': [(1./2., 0., 1./2.),],
                       'M': [(1./2., 0., 0.),], },
 
+             'CUB': { 'Gamma': [(0,0,0),],
+                      'M': [(1./2., 1./2., 0.),],
+                      'R': [(1./2., 1./2., 1./2.),],
+                      'X': [(0., 1./2., 0.),], },
+
              'TET': { 'Gamma': [(0,0,0),],
                       'A': [(1./2., 1./2., 1./2.),],
                       'M': [(1./2., 1./2., 0.),],
@@ -95,6 +100,39 @@ class HEX(object):
             self.prim =  [ np.array((a/2., -a*np.sqrt(3)/2., 0.)),
                            np.array((a/2., +a*np.sqrt(3)/2., 0.)),
                            np.array((0, 0, c)) ]
+
+        self.recipr = get_recipr(self.prim,self.scale)
+
+        self.SymPts_k = {} # in terms of k-vectors
+        self.SymPts = {}   # in terms of reciprocal length
+
+        for k,v in SymPts_k[self.name].items():
+            self.SymPts_k[k] = np.array(v[0])
+            self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
+
+
+class CUB(object):
+    """
+    This is CUBic, cP lattice
+    """
+    def __init__(self,a,scale=2*np.pi,primvec=None):
+        """
+        Initialise the lattice parameter(s) upon instance creation, and
+        calculate the direct and reciprocal lattice vectors, as well
+        as the components of the k-vectors defining the high-symmetry
+        points known for the given lattice.
+        """
+        
+        self.name = 'CUB'
+        self.a = a
+        self.scale = scale
+
+        if primvec is not None:
+            self.prim = primvec
+        else:
+            self.prim =  [ np.array((a, 0., 0.)),
+                           np.array((0., a, 0.)),
+                           np.array((0., 0., a)) ]
 
         self.recipr = get_recipr(self.prim,self.scale)
 

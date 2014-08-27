@@ -32,8 +32,8 @@ def get_elemdefs(config_file,extraincludes):
     # this section should disappear once we pull all modules in the skgen/src/ directory
     # and only 'import sk' will be left.
     import sys,os
-    if os.path.isdir(os.path.join(os.path.expanduser("~"),'Desktop/Dropbox/')):
-        skpath = os.path.join(os.path.expanduser("~"),'Desktop/Dropbox/Projects/QMEM/DFTB+/SKF/skgen/src')
+    if os.path.isdir(os.path.join(os.path.expanduser("~"),'Dropbox/')):
+        skpath = os.path.join(os.path.expanduser("~"),'Dropbox/Projects/QMEM/DFTB+/SKF/skgen/src')
     elif os.path.isdir(os.path.join(os.path.expanduser("~"),'Dropbox/')):
         skpath = os.path.join(os.path.expanduser("~"),'Dropbox/Projects/QMEM/DFTB+/SKF/skgen/src')
     else:

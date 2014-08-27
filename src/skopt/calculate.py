@@ -100,55 +100,75 @@ class Calculator(object):
 
 class Analyser(object):
     """
-    This class is effectively a wrapper to tasks analysing data.
-    It also contains the loop for executing the tasks in a callable method.
     """
-    import logging
-    
-    def __init__(self, name, data, datakey=None, log=logging.getLogger(__name__)):
-        """
-        Initialise the task list with an empty one, and set a logger
-        Tasks should be filled in by the instantiator, using self.append()
-        or directly appending calleable objects to the takslist
-        The name of the analyser will be used as a key in the data dictionary
-        unless explicit key is passed to an analyser task upon instantiation
-        """
-        self.tasks = []
+    def __init__(self, analyse, data, results, log=logging.getLogger(__name__), **kwargs):
+        self .analyse = analyse
+        self.data = data
+        self.results = results
         self.log = log
-        self.name = name
-        self.datain = data
-        self.datakey = name if datakey is None else datakey
-        self.dataout = {}
+        self.kwargs = kwargs
+        
+    def execute(self):
+        self.output = self.analyse(self.data,**self.kwargs)
+        for key,val in self.output.iteritems():
+            self.results[key] = val
+            
+    def __call__(self):
+        self.execute()
+	
+	
+	
+#class Analyser(object):
+#    """
+#    This class is effectively a wrapper to tasks analysing data.
+#    It also contains the loop for executing the tasks in a callable method.
+#    """
+#    import logging
+#    
+#    def __init__(self, name, data, datakey=None, log=logging.getLogger(__name__)):
+#        """
+#        Initialise the task list with an empty one, and set a logger
+#        Tasks should be filled in by the instantiator, using self.append()
+#        or directly appending calleable objects to the takslist
+#        The name of the analyser will be used as a key in the data dictionary
+#        unless explicit key is passed to an analyser task upon instantiation
+#        """
+#        self.tasks = []
+#        self.log = log
+#        self.name = name
+#        self.datain = data
+#        self.datakey = name if datakey is None else datakey
+#        self.dataout = {}
 
-    def append(self, exe, *args, **kwargs):
-        append_task(self, exe, *args, **kwargs)
+#    def append(self, exe, *args, **kwargs):
+#        append_task(self, exe, *args, **kwargs)
         
 
-    def analyse(self):
-        """
-        The following will work only if tasks are independent from each other.
-        Dependency must be handled by introduction of intemediary tasks, at the
-        level where tasks are appended by the instantiator of the calculator.
-        """
-        import os
-        self.log.debug('Analyser {0} at work.'.format(self.name))
-        self.log.debug('\tUsing {0} as key to system data.'.format(self.datakey))
-        for task in self.tasks:
-            """
-            Assume that any report of the activity is done by the task itself.
-            At the end of the execution, if the output of the task is not None,
-            assume it is a dictionary, and add the corresponding items to the
-            calculator.data.
-            """
-            self.log.debug('\tExecuting {0} of {1}'.format(task, self))
+#    def analyse(self):
+#        """
+#        The following will work only if tasks are independent from each other.
+#        Dependency must be handled by introduction of intemediary tasks, at the
+#        level where tasks are appended by the instantiator of the calculator.
+#        """
+#        import os
+#        self.log.debug('Analyser {0} at work.'.format(self.name))
+#        self.log.debug('\tUsing {0} as key to system data.'.format(self.datakey))
+#        for task in self.tasks:
+#            """
+#            Assume that any report of the activity is done by the task itself.
+#            At the end of the execution, if the output of the task is not None,
+#            assume it is a dictionary, and add the corresponding items to the
+#            calculator.data.
+#            """
+#            self.log.debug('\tExecuting {0} of {1}'.format(task, self))
+#
+#            output = task(data=self.datain[self.datakey])
 
-            output = task(data=self.datain[self.datakey])
+#            if output is not None:
+#                self.dataout.update(output)
 
-            if output is not None:
-                self.dataout.update(output)
-
-    def __call__(self):
-        self.analyse()
+#    def __call__(self):
+#        self.analyse()
 
 
 
