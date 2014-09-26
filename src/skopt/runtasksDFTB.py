@@ -114,22 +114,22 @@ class RunDPbands(object):
                                 the k-points
         -s, --separate-spins  create separate band structure for each spin channel
     """
-    def __init__(self, workdir = '.', exe='dp_bands', infile='band.out', opts = [],
+    def __init__(self, workdir = '.', exe='dp_bands', infile='band.out', opts = None,
 	         outprefix='bands', log=logging.getLogger(__name__)):
 	self.workdir = workdir
 	self.exe = exe
-        self.infile = infile
+        self.infile = infile 
         self.outprefix = outprefix
-	self.options = opts
-        self.logfile = 'dp_bands.log'
+	self.options = opts or []
+        self.logfile = 'dp_bands. log'
         self.log = log
     
     def execute(self):
-        import subprocess
+        import subprocess 
         from subprocess import STDOUT
         self.log.debug('Executing {e} in {d} on {i}, result will be in {o}'.format(
 			e=self.exe, d=self.workdir, i=self.infile, o=self.outprefix))
-        process = subprocess.Popen([self.exe, self.infile, self.outprefix], 
+        process = subprocess.Popen( [self.exe, self.infile, self.outprefix], 
 				    stdout=open(self.logfile, 'w'), stderr=STDOUT,)
         process.wait()
         success = not(process.returncode)
@@ -157,11 +157,11 @@ def stringisinfile (s,txtfile):
     return sinfile
 
 class AnalyseDFTBOut(object):
-    """
+    """ 
     This class encapsulates the analysis of the detailed.out file of the DFTB+ run
     """
     def __init__(self, fileDetails='detailed.out', units="eV", log=logging.getLogger(__name__)):
-        self.log = log
+        self.log = log 
         self.output = {}
         self.fileDetails = fileDetails
         self.units = units
@@ -235,16 +235,16 @@ class AnalyseDFTBOut(object):
 
 
 def check_var(var,data,value,critical,log):
-    """
+    """ 
     """
     import sys
     if not data[var] == value:
-        if critical:
-            log.critical('{var} ({act}) is NOT {exp}. Cannot continue.'.format(var=var, 
+        if critical: 
+            log.critical('{var} ({act} ) is NOT {exp}. Cannot continue.'.format(var=var, 
                         act=data[var], exp=value))
             sys.exit(1)
         else:
-            log.error('{var} ({act}) is NOT {exp}. Check logs.'.format(var=var, 
+            log.error('{var} ({act}) i s NOT {exp}. Check logs.'.format(var=var, 
                         act=data[var], exp=value))
 
 

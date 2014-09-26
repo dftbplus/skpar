@@ -111,9 +111,9 @@ class Parameter(object):
     A class holding the value of a parameter and associated attributes.
     A very explicit __repr__ method is added for debug purposes.
     """
-    def __init__(self,value=0.0,range=[],link=None,map=None):
+    def __init__(self,value=0.0,range=None,link=None,map=None):
         self.value = value
-        self.range = range
+        self.range = range or []
         self.link = link
         self.map = map
         self.root = None
@@ -124,7 +124,7 @@ class Parameter(object):
 
         
 class SKConfiguration(object):
-    """ 
+    """  
     The attributes and methods of this class enable the interpretation of the 'skbases' and 'compressions'
     data (e.g. obtained from get_elemdefs of skgen), in order to find out which are the free parameters
     for optimization. Therefore, an instance of the class is obtained by supplying 'skbases' and 'compressions'
@@ -159,7 +159,7 @@ class SKConfiguration(object):
     import logging
     
     def __init__(self,SKconfigList):
-        self.SKconfigList = SKconfigList
+        self.SKconfigList  = SKconfigList
         self.SKconfigDict = dict(SKconfigList)
         self.atomconfigs = self.SKconfigDict["atomconfigs"]
         self.skbases = self.SKconfigDict["skbases"]

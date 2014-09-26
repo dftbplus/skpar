@@ -90,12 +90,12 @@ class Plotter(object):
     'col' and 'colref' are used for data and ref* respectively.
     'data' bands may be plotted with cycling colours too (cycle_colors=True).
     """
-    def __init__(self, data={}, filename=None, 
+    def __init__(self, data=None, filename=None, 
                  Erange=[-13,+13], figsize=(6,7), log=logging.getLogger(__name__), 
                  refEkpts=None, refBands=None, col='darkred', colref='blue', cycle_colors=False):
         """
         """
-        self.data = data
+        self.data = data or {}
         self.filename = filename
         self.Erange = Erange
         self.figsize = figsize
@@ -107,7 +107,7 @@ class Plotter(object):
         self.cycle_colors = cycle_colors
         
     def plot(self, *args, **kwargs):
-        """
+        """ 
         This method attempt to plot and save a figure of the bandstructure contained in self.data.
         self.data may be initialised at self.__init__() and the 'bands' and 'kLines' fields of data
         may be independently updated. This allows one to call plot() without any arguments.
