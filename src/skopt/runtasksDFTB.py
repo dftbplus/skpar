@@ -121,7 +121,7 @@ class RunDPbands(object):
         self.infile = infile 
         self.outprefix = outprefix
 	self.options = opts or []
-        self.logfile = 'dp_bands. log'
+        self.logfile = 'dp_bands.log'
         self.log = log
     
     def execute(self):

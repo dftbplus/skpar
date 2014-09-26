@@ -13,6 +13,8 @@ def readBandStructure(fileBS, data, log, E0=None):
          ...
         nk E_1 E_2 ... E_nE
     
+    fileBS should normally be the output of `>dp_bands band.out bands`
+    
     __NOTA BENE:__ There is no info about the k-points!!! only their index is available.
     To derive info about the k-points automatically, one needs to parse the 
     dftb_in.hsd.bs file, looking for the K-lines stanza.
