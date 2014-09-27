@@ -3,6 +3,8 @@ This module contains functions and classes that can be appended to the
 tasklist of an instance of a Calculator.
 """
 import logging
+import os, sys, subprocess
+from subprocess import STDOUT
 
 
 class RunDFTB(object):
@@ -29,6 +31,7 @@ class RunDFTB(object):
         env = os.environ.copy()
         env['OMP_NUM_THREADS'] = '{0}'.format(self.ncpu)
         
+        callerdir = os.getcwd()
         os.chdir(self.workdir)
 
         # copy file with input charges, if not with the default charges.bin
@@ -52,6 +55,7 @@ class RunDFTB(object):
             self.log.critical('\tERROR: dftb+ failed somehow. Check {0}!'.format(self.dftb_out))
             sys.exit()
 
+	os.chdir(callerdir)
         # success of some sort
         return success
 
@@ -60,38 +64,37 @@ class RunDFTB(object):
 
 
 
-class RunSKgen(object):
+class RunSKgen_sh(object):
     """
-    This class encapsulates the execution of a ./skgen.sh script in the current directory.
+    This class encapsulates the execution of a ./skgen.sh script in workdir
     The relevant skdefs.py must be present in the current directory too.
     """
-    def __init__(self, outfile='skgen.sh.log', log=logging.getLogger(__name__)):
+    def __init__(self, workdir = '.', exe='skgen.sh', 
+                log=logging.getLogger(__name__),):
+        self.workdir = workdir
+        self.exe = exe
+        self.infile = 'skdefs.py'
+	self.logfile = 'skgen.sh.log' # this will take stdout and stderr
         self.log = log
-        self.outfile = outfile
-        self.output = {}
-    
+
     def execute(self):
-        import os, subprocess, sys
-        from subprocess import STDOUT
-        self.log.debug('Executing skgen.sh')
-        process = subprocess.Popen(['/bin/bash','skgen.sh',], stdout=open(self.outfile, 'w'),stderr=STDOUT,)
+        callerdir = os.getcwd()
+        os.chdir(self.workdir)
+        self.log.debug('Executing {e} in {d} with input from {i}; stdout/err will be in {o}'.format(
+			e=self.exe, d=self.workdir, i=self.infile, o=self.logfile))
+        process = subprocess.Popen(['/bin/bash',self.exe,], stdout=open(self.logfile, 'w'),stderr=STDOUT,)
         process.wait()
-        self.output['skgen_success'] = not(process.returncode)
-        if process.returncode:
-            self.log.error('\tERROR: skgen.sh failed somehow; should not continue. Check {log}!'.format(log=self.outfile))
-            sys.exit(1)
-        else:
-            self.log.debug('\tDone.')
-        return self.output
+        success = not(process.returncode)
+        if not success:
+            self.log.critical('\tERROR: {e} failed somehow. Check {log}!'.
+		    format(e=self.exe,o=self.logfile))
+	    sys.exit()
+        os.chdir(callerdir)
+        return success
 
     def __call__(self):
         return self.execute()
     
-    def fake(self):
-        self.log.debug('Faking the execution of skgen.sh. No log either.')
-        self.output['skgen_success'] = True
-        return self.output
-
 
 class RunDPbands(object):
     """
@@ -125,8 +128,8 @@ class RunDPbands(object):
         self.log = log
     
     def execute(self):
-        import subprocess 
-        from subprocess import STDOUT
+        callerdir = os.getcwd()
+        os.chdir(self.workdir)
         self.log.debug('Executing {e} in {d} on {i}, result will be in {o}'.format(
 			e=self.exe, d=self.workdir, i=self.infile, o=self.outprefix))
         process = subprocess.Popen( [self.exe, self.infile, self.outprefix], 
@@ -134,8 +137,10 @@ class RunDPbands(object):
         process.wait()
         success = not(process.returncode)
 	if not success:
-            self.log.critical('\tERROR: dp_bands failed somehow. Check {log}!'.format(log=self.outprefix))
+            self.log.critical('\tERROR: {e} failed somehow. Check {log}!'.
+		    format(e=self.exe,log=self.outprefix))
 	    sys.exit()
+        os.chdir(callerdir)
         return success
     
     def __call__(self):
