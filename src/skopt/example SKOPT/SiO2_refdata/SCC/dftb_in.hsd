@@ -1,0 +1,31 @@
+Geometry = GenFormat {
+  <<< "../UnitCell.gen"
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1e-12
+  OrbitalResolvedSCC = Yes
+  ReadInitialCharges = No
+  MaxSCCIterations = 100
+  SlaterKosterFiles {
+    O-O   = "../../SKF/O-O.skf"
+    Si-Si = "../../SKF/Si-Si.skf"
+    Si-O  = "../../SKF/Si-O.skf"
+    O-Si  = "../../SKF/O-Si.skf"
+  }
+  MaxAngularMomentum {
+    Si = "d"
+    O  = "p"
+  }
+  Filling = Fermi {
+    Temperature [Kelvin] = 0.0
+  }
+  KPointsAndWeights = SupercellFolding {
+    8 0 0
+    0 8 0
+    0 0 8
+    0.0 0.0 0.0
+  }
+}
+
