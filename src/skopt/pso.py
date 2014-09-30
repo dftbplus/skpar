@@ -169,7 +169,7 @@ class PSO(object):
         self.logger.logHeader()
 
         
-    def buzz(self,ngen,ErrTol):
+    def optimise(self,ngen,ErrTol):
         """
         Let the swarm evolve for ngen generations.
         """
@@ -179,10 +179,10 @@ class PSO(object):
                 iteration = (g,i)
                 try:
                     # assume that the evaluator makes use of iteration
-                    part.fitness.values, part.errors = self.toolbox.evaluate(part.renormalized,iteration)
+                    part.fitness.values, part.maxerr = self.toolbox.evaluate(part.renormalized,iteration)
                 except:
                     # omit iteration from the arguments otherwise
-                    part.fitness.values, part.errors = self.toolbox.evaluate(part.renormalized)
+                    part.fitness.values, part.maxerr = self.toolbox.evaluate(part.renormalized)
                 if not part.best or part.best.fitness < part.fitness:
                     part.best = creator.Particle(part)
                     part.best.fitness.values = part.fitness.values
@@ -190,9 +190,8 @@ class PSO(object):
                     self.swarm.gbest = creator.Particle(part)
                     self.swarm.gbest.fitness.values = part.fitness.values
                     self.swarm.gbest.renormalized = part.renormalized
-                    self.swarm.gbest.errors = part.errors
                     self.swarm.gbest_iteration = iteration
-                    self.swarm.gbest_maxErr = max(map(operator.abs,part.errors))
+                    self.swarm.gbest_maxErr = part.maxerr
                     self.halloffame.update(self.swarm)
             # Update particles only after full evaluation of the swarm,
             # so that gbest possibly arise from the last generation.
@@ -202,10 +201,14 @@ class PSO(object):
             self.stats.update(self.swarm)
             self.logger.logGeneration(gen=g, evals=len(self.swarm), \
                             stats=self.stats, \
-                            Best_maxErr = min([max(map(operator.abs,part.errors)) for part in self.swarm]))
+                            Best_maxErr = min([part.maxerr for part in self.swarm]))
             # Try an alternative exit criterion
             if (self.swarm.gbest_maxErr <= ErrTol):
                 break
 #            print "Fitness of generation {}: {}".format(g,[p.fitness.values for p in self.swarm])
         
         return self.swarm, self.stats
+
+
+    def __call__(self,*args,**kwargs):
+	return self.optimise(*args,**kwargs)
