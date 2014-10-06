@@ -87,7 +87,7 @@ class RunSKgen_sh(object):
         success = not(process.returncode)
         if not success:
             self.log.critical('\tERROR: {e} failed somehow. Check {log}!'.
-		    format(e=self.exe,o=self.logfile))
+		    format(e=self.exe,log=self.logfile))
 	    sys.exit()
         os.chdir(callerdir)
         return success
