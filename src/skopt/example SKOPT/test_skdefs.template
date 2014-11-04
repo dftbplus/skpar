@@ -1,0 +1,20 @@
+
+compressions = {
+	"Si": Compression(
+		potcomp = "potential",
+		potcomp_parameters = [[4, 3.45], 
+                          [%( PotCompPower_Si_p ,5,1,7)i, 
+                           %( PotCompRadius_Si_p , 3.67 , 3.1 , 7.0 )f ], 
+                           [4, 7.67]],
+		wavecomp = "potential",
+		wavecomp_parameters = [[4, 3.45], [4, 6.44], [4, 7.67]],
+		),
+	"O": Compression(
+		potcomp = "potential",
+		potcomp_parameters = [[ %(PotCompPower_O, 4, 1, 12)i, %(PotCompRadius_O,4.0,3.,10)f], 
+                          [%(PotCompPower_O,4,1,12)i, %(PotCompRadius_O,4.0,3.,10)f]],
+		wavecomp = "potential",
+		wavecomp_parameters = [[12, 3.1], [12, 3.1]],
+		),
+    }
+
