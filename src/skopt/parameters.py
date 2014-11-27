@@ -33,6 +33,7 @@ class Parameter(object):
     ParameterType is indicated by either 'i'(int) or 'f'(float)
     Spaces are optional.
     NOTABENE: NO space is allowed between %( nor between )i or )f.
+    TODO: Eliminate the need to have a default value!
     """
     # permitted parameter types
     typedict = {'i': int, 'f': float}
@@ -51,7 +52,7 @@ class Parameter(object):
         assert parstr[-1] in Parameter.typedict.keys()
         self.ptype = Parameter.typedict[parstr[-1]]
 
-        # extract data converting values to appropriate type
+        # extract data, converting values to appropriate type
         words = parstr[2:-2].split(',')
         self.name = words[0]
         # the conversion from words to float to type allows one to do
@@ -76,7 +77,7 @@ def stripall(ss):
         return [re.sub(r'\s*', '', s) for s in ss]
 
 
-def read_skdefs(fileobj):
+def read_par_template(fileobj):
     """
     Returns a single string joining the lines of the fileobject,
     including line breaking chars etc.
@@ -88,16 +89,9 @@ def read_skdefs(fileobj):
     return "".join(fileobj.readlines())
 
 
-def write_skdefs(fileobj, skdefs):
-    if isinstance(fileobj, str):
-        fileobj = open(fileobj, 'w')
-
-    fileobj.writelines(skdefs)
-
-
-def get_skpar(skdefs, log=logging.getLogger(__name__)):
+def parse_par_template(pardefs, log=logging.getLogger(__name__)):
     """
-    Take the input skdefs string and return a list of substings,
+    Take the input pardefs string and return a list of substings,
     each of which conveys the info related to a single parameter.
     Each of the substrings that are returned is assumed to have
     the format described in the Parameter Class above.
@@ -108,14 +102,14 @@ def get_skpar(skdefs, log=logging.getLogger(__name__)):
     # %(ParName, initialvalue, minvalue, maxvalue)ParType
     pattern = re.compile(r'%\(.+?\)[fi]')
     try:
-        parstr = re.findall(pattern, skdefs)
+        parstr = re.findall(pattern, pardefs)
     except:
         parstr = ""
     # note that parstr is a list of strings, 
     # each string describing one parameter
     parstr = stripall(parstr)
 
-    # update the skdefs template by eliminating the initial,min,max values
+    # update the pardefs template by eliminating the initial,min,max values
     # and leaving only %(ParName)ParType format strings
     # note the use of named group in the matching pattern, so later we
     # form the replacement by selecting only the matching elements of interest
@@ -123,27 +117,83 @@ def get_skpar(skdefs, log=logging.getLogger(__name__)):
                               r'(?P<pName>\w+)\s*,.+?' +  # Parameter name
                               r'(?P<pClose>[)][fi])')  # )i or )f closing/type definition
     try:
-        assert isinstance(skdefs, basestring)
-        reduced_skdefs = re.sub(grouppattern,
+        assert isinstance(pardefs, basestring)
+        reduced_pardefs = re.sub(grouppattern,
                                 "\g<pOpen>\g<pName>\g<pClose>",
-                                skdefs)
+                                pardefs)
     except AttributeError:
-        reduced_skdefs = skdefs
+        reduced_pardefs = pardefs
 
         # check integrity
     outpattern = re.compile(r'%\(\w+\)[fi]')
     if parstr == "":
-        log.warning("The given skdefs templeate contains no parameter definitions")
+        log.warning("The given parameter template contains no parameter definitions")
     else:
-        found = re.findall(outpattern, reduced_skdefs)
-        assert len(found) == len(parstr), "ERROR: given skdefs string was incorrectly parsed."
+        found = re.findall(outpattern, reduced_pardefs)
+        assert len(found) == len(parstr), "ERROR: given parameter string was incorrectly parsed."
 
-    # get back the neat skdefs template and the list of parameter strings
-    return reduced_skdefs, parstr
+    parameters = [Parameter(ps) for ps in parstr]
+
+    # get back the neat skdefs template and the list of Parameter objects
+    return reduced_pardefs, parameters
+
+
+def read_parameters(fileobj, log=logging.getLogger(__name__)):
+    """
+    encapsulates reading the file containing the skdefs.template
+    and parameter info, and the parsing of the parameter info;
+    :param fileobj: fileobj or a string filename
+    :param log: logger for messages from the parser of fileobj
+    :return: a tuple, consisting of
+            0) a string (skdefs_template_out), which is the template
+            with format placeholders for the values of the parameters,
+            but no parameter info anymore,
+            1) an OrderedDict of Par.Name,Par.Value
+            2) an OrderedDict of Par.Name,(Par.min, Par.max)
+    """
+    par_template_out, parameters = parse_par_template(read_par_template(fileobj), log)
+    pardict = OrderedDict([(p.name, p.value) for p in parameters])
+    parrange = OrderedDict([(p.name, (p.minv, p.maxv)) for p in parameters])
+    return par_template_out, pardict, parrange
+
+    
+def update_pardict(pardict, values):
+    for p,v in zip(pardict.keys(),values):
+        pardict[p] = v
+    return pardict
+
+
+def report_parameters(iteration, pardict, log, tag=''):
+    """
+    """
+    log.info('')
+    log.info('{0}Iteration {1}'.format(tag, iteration))
+    log.info('============================================================')
+    for key,val in pardict.items():
+	log.info('\t{name:<15s}:\t{val:n}'.format(name=key,val=val))
+
+
+def write_parameters(par_template, pardict, fileobj):
+    """
+    Write parameters to file, updating the named parameter placeholders
+    in the given template with the parameter values supplied in the pardict
+    :param fileobj: sting (filename) or file object to write to
+    :param par_template: string with named placeholders for formatting the
+                         supplied values of parameters
+    :param pardict: ordered dictionary of (parameter_name,parameter_value) pairs
+    :return: none
+    """
+    assert isinstance(pardict, OrderedDict)
+    if isinstance(fileobj, str):
+        fileobj = open(fileobj, 'w')
+    fileobj.writelines(par_template % pardict)
+
 
 
 if __name__ == "__main__":
 
+    log=logging.getLogger("SKOPT")
+    logging.basicConfig(level=logging.DEBUG)
     print ("Testing Parameter Class:")
     print ("------------------------")
 
@@ -159,25 +209,22 @@ if __name__ == "__main__":
 
     print ("Testing skdefs.template parsing (looking for ./example SKOPT/test_skdefs.template file):")
     print ("------------------------------------------------------------------------")
-    skdefs = read_skdefs("./example SKOPT/test_skdefs.template")
-    reduced_skdefs, parstr = get_skpar(skdefs)
+    skdefs = read_par_template("./example SKOPT/test_skdefs.template")
+    reduced_skdefs, parameters = parse_par_template(skdefs)
     print
     print ('Reduced skdefs.template (no info of parameter values, only formatting slots):')
     print (reduced_skdefs)
 
     print
-    print ('Extracted parameter strings:')
-    for ps in parstr:
-        print ps, Parameter(ps)
+    print ('Extracted parameters:')
+    for p in parameters:
+        print p
 
     print
     print ('Writing skdefs output string based on the supplied initial values:')
     # NOTABENE: we use OrderedDict which automatically eliminates duplicate parameters
     # at the same time, the format dictionary automatically uses the same value
     # no matter how many times we have the same parameter defined.
-    pardict = OrderedDict([(p.name, p.value) for p in [Parameter(s) for s in parstr]])
-    skdefsout = reduced_skdefs % pardict
-    print (skdefsout)
-
-    print ('Writing skdefs file. (check ./example SKOPT/test_skdefs.out)')
-    write_skdefs('./example SKOPT/test_skdefs.out', skdefsout)
+    skdefs, skpar, skparrange = read_parameters("./example SKOPT/test_skdefs.template")
+    write_parameters(skdefs, skpar, "./example SKOPT/test_skdefs.py")
+    report_parameters(None, skpar, log)

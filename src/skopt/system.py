@@ -5,7 +5,7 @@ from utils import flatten
 class Analyser(object):
     """
     """
-    def __init__(self, analyse, data, results, log=logging.getLogger(__name__), **kwargs):
+    def __init__(self, analyse, data, results, log=None, **kwargs):
         self.analyse = analyse
         self.data = data
         self.results = results
@@ -13,7 +13,9 @@ class Analyser(object):
         self.kwargs = kwargs
         
     def execute(self):
-        self.output = self.analyse(self.data,**self.kwargs)
+	if self.log is None:
+	    self.log = logging.getLogger(__name__)
+        self.output = self.analyse(self.data, **self.kwargs)
         for key,val in self.output.iteritems():
             self.results[key] = val
             
@@ -31,6 +33,9 @@ def queryData(data,keys):
     """ 
     A query function that returns a sub-dictionary of 
     data based on keys.
+    data is the input dictionary
+    keys determine the key,value pairs returned in the
+    output dictionary
     """
     assert all(key in data for key in keys)
     odict = dict()
@@ -45,13 +50,13 @@ class System (object):
     A system is a named ('name' attribute) abstraction layer of the 
     calculations and analysis that can be performed over a given well
     defined entity, for example an atomic structure.
-    Properties are calculated by 'tasks' (a list).
-    Tasks are a mixture of auxilliary executables and analyser functions 
+    Properties are calculated by 'tasks' (a list of functions).
+    Tasks are a mixture of auxiliary executable and analyser functions
     (typically user provided functions for post-processing the
-    data output from auxilliary executables).
+    data output from auxiliary executable).
     The sequence of task execution is predefined by the user, and
     the actual execution of the tasks populates the 'calculated' 
-    dictionary of the system (could be nested).
+    dictionary of the system (could be a nested dictionary).
     A system has by default 'refdata' and 'weights', defining the
     reference data and weights of each reference datum.
     The 'updatesystem' method can optionally be supplied, permitting
@@ -65,7 +70,8 @@ class System (object):
                  refdata = None, weights = None,
                  updatesystem = None,
                  tasks = None,
-                 log=logging.getLogger(__name__),
+		 log=None,
+#                 log=logging.getLogger(__name__),
                  **optattr):
         self.workdir = workdir
         self.refdata = refdata or OrderedDict({})
@@ -86,8 +92,15 @@ class System (object):
     def execute(self):
         """
         """
+	if self.log is None:
+	    self.log = logging.getLogger(__name__)
         for task in self.tasks:
             self.log.debug('{0}.{1}'.format(self.name,task))
+	    try:
+		if task.log is None:
+		    task.log is self.log
+	    except AttributeError:
+		pass
             task()
         return None
             

@@ -3,11 +3,14 @@ Particle swarm optimizer based on the DEAP library.
 """
 import random
 import operator
+import sys
+import logging
 import numpy as np
 
 from deap import base
 from deap import creator
 from deap import tools
+
 
 def declareTypes(weights):
     """
@@ -24,11 +27,11 @@ def declareTypes(weights):
     """
     creator.create("pFitness", base.Fitness, weights=weights)
     creator.create("Particle", list, fitness=creator.pFitness, speed=list, past=list,
-            smin=None, smax=None, best=None, norm=list, shift=list, renormalized=list,
-            errors=list)
-    creator.create("Swarm", list, gbest=None, gbestfit=creator.pFitness, 
-                    gbest_iteration=None, gbest_maxRelErr=None)
-    
+                   smin=None, smax=None, best=None, norm=list, shift=list, renormalized=list,
+                   worstErr=None)
+    creator.create("Swarm", list, gbest=None, gbestfit=creator.pFitness,
+                   gbest_iteration=None)
+
 
 def createParticle(prange):
     """
@@ -48,15 +51,15 @@ def createParticle(prange):
     # prange is a list of tuples containing the _initial_ range of particle coordinates
     # prange is normalised, to [-1:+1], and the speedlimit is set to 0.5 the range
     size = len(prange)
-    pmin,pmax,smin,smax = -1.0, 1.0, -1.0, 1.0
+    pmin, pmax, smin, smax = -1.0, 1.0, -1.0, 1.0
     part = creator.Particle(random.uniform(pmin, pmax) for _ in range(size))
     part.past = [random.uniform(pmin, pmax) for _ in range(size)]
     part.speed = [random.uniform(smin, smax) for _ in range(size)]
     part.smin = smin
     part.smax = smax
-    part.norm = [(pmax-pmin)/(r[1]-r[0]) for r in prange]
-    part.shift = [0.5*(r[1]+r[0]) for r in prange]
-    part.renormalized = map(operator.add,map(operator.div,part,part.norm),part.shift)
+    part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in prange]
+    part.shift = [0.5 * (r[1] + r[0]) for r in prange]
+    part.renormalized = map(operator.add, map(operator.div, part, part.norm), part.shift)
     return part
 
 
@@ -74,7 +77,7 @@ def evolveParticle_0(part, best, phi1=2, phi2=2):
         part -- instance of the particle class, the particle to be updated
         best -- the best known particle ever (within the life of the swarm)
         phi1,phi2 -- connectivity coefficients
-    """ 
+    """
     u1 = (random.uniform(0, phi1) for _ in range(len(part)))
     u2 = (random.uniform(0, phi2) for _ in range(len(part)))
     v_u1 = list(map(operator.mul, u1, map(operator.sub, part.best, part)))
@@ -86,10 +89,10 @@ def evolveParticle_0(part, best, phi1=2, phi2=2):
         elif speed > part.smax:
             part.speed[i] = part.smax
     part[:] = list(map(operator.add, part, part.speed))
-    part.renormalized = list(map(operator.add,map(operator.div,part,part.norm),part.shift))
-    
-    
-def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree = 2):
+    part.renormalized = list(map(operator.add, map(operator.div, part, part.norm), part.shift))
+
+
+def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
     """
     A method to update the position and speed of a particle (part), according to the
     generalized formula of Eq(3) in J.Kennedy, "Particle Swarm Optimization" in
@@ -100,23 +103,23 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree = 2):
         best -- the best known particle ever (within the life of the swarm)
         inertia -- factor scaling the persistence of the particle
         acceleration -- factor scaling the influence of particle connection
-        degree -- unused right now. should serve for a fully informred particle swarm (FIPS),
+        degree -- unused right now. should serve for a fully informed particle swarm (FIPS),
                   but this requires best to become a list of neighbours best;
                     also u1,u2 and v_u1, v_u2 should be transformed into a Sum over neighbours
     Returns the updated particle
-    """ 
+    """
     if degree != 2:
         sys.exit("ERROR: degree!=2 is not supported (no support for FIPS yet). Cannot continue.")
     # calculate persistence and influence terms
-    u1 = (random.uniform(0, acceleration/degree) for _ in range(len(part)))
-    u2 = (random.uniform(0, acceleration/degree) for _ in range(len(part)))
+    u1 = (random.uniform(0, acceleration / degree) for _ in range(len(part)))
+    u2 = (random.uniform(0, acceleration / degree) for _ in range(len(part)))
     v_u1 = list(map(operator.mul, u1, map(operator.sub, part.best, part)))
     v_u2 = list(map(operator.mul, u2, map(operator.sub, best, part)))
-    persistence = list(map(operator.mul,[inertia]*len(part),map(operator.sub,part,part.past)))
-    influence   = list(map(operator.add, v_u1, v_u2))
+    persistence = list(map(operator.mul, [inertia] * len(part), map(operator.sub, part, part.past)))
+    influence = list(map(operator.add, v_u1, v_u2))
     part.speed = list(map(operator.add, persistence, influence))
     # assign current position to the old one
-    for i,p in enumerate(part):
+    for i, p in enumerate(part):
         part.past[i] = p
     # apply speed limit per dimension!
     for i, s in enumerate(part.speed):
@@ -126,8 +129,80 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree = 2):
             part.speed[i] = part.smax
     # update current position in both normalized and physical coordinates
     part[:] = list(map(operator.add, part, part.speed))
-    part.renormalized = map(operator.add,map(operator.div,part,part.norm),part.shift)
-    
+    part.renormalized = map(operator.add, map(operator.div, part, part.norm), part.shift)
+
+
+# init arguments: 
+pso_init_args = ["npart", "objectives", "parrange", "evaluate"]
+pso_optinit_args   = ["log", ] 
+
+# call arguments
+pso_call_args = ["ngen", ]
+pso_optcall_args   = ["ErrTol", ] 
+
+def pso_args(**kwargs):
+    """
+    """
+    pso_obligatory_args = pso_init_args + pso_call_args
+    args = {}
+    optargs = {}
+    for arg in pso_obligatory_args:
+	try: 
+	    args[arg] = kwargs[arg]
+	except KeyError:
+	    errormsg = "PSO missing obligatory argument {0}\n".format(arg)+\
+	        "Please define at least:\n{0}\n".format(pso_obligatory_args)+\
+	        "PSO supports also:\n{0}\n".format(pso_optional_args)
+	    try:
+		kwargs['log'].critical(errormsg)
+	    except KeyError:
+		print (errormsg)
+		sys.exit(1)
+    for arg in pso_optinit_args + pso_optcall_args:
+	try: 
+	    optargs[arg] = kwargs[arg]
+	except KeyError:
+	    pass
+
+    init_args = [args[key] for key in pso_init_args]
+    call_args = [args[key] for key in pso_call_args]
+    init_optional_args = dict([(key, optargs[key]) for key in optargs if key in pso_optinit_args])
+    call_optional_args = dict([(key, optargs[key]) for key in optargs if key in pso_optcall_args])
+
+    return init_args, call_args, init_optional_args, call_optional_args
+
+
+def report_PSO_stats(stats, wre_stats, log=logging.getLogger(__name__)):
+    """
+    """
+    statsHeader = "".join([
+	'{0:>5s}'.format('Gen.'),
+	'{0:>10s}'.format('Min.'),
+	'{0:>10s}'.format('Max.'),
+	'{0:>10s}'.format('Avg.'),
+	'{0:>10s}'.format('Std.'),
+	'{0:>12s}'.format('WorstErr(%)'),
+	])
+    log.info('')
+    log.info("PSO statistics follow:")
+    log.info(statsHeader)
+    log.info('============================================================')
+    ngen = len(stats.Min[0])
+    for gen in range(ngen):
+	log.info("".join([
+	'{0:>5d}'.format(gen),
+	'{0:>10.4f}'.format(stats.Min[0][gen][0]),
+	'{0:>10.4f}'.format(stats.Max[0][gen][0]),
+	'{0:>10.4f}'.format(stats.Avg[0][gen][0]),
+	'{0:>10.4f}'.format(stats.Std[0][gen][0]),
+	'{0:>12.2f}'.format(wre_stats.Min[0][gen][0]*100.),
+	    ]))
+    log.info('============================================================')
+
+
+def minabs(swarm):
+    return np.min(np.abs([part.worstErr for part in swarm]))
+
 
 class PSO(object):
     """
@@ -136,79 +211,82 @@ class PSO(object):
     toolbox = base.Toolbox()
     nBestKept = 10
     halloffame = tools.HallOfFame(nBestKept)
-    
+
     # see J. Kennedy "Particle Swarm Optimization" in "Encyclopedia of machine learning" (2010).
     pInertia = 0.7298
     pAcceleration = 2.9922
-    
-    def __init__(self,npart,objective_weights,pRange,pEval,**pEvalArgs):
+
+    def __init__(self, npart, objective_weights, pRange, pEval, **pEvalKwdArgs):
         """
         Create a particle swarm
         """
         # define the particle and the methods associated with its creation, evolution and fitness evaluation
         declareTypes(objective_weights)
         self.toolbox.register("create", createParticle, prange=pRange)
-        self.toolbox.register("evolve", evolveParticle, inertia = self.pInertia, acceleration = self.pAcceleration)
-        self.toolbox.register("evaluate",pEval,**pEvalArgs)
+        self.toolbox.register("evolve", evolveParticle, inertia=self.pInertia, acceleration=self.pAcceleration)
+        self.toolbox.register("evaluate", pEval, **pEvalKwdArgs) # pEvalArgs will be implicitly passed upon call
         # create a swarm from particles with the above defined properties
-        self.toolbox.register("swarm", tools.initRepeat, creator.Swarm, self.toolbox.create)   
+        self.toolbox.register("swarm", tools.initRepeat, creator.Swarm, self.toolbox.create)
         self.swarm = self.toolbox.swarm(npart)
         # provide with statistics collector and evolution logger
         # these must be further customized, may be by directly operating on the
         # PSO instance 
+	# fitness statistics
         self.stats = tools.Statistics(lambda ind: ind.fitness.values)
         self.stats.register("Avg", tools.mean)
         self.stats.register("Std", tools.std)
         self.stats.register("Min", min)
         self.stats.register("Max", max)
-    
-        column_names = ["gen", "evals"]
-        column_names.extend(self.stats.functions.keys())
-        column_names.extend(["Best_maxErr",])
-        self.logger = tools.EvolutionLogger(column_names)
-        self.logger.logHeader()
+	# worstRelErr statistics
+	self.wre_stats = tools.Statistics(lambda ind: ind.worstErr)
+        self.wre_stats.register("Min", minabs)
 
-        
-    def optimise(self,ngen,ErrTol):
+        column_names = ["gen",]
+        column_names.extend(self.stats.functions.keys())
+        self.logger = tools.EvolutionLogger(column_names)
+
+
+    def optimise(self, ngen, ErrTol=None):
         """
         Let the swarm evolve for ngen generations.
         """
-        gbest_gen = 0
         for g in range(ngen):
-            for i,part in enumerate(self.swarm):
-                iteration = (g,i)
-                try:
-                    # assume that the evaluator makes use of iteration
-                    part.fitness.values, part.maxerr = self.toolbox.evaluate(part.renormalized,iteration)
-                except:
-                    # omit iteration from the arguments otherwise
-                    part.fitness.values, part.maxerr = self.toolbox.evaluate(part.renormalized)
+            for i, part in enumerate(self.swarm):
+                iteration = (g, i)
+#                try:
+#                    # assume that the evaluator makes use of iteration
+                part.fitness.values, part.worstErr = self.toolbox.evaluate(part.renormalized, iteration)
+#                except:
+#                    # omit iteration from the arguments otherwise
+#                    part.fitness.values, part.worstErr = self.toolbox.evaluate(part.renormalized)
                 if not part.best or part.best.fitness < part.fitness:
                     part.best = creator.Particle(part)
                     part.best.fitness.values = part.fitness.values
+
                 if not self.swarm.gbest or self.swarm.gbest.fitness < part.fitness:
+                    self.swarm.gbest_iteration = iteration
                     self.swarm.gbest = creator.Particle(part)
                     self.swarm.gbest.fitness.values = part.fitness.values
                     self.swarm.gbest.renormalized = part.renormalized
-                    self.swarm.gbest_iteration = iteration
-                    self.swarm.gbest_maxErr = part.maxerr
+                    self.swarm.gbest.worstErr = part.worstErr
                     self.halloffame.update(self.swarm)
+
             # Update particles only after full evaluation of the swarm,
             # so that gbest possibly arise from the last generation.
             for part in self.swarm:
                 self.toolbox.evolve(part, self.swarm.gbest)
-            # Gather all the fitnesses in one list and print the stats
+
+            # Gather all the fitnesses and worst errors and update the stats
             self.stats.update(self.swarm)
-            self.logger.logGeneration(gen=g, evals=len(self.swarm), \
-                            stats=self.stats, \
-                            Best_maxErr = min([part.maxerr for part in self.swarm]))
+            self.wre_stats.update(self.swarm)
+
             # Try an alternative exit criterion
-            if (self.swarm.gbest_maxErr <= ErrTol):
-                break
-#            print "Fitness of generation {}: {}".format(g,[p.fitness.values for p in self.swarm])
-        
+	    if ErrTol is not None:
+		if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
+		    break
+
         return self.swarm, self.stats
 
 
-    def __call__(self,*args,**kwargs):
-	return self.optimise(*args,**kwargs)
+    def __call__(self, *args, **kwargs):
+        return self.optimise(*args, **kwargs)

@@ -9,14 +9,14 @@ def calcErrors(ref, calc):
         """
         Takes calc, and ref, which are lists or 1D numpy arrays of the same length,
         containing the calculated and the reference data, respectively, and
-        returns two arrays: absolute error, and relative error.
+        returns two arrays: error (deviation), and relative error.
         In case that ref contains 0, the relative error is patched to 1 (i.e. 100%)
         """
         cc = np.asarray(calc); rr = np.asarray(ref)
-        abserr = cc - rr
+        err = cc - rr
         relerr = (cc - rr)/rr
         relerr[relerr==np.inf] = 1. # suppose we get 0 as a reference data
-        return abserr, relerr
+        return err, relerr
         
     
 def calcCost (errors=None, weights=None, 
@@ -35,11 +35,11 @@ def calcCost (errors=None, weights=None,
         """
         # permit the function to be called either with data/ref or directly w/ errors
         if errors is None:
-            abserr,relerr = calcErrors(ref, calc)
+            deviation,relerr = calcErrors(ref, calc)
             if useRelErr:
                 err = relerr
             else:
-                err = abserr
+                err = deviation
         else:
             err = np.asarray(errors)
             
@@ -59,14 +59,14 @@ def calcCost (errors=None, weights=None,
             ww = ww/norm
             
         # cost becomes the sum of weighted sqared errors
-        # i.e. RMS value in case of absolute error and identical weights
+        # i.e. RMS value in case of absolute deviation and identical weights
         wr2 = ww*np.square(err)
         cost = np.sqrt(np.sum(wr2))
         
         return cost
     
     
-def reportError (ref, calc, abserr, relerr, keys=None, log=logging.getLogger(__name__)):
+def reportError (ref, calc, err, relerr, keys=None, log=logging.getLogger(__name__)):
     """
     Report to the logger, in a neat tabular format, the reference value, 
     the calculated value, the absolute error and the relative error in %.
@@ -77,14 +77,14 @@ def reportError (ref, calc, abserr, relerr, keys=None, log=logging.getLogger(__n
     Not supplying keys leads to full report without data names.
     """
     log.info('{k:<20s}{r:>10s}{c:>10s}{ea:>10s}{er:>10s}'.
-             format(k='Datum',r='Ref.',c='Calc.',ea='Abs.Err',er='% Err'))
-    log.info('===========================================================')
+             format(k='Datum',r='Ref.',c='Calc.',ea='Deviation',er='% Err'))
+    log.info('============================================================')
     if keys is None:
         keys = ['']*len(ref)
     for i,key in enumerate(keys):
         if key!='-':    
             log.info('{k:20s}{r:10.3f}{c:10.3f}{ea:10.3f}{er:10.1f}'.
-            format(k=key,r=ref[i],c=calc[i],ea=abserr[i],er=relerr[i]*100))
+            format(k=key,r=ref[i],c=calc[i],ea=err[i],er=relerr[i]*100))
     
     
 def normaliseWeights(weights):
@@ -175,21 +175,21 @@ class EvaluateCost (object):
         assert len(calc) == len(ref)
         assert len(weights) == len(ref)
             
-        abserr, relerr = self.evalerr(ref, calc)
-        self.abserr = abserr
+        err, relerr = self.evalerr(ref, calc)
+        self.err = err
         self.relerr = relerr
         
         if self.verbose:
-            self.report(ref, calc, abserr, relerr, 
+            self.report(ref, calc, err, relerr, 
                         keys=self.keys, log=self.log)
             
         if self.useRelErr:
             self.err = relerr
         else:
-            self.err = abserr
+            self.err = err
             
-        self.maxabserr = max([abs(ee) for ee in self.abserr])
-        self.maxrelerr = max([abs(ee) for ee in self.relerr])
+        self.maxerr = np.max(np.abs(self.err))
+        self.maxrelerr = np.max(np.abs(self.relerr))
 
         self.cost = self.evalcost(errors=self.err, weights=weights,
                             normalise=self.normaliseweights)
@@ -211,7 +211,7 @@ class Evaluator (object):
     4. Run the analysers
     5. Combine the resulting data in a list of the same character as the reference data
     6. Evaluate fitness (cost) and return the value, return also max error that
-       can be used as a stopping criterium
+       can be used as a stopping criterion
 
     Ideally, the evaluator does not know anything about the parameters itself, 
     neither does the optimiser, obviously -- just a set of numbers.  
@@ -221,7 +221,7 @@ class Evaluator (object):
     So, what is a system?
 
     * a collection of atoms, with its own directory for calculations  
-    * a dictionary with the data resulting from calculators (executables)  
+    * a dictionary with the data resulting from calculators (executable)
     * a dictionary with the data resulting from analysers (postprocessing)  
     * a tasklist with
         1. calculators  
@@ -230,8 +230,8 @@ class Evaluator (object):
     * parameter handler
     ...
     """   
-    def __init__(self, systems, workdir='./', 
-                 systemweights = None, 
+    def __init__(self, systems, systemweights = None,  
+		 workdir='./', 
                  costfunc=None, verbose=True, useRelErr=False,
                  skipexecution=False,
                  log=logging.getLogger(__name__),**kwargs):
@@ -261,7 +261,7 @@ class Evaluator (object):
         # if we deal with many systems... unlikely
         if systemweights is not None:
             try:
-                assert isinstance(systemweights,list)
+                assert isinstance(systemweights, list)
                 assert len(systemweights) == len(self.systems)
                 self.systemweights = systemweights
             except AssertionError:
@@ -307,9 +307,11 @@ class Evaluator (object):
                 self.flatcalcdata.extend(calc)
                 self.log.debug('\t...done.')
         assert len(self.flatcalcdata) == len(self.flatrefdata)
-        self.log.debug('Evaluating cost function...')
+        self.log.info('Evaluating cost function...')
         self.cost = self.evalcost(self.flatcalcdata, self.flatrefdata, self.flatweights)
-        self.log.info('\t...{0}'.format(self.cost))
+	self.log.info('============================================================')
+	self.log.info('Cost at iteration {0} is: {1}'.format(iteration, self.cost))
+	self.log.info('')
         return self.cost 
     
     def __call__(self,parameters,iteration=None):

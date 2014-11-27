@@ -1,9 +1,14 @@
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
+import numpy as np
 import logging
 
-def plotBS (bands,kLines=None,Erange=[-13,13], krange=None, figsize=(6,7), \
-            refEkpts=None, refBands=None,\
-            col='darkred', colref='blue', \
-            cycle_colors=False,log=logging.getLogger('__name__'), **kwargs):
+
+def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
+           refEkpts=None, refBands=None, \
+           col='darkred', colref='blue', \
+           cycle_colors=False, log=logging.getLogger('__name__'), **kwargs):
     """
     Plot the bands supplied to bands argument, along the k-lines in the kLines argument.
     Note that kLines is a list of tupples of the form (label_string,index_integer)
@@ -14,50 +19,46 @@ def plotBS (bands,kLines=None,Erange=[-13,13], krange=None, figsize=(6,7), \
     band (default True).
     Return a figure.
     """
-    import matplotlib
-    import matplotlib.pyplot as plt
-    from matplotlib.ticker import AutoMinorLocator
-    import numpy as np
-    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize',20), \
-                                'font.family': kwargs.get('fontfamily','sans')})
+    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize', 20), \
+                                'font.family': kwargs.get('fontfamily', 'sans')})
     plt.rc('lines', linewidth=2)
-    plt.rc('axes', color_cycle=['Red','Green','Blue','DarkBlue',\
-                                'LightBlue','Purple','Cyan','Olive','Maroon'])
-    
-    nk,nE = bands.shape
+    plt.rc('axes', color_cycle=['Red', 'Green', 'Blue', 'DarkBlue', \
+                                'LightBlue', 'Purple', 'Cyan', 'Olive', 'Maroon'])
+
+    nk, nE = bands.shape
 
     # get a figure object with the desired figures size
-    fig,ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)
     # set axis labels and ranges
     ax.set_xlabel('$\mathbf{k}$-vector')
     ax.set_ylabel('Energy (eV)')
     if krange is None:
-        krange = [0,nk-1]
+        krange = [0, nk - 1]
     ax.set_ylim(Erange)
     ax.set_xlim(krange)
     # set ticks; ideally kLines will be obtained in advance from querying dftb_pin.hsd
     if kLines is not None:
-        kTicks  = [k[1] for k in kLines]
+        kTicks = [k[1] for k in kLines]
         kLabels = [k[0] for k in kLines]
         ax.set_xticks(kTicks)
         ax.set_xticklabels(kLabels)
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     # plot the bands
     xx = xrange(nk)
-    yy = np.transpose([bands[:,i] for i in xrange(nE)])
+    yy = np.transpose([bands[:, i] for i in xrange(nE)])
     # plot the bands
     if cycle_colors:
-        ax.plot(xx,yy)
+        ax.plot(xx, yy)
     else:
-        ax.plot(xx,yy,color=col)
+        ax.plot(xx, yy, color=col)
     # plot vertical lines at special symmetry points if these are known
     if kLines is not None:
-        [plt.axvline(x=k,color='k') for k in kTicks]
+        [plt.axvline(x=k, color='k') for k in kTicks]
     # plot reference Ek points with markers if given
     if refEkpts is not None:
         xx0 = np.transpose(refEkpts)[0]
         yy0 = np.transpose(refEkpts)[1]
-        ax.plot(xx0,yy0,color=colref,marker='o',ls='*',lw='2',markersize=8)
+        ax.plot(xx0, yy0, color=colref, marker='o', ls='*', lw='2', markersize=8)
     # TODO:
     # plot reference bands if full band-structure given as reference:
     # the condition here is that these must be along the same k-lines and same 
@@ -69,11 +70,11 @@ def plotBS (bands,kLines=None,Erange=[-13,13], krange=None, figsize=(6,7), \
     # too sophisticated for the moment.
     if refBands is not None:
         if refBands.shape != bands.shape:
-            log.warning('Ignoring refBands since refBands.shape != Bands.'+\
+            log.warning('Ignoring refBands since refBands.shape != Bands.' + \
                         'Cannot handle different k-pts in refBands.')
         else:
-            yy0 = np.transpose([refBands[:,i] for i in xrange(nE)])
-            ax.plot(xx,yy0,color=colRef)
+            yy0 = np.transpose([refBands[:, i] for i in xrange(nE)])
+            ax.plot(xx, yy0, color=colRef)
     ax.set_xlim(krange)
     return fig
 
@@ -90,8 +91,9 @@ class Plotter(object):
     'col' and 'colref' are used for data and ref* respectively.
     'data' bands may be plotted with cycling colours too (cycle_colors=True).
     """
-    def __init__(self, data=None, filename=None, 
-                 Erange=[-13,+13], figsize=(6,7), log=logging.getLogger(__name__), 
+
+    def __init__(self, data=None, filename=None,
+                 Erange=[-13, +13], figsize=(6, 7), log=logging.getLogger(__name__),
                  refEkpts=None, refBands=None, col='darkred', colref='blue', cycle_colors=False):
         """
         """
@@ -105,7 +107,7 @@ class Plotter(object):
         self.col = col
         self.colref = colref
         self.cycle_colors = cycle_colors
-        
+
     def plot(self, *args, **kwargs):
         """ 
         This method attempt to plot and save a figure of the bandstructure contained in self.data.
@@ -117,61 +119,56 @@ class Plotter(object):
         plot() can be called also with two positional arguments: bands,kLines
         or one positional arguments: data, or two key-value pairs: bands=..., kLines=...
         """
-        import sys
-	import matplotlib
-	import matplotlib.pyplot as plt
-	if kwargs and 'filename' in kwargs:
-	    self.filename = kwargs['filename']
+        if kwargs and 'filename' in kwargs:
+            self.filename = kwargs['filename']
 
         if self.filename is None or not self.filename:
             self.log.critical('No filename specified for bandstrcture plot. Aborting execution.')
-            sys.exit(0)
         else:
             self.log.debug('Plotting bandstructure to {0}'.format(self.filename))
-            
-        # here we allow plot() to be called with explicit data or 
-        # with explicit (bands,kLines), but retain the capability of 
+
+        # here we allow plot() to be called with explicit data or
+        # with explicit (bands,kLines), but retain the capability of
         # having self.data assigned during self.__init__() while its
         # key-values may be independently updated (as mutable object)
         # or by directly assigning Plotter.data = ... etc.
         if len(args) == 2:
             self.data['bandsPlt'] = args[0]
-            self.data['kLinesPlt'] = args[1] 
+            self.data['kLinesPlt'] = args[1]
         if len(args) == 1:
             self.data = args[0]
-            
+
         if kwargs:
             if 'data' in kwargs:
                 self.data = kwargs['data']
-	    if all([k in kwargs for k in ('bands','kLines')]):
+            if all([k in kwargs for k in ('bands', 'kLines')]):
                 self.data['bandsPlt'] = kwargs['bands']
                 self.data['kLinesPlt'] = kwargs['kLines']
-	    if all([k in kwargs for k in ('bandsPlt','kLinesPlt')]):
+            if all([k in kwargs for k in ('bandsPlt', 'kLinesPlt')]):
                 self.data['bandsPlt'] = kwargs['bandsPlt']
                 self.data['kLinesPlt'] = kwargs['kLinesPlt']
-        
+
         try:
             bands = self.data['bandsPlt']
             kLines = self.data['kLinesPlt']
         except KeyError:
-	    try:
-		bands = self.data['bands']
-		kLines = self.data['kLines']
-	    except:
-		self.log.critical('Plotter {0} has wrongly assigned data field'.format(self))
-		sys.exit([1])
+            try:
+                bands = self.data['bands']
+                kLines = self.data['kLines']
+            except:
+                self.log.critical('Plotter {0} has wrongly assigned data field'.format(self))
 
-        self.fig = plotBS(bands, kLines, Erange=self.Erange, figsize=self.figsize, 
+        self.fig = plotBS(bands, kLines, Erange=self.Erange, figsize=self.figsize,
                         refEkpts=self.refEkpts, refBands=self.refBands,
                         col=self.col, colref=self.colref, cycle_colors=self.cycle_colors,
                         log=self.log)
-        self.fig.savefig(self.filename, bbox_inches='tight',pad_inches=0.01)
-        plt.close()    
-        
+        self.fig.savefig(self.filename, bbox_inches='tight', pad_inches=0.01)
+        plt.close()
+
         self.output = None
         return self.output
 
-    
-    def __call__(self,*args,**kwargs):
-        self.plot(*args,**kwargs)
+
+    def __call__(self, *args, **kwargs):
+        self.plot(*args, **kwargs)
 

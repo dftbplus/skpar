@@ -13,7 +13,7 @@ class RunDFTB(object):
     """
     def __init__(self, workdir = '.', exe='dftb+', 
                 dftb_in='dftb_in.hsd', dftb_out='dftb_log.out', chargesfile="",
-                ncpu = 4, log=logging.getLogger(__name__),):
+                ncpu = 4, log=None,):
         self.workdir = workdir
         self.exe = exe
         self.dftb_in = dftb_in
@@ -23,9 +23,10 @@ class RunDFTB(object):
         self.log = log
 
     def execute(self):
-        import subprocess 
-        from subprocess import STDOUT
-        import os,sys
+
+	# verify a logger is available
+	if self.log is None:
+	    self.log = logging.getLogger(__name__)
 
         # prepare the shell environment
         env = os.environ.copy()
@@ -70,7 +71,7 @@ class RunSKgen_sh(object):
     The relevant skdefs.py must be present in the current directory too.
     """
     def __init__(self, workdir = '.', exe='skgen.sh', 
-                log=logging.getLogger(__name__),):
+                log=None,):
         self.workdir = workdir
         self.exe = exe
         self.infile = 'skdefs.py'
@@ -78,6 +79,11 @@ class RunSKgen_sh(object):
         self.log = log
 
     def execute(self):
+
+	# verify a logger is available
+	if self.log is None:
+	    self.log = logging.getLogger(__name__)
+
         callerdir = os.getcwd()
         os.chdir(self.workdir)
         self.log.debug('Executing {e} in {d} with input from {i}; stdout/err will be in {o}'.format(
@@ -118,7 +124,7 @@ class RunDPbands(object):
         -s, --separate-spins  create separate band structure for each spin channel
     """
     def __init__(self, workdir = '.', exe='dp_bands', infile='band.out', opts = None,
-	         outprefix='bands', log=logging.getLogger(__name__)):
+	         outprefix='bands', log=None):
 	self.workdir = workdir
 	self.exe = exe
         self.infile = infile 
@@ -128,6 +134,11 @@ class RunDPbands(object):
         self.log = log
     
     def execute(self):
+
+	# verify a logger is available
+	if self.log is None:
+	    self.log = logging.getLogger(__name__)
+
         callerdir = os.getcwd()
         os.chdir(self.workdir)
         self.log.debug('Executing {e} in {d} on {i}, result will be in {o}'.format(
