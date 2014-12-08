@@ -170,6 +170,7 @@ class QueryDataDFTB (object):
         from queryBands import Bands
         from querykLines import getkLines, rmEquivkPts, greekLabels
         # get data from detailed.out of dftb+
+	self.log.debug("Parsing dftb output from {0}".format(self.workdir))
         dftbout = DFTBOutput(self.workdir)
         for key,value in dftbout.data.iteritems():
             self.data[key] = value
@@ -182,6 +183,10 @@ class QueryDataDFTB (object):
             else:
                 nElectrons = 0
                 withSOC = False
+
+	    self.log.debug("...obtained nElectrons={0}".format(nElectrons))
+	    self.log.debug("...obtained withSOC={0}".format(withSOC))
+
             try:
                 bs = Bands(workdir=self.workdir, prefix=self.bandsprefix, postfix=self.postfix,
 			    nElectrons=nElectrons, SOC=withSOC,)
@@ -190,6 +195,7 @@ class QueryDataDFTB (object):
                                   '\tCheck bands_tot.dat exists in {0}'.format(self.workdir))
                 sys.exit([1])
             # if we pass the try statement, then we have the bs object
+	    self.log.debug("...acquired the following items:\n{0}".format(bs.data.keys()))
             for key,value in bs.data.iteritems():
                 self.data[key] = value
 

@@ -104,7 +104,7 @@ class RunSKgen_sh(object):
 
 class RunDPbands(object):
     """
-    This class encapsulates the execution of a dp_bands in the current directory
+    This class encapsulates the execution of a dp_bands in the workdir directory
     
     Below is the result of dp_bands --help:
 
@@ -141,8 +141,8 @@ class RunDPbands(object):
 
         callerdir = os.getcwd()
         os.chdir(self.workdir)
-        self.log.debug('Executing {e} in {d} on {i}, result will be in {o}'.format(
-			e=self.exe, d=self.workdir, i=self.infile, o=self.outprefix))
+        self.log.debug('Executing {e} in {d} on {i}, result will be in {o}_tot.dat'.
+                format(e=self.exe, d=self.workdir, i=self.infile, o=self.outprefix))
         process = subprocess.Popen( [self.exe, self.infile, self.outprefix], 
 				    stdout=open(self.logfile, 'w'), stderr=STDOUT,)
         process.wait()

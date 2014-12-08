@@ -23,7 +23,7 @@ class SKopt(object):
     """
     def __init__(self, workdir = "./", 
 		 skopt_in='skdefs.template', 
-		 skfdir='SKF',
+		 skfdir='skf',
 		 skdefs_out='skdefs.py',
 		 systems=None,
 		 sysweights=None,
