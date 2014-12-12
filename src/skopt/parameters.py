@@ -27,13 +27,14 @@ class Parameter(object):
     with the following format:
 
     %( ParmaeterName, InitialValue, MinValue, Maxvalue )ParameterType
+    or,
+    %( ParmaeterName, MinValue, Maxvalue )ParameterType
 
     Iinit/Min/MaxValue can be integer or float
     ParameterName must be alphanumeric allowing _ too.
     ParameterType is indicated by either 'i'(int) or 'f'(float)
     Spaces are optional.
     NOTABENE: NO space is allowed between %( nor between )i or )f.
-    TODO: Eliminate the need to have a default value!
     """
     # permitted parameter types
     typedict = {'i': int, 'f': float}
@@ -42,14 +43,16 @@ class Parameter(object):
         """
         assume S is a string of the form:
         %(ParName, dflt, min, max)ParType
+        or
+        %(ParName, min, max)ParType
         Permit only i(int) or f(float) values
         """
         # take away spaces, check format consistency and get type
-        assert isinstance(parameterstring, basestring)
+        assert isinstance(parameterstring, str)
         parstr = parameterstring.strip()
         assert parstr[0:2] == '%('
         assert parstr[-2] == ')'
-        assert parstr[-1] in Parameter.typedict.keys()
+        assert parstr[-1] in list(Parameter.typedict.keys())
         self.ptype = Parameter.typedict[parstr[-1]]
 
         # extract data, converting values to appropriate type
@@ -57,8 +60,13 @@ class Parameter(object):
         self.name = words[0]
         # the conversion from words to float to type allows one to do
         # %(name,1.0,2.0,3.0)i; otherwise map(int,'3.0') gives valueerror
-        floats = map(float, words[1:])
-        self.value, self.minv, self.maxv = map(self.ptype, floats)
+        floats = list(map(float, words[1:]))
+        if len(words) == 4: # we have dflt value in addition to min/max
+            self.value, self.minv, self.maxv = list(map(self.ptype, floats))
+        else: # we have only min and max values
+            assert len(words) == 3
+            self.minv, self.maxv = list(map(self.ptype, floats))
+            self.value = 0.
 
     def __repr__(self):
         return "Parameter {name} = {val}, range=[{minv},{maxv}]". \
@@ -117,7 +125,7 @@ def parse_par_template(pardefs, log=logging.getLogger(__name__)):
                               r'(?P<pName>\w+)\s*,.+?' +  # Parameter name
                               r'(?P<pClose>[)][fi])')  # )i or )f closing/type definition
     try:
-        assert isinstance(pardefs, basestring)
+        assert isinstance(pardefs, str)
         reduced_pardefs = re.sub(grouppattern,
                                 "\g<pOpen>\g<pName>\g<pClose>",
                                 pardefs)
@@ -158,7 +166,7 @@ def read_parameters(fileobj, log=logging.getLogger(__name__)):
 
     
 def update_pardict(pardict, values):
-    for p,v in zip(pardict.keys(),values):
+    for p,v in zip(list(pardict.keys()),values):
         pardict[p] = v
     return pardict
 
@@ -169,8 +177,8 @@ def report_parameters(iteration, pardict, log, tag=''):
     log.info('')
     log.info('{0}Iteration {1}'.format(tag, iteration))
     log.info('============================================================')
-    for key,val in pardict.items():
-	log.info('\t{name:<15s}:\t{val:n}'.format(name=key,val=val))
+    for key,val in list(pardict.items()):
+        log.info('\t{name:<15s}:\t{val:n}'.format(name=key,val=val))
 
 
 def write_parameters(par_template, pardict, fileobj):
@@ -198,29 +206,34 @@ if __name__ == "__main__":
     print ("------------------------")
 
     s1 = "%(New,1.,2.,3.)i"
-    print ('Test string 1: ' + s1)
+    print(('Test string 1: ' + s1))
     p1 = Parameter(s1)
     print (p1)
 
     s2 = "%(Newer,1.,2.,3.)f"
-    print ('Test string 2: ' + s2)
+    print(('Test string 2: ' + s2))
     p2 = Parameter(s2)
     print (p2)
+
+    s3 = "%(Newer, 2., 3.)f"
+    print(('Test string 3: ' + s3))
+    p3 = Parameter(s3)
+    print (p3)
 
     print ("Testing skdefs.template parsing (looking for ./example SKOPT/test_skdefs.template file):")
     print ("------------------------------------------------------------------------")
     skdefs = read_par_template("./example SKOPT/test_skdefs.template")
     reduced_skdefs, parameters = parse_par_template(skdefs)
-    print
+    print()
     print ('Reduced skdefs.template (no info of parameter values, only formatting slots):')
     print (reduced_skdefs)
 
-    print
+    print()
     print ('Extracted parameters:')
     for p in parameters:
-        print p
+        print (p)
 
-    print
+    print()
     print ('Writing skdefs output string based on the supplied initial values:')
     # NOTABENE: we use OrderedDict which automatically eliminates duplicate parameters
     # at the same time, the format dictionary automatically uses the same value
