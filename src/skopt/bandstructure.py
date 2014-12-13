@@ -1,7 +1,22 @@
 """
-Routines for reading and interpreting band-structure information from file output by DFTB+.
+Routines for calculating, reading and interpreting band-structure 
+information, e.g. by means of dftb+, and dp_tools
 """
+import os
+import sys
 import logging
+from collections import defaultdict
+import numpy as np
+from math import pi, ceil
+from fractions import Fraction
+from skopt.lattice import SymPts_k
+from skopt.calculate import Calculator
+from skopt.runtasksDFTB import RunDFTB, RunDPbands, AnalyseDFTBOut, check_var
+
+
+# relevant fundamental constants
+Eh = 27.2114 # [eV] Hartree energy
+aB = 0.52918 # [A]  Bohr radius
 
 def readBandStructure(fileBS, data, log, E0=None):
     """
@@ -25,8 +40,6 @@ def readBandStructure(fileBS, data, log, E0=None):
     The routine returns number of k-points, number of bands, the bands, and the index of
     the band that sets the energy reference, i.e. the index of highest VB.
     """
-    import numpy as np
-    import os
 
     # read the bands
     log.debug("Reading bandstructure.")
@@ -62,9 +75,6 @@ def getSymPtLabel(kvec, lattice, log):
     W.Setyawan and S.Curtarolo, _Comp. Mat. Sci._ __49__ (2010) pp.299-312
     see the lattice.py module for the implementation details
     """
-    from lattice import SymPts_k
-    import sys
-    from fractions import Fraction
 
     kLabel = None
     
@@ -108,8 +118,6 @@ def getkLines(hsdfile='dftb_pin.hsd',DirectLattice='FCC',log=logging.getLogger('
     symmetry k-points, e.g. (see for 'Gamma'): 
         {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
     """
-    from collections import defaultdict
-    import sys
 
     kLines_dftb = list()
 
@@ -146,8 +154,6 @@ def getkLines(hsdfile='dftb_pin.hsd',DirectLattice='FCC',log=logging.getLogger('
 def setupCalculatorsBandStructure (system,log=logging.getLogger(__name__)):
     """
     """
-    from calculate import Calculator
-    from runtasksDFTB import RunDFTB, RunDPbands, AnalyseDFTBOut, check_var
 
     calculators = []
 
@@ -203,7 +209,6 @@ def analyseEelec(data, log=logging.getLogger(__name__)):
     """
     Analyse the 'Eelec' values in the data dictionary
     """
-    import numpy as np
 
     try:
         Eelec      = data['Eh0'] + data['Escc']
@@ -217,7 +222,6 @@ def analyseEgap(data, log=logging.getLogger(__name__)):
     Analyse the 'bands' values in the data dictionary and return the fundamental
     band-gap (Ecbmin - Evbmax).
     """
-    import numpy as np
 
     bands      = data['bands']
     nVBtop     = data['nVBtop']
@@ -227,4 +231,125 @@ def analyseEgap(data, log=logging.getLogger(__name__)):
     calcEgap['Egap'] = np.min(bands[:,nVBtop+1]) - np.max(bands[:,nVBtop])
 
     return calcEgap
+
+
+def calc_masseff(band, extremum, kLineEnds, latticeconst, meff_name=None, 
+                 Erange=0.008, log = logging.getLogger(__name__)):
+    """
+    Calculate parabolic effective mass at the specified *extremum* of a
+    given *band*, calculated along two points in k-space defined by a
+    list of two 3-tuples - *kLineEnds*. The direct lattice consant defining
+    the length in k-space (as 2pi/*latticeconst*).
+
+    :param band: energy values in [eV], 1D array like
+    :param extremum: a function finding the extreme value in *band*, 
+                     e.g. np.min()/max()
+    :param kLineEnds: two 3-tuples, defining the coordinates of the 
+                      endpoints of the k-line along which *band* is obtained,
+                      in terms of k-scace unit vectors, e.g. if *band* 
+                      is obtained along a number of points from \Gamma to
+                      X, of the BZ of a cubic lattice, then kLineEnds
+                      should read ((0, 0, 0), (1, 0, 0))
+    :param latticeconst: length [A] of the direct lattice constant
+    :param meff_name: the name to be featured in the log 
+    :param Erange: Energy range [eV] over which to fit the parabola 
+                   [dflt=8meV], i.e. 'depth' of the assumed parabolic well.
+    :param log: logger handler; if dflt (None), then module name will feature
+                as the source of the message, but logging must be configured
+                elsewhere
+
+    :return meff: the value of the parabolic effective mass [m_0]
+                  at the *extremum* of the given E-kline,
+                  if the extremum is not at the boundary of the given k-line.
+    """
+    if log is None:
+        # this get's a logger, but unless logger is configured
+        # somewhere, it outputs nothing
+        log = logging.getLogger(__name__)
+    log.debug('Fitting effective mass.')
+
+    band = np.array(band)
+
+    ## Scale the k-vectors in [A^{-1}], taking into account direction and lattice parameter
+    a = latticeconstant # lattice constant, [A] 
+    scale = 2*pi/a # first brillouin zone extends from -pi/a to +pi/a
+    k1 = scale*np.array(kLineEnds[0]) # e.g. Gamma = (0,0,0)
+    k2 = scale*np.array(kLineEnds[1]) # e.g. X = (1,0,0)
+    klen=np.linalg.norm(k2-k1) # length of the vector from k1 to k2
+    nk = len(band)   # number of k-points, implied from the number of energy points
+    dk = klen/(nk-1) # distance between available k-points
+    kline = dk * np.array(range(nk)) # reconstruction of kline, in units of A^{-1}
+
+    extr = extremum(band)               # extremum value
+    iextr  = np.where(band==extr)[0][0] # where along kLine it is?
+
+    ## Special treatment is required if the point is right at the boundary, or very near it
+    ## in which case we must extend the band by mirror symmetry around the extremum,
+    ## before we attempt to fit
+    ## Ideally, this should not happen, if we provide carefully selected paths that surround the
+    ## band extrema; but this may not be possible at all to control when masses are roughly 
+    ## estimated in the course of optimisation process, where it is better to minimize the 
+    ## calculation of k-lines.
+    if iextr == 0:
+        log.debug('\tMirroring the band, since its {extr} is at {iextr}'.
+                  format(extr=extremum_type,iextr=iextr))
+        kline = np.concatenate((-kline[:0 :-1],kline))
+        band = np.concatenate((band[:0 :-1],band))
+    if iextr == nk-1:
+        log.debug('\tMirroring the band, since its {extr} is at {iextr}'.
+                  format(extr=extremum_type,iextr=iextr))
+        band = np.concatenate((band,band[len(band)-2: :-1]))
+        kline = np.concatenate((-kline[: :-1],kline[1:]))
+    #log.debug(np.array(zip(kline,band)))
+    #log.debug((len(band),len(kline)))
+    #log.debug(np.where(band==extr)[0])
+    iextr  = np.where(band==extr)[0][0]
+    assert len(kline) == len(band), \
+           ("Mismatch in the length of kLline {0}, and band {1}, "
+            "while trying to fit effective mass")
+    nk = len(kline) # if we have mirrored the band, then we have new nk
+
+    # Select how many points to use around the extremum, in order to make the fit.
+    krange = np.where(abs(band-extr)<=Erange)
+    nlow = min(krange[0])
+    nhigh = max(krange[0])
+
+    log.debug(("\tFitting eff.mass on {n:3d} points around {i:3d}-th k; "
+               "extremum value {v:7.3f} at {p:5.2f} of k-line").
+               format(n=nhigh-nlow+1, i=iextr+1, v=extr,
+                      p=kline[iextr]/kline[nk-1]*100))
+    if nhigh-iextr < 3:
+        log.debug('\tToo few points to the right of extremum -- Poor meff fit likely.')
+        log.debug("\tConsider enlarging Erange. If it does not work, problem may "
+                  "be the extremum being too close to end of k-line")
+    if iextr-nlow < 3:
+        log.debug("\tToo few points to the left of extremum -- Poor meff fit likely.")
+        log.debug("\tConsider enlarging Erange. If it does not work, problem may "
+                  "be the extremum being too close to end of k-line")
+        log.debug("\tThe best solution is to resolve the k-line with more "
+                  "k-points during simulation.")
+
+    # Fit 2nd order polynomial over a few points surrounding the selected band extremum
+    x = kline[nlow:nhigh+1]
+    y = band[nlow:nhigh+1]
+    c = np.polyfit(x,y,2)
+    fit = np.poly1d(c)
+
+    # NOTA BENE:
+    # We need the c[0] coefficient when we use numpy.poly[fit|1d]
+
+    # report the effective mass as the inverse of the curvature 
+    # (i.e. inverse of the 2nd derivative, which is a const.)
+    # recall that meff = (h_bar**2) / (d**2E/dk**2), in [kg]
+    # meff is needed in terms of m0 a.u. - the mass of free electron at rest;
+    # in a.u. h_bar is 1, m0 is 1 => we need to convert E and k in atomic units
+    # our E and k are in eV and A-1, respectively and 
+    # d**2E/dk**2 = 2*c[0] = const. [eV/A^-2] = const. [eV*A^2] = const/(Eh*aB^2)[a.u.]
+    #m0 = 9.10938e-31 # [kg] electron rest mass
+    #hbar = 1.054572e-34 # [J.s]
+    #q0 = 1.602176e-19 # [C] electron charge
+    #meff = (hbar*hbar)/((2*c[0])*(q0*(1.e-10)**2))/m0
+    meff = 1./(2.*c[0])*(Eh*aB**2)
+    log.debug("\tFitted {name:8s}: {m:8.3f}".format(name=meff_name,m=meff))
+    return meff
 
