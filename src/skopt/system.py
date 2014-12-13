@@ -1,6 +1,6 @@
 import logging, os, sys
 from collections import OrderedDict
-from utils import flatten
+from skopt.utils import flatten
 
 class Analyser(object):
     """
@@ -13,17 +13,17 @@ class Analyser(object):
         self.kwargs = kwargs
         
     def execute(self):
-	if self.log is None:
-	    self.log = logging.getLogger(__name__)
-        self.output = self.analyse(self.data, **self.kwargs)
-        for key,val in self.output.iteritems():
-            self.results[key] = val
+        if self.log is None:
+            self.log = logging.getLogger(__name__)
+            self.output = self.analyse(self.data, **self.kwargs)
+            for key,val in self.output.items():
+                self.results[key] = val
             
     def __call__(self):
         self.execute()
 
-	
-	
+    
+    
 def skipSystemUpdate(*args,**kwargs):
     pass
 
@@ -70,7 +70,7 @@ class System (object):
                  refdata = None, weights = None,
                  updatesystem = None,
                  tasks = None,
-		 log=None,
+         log=None,
 #                 log=logging.getLogger(__name__),
                  **optattr):
         self.workdir = workdir
@@ -83,7 +83,7 @@ class System (object):
                              # because different analysers will
                              # put data in unpredictable order
         self.log = log
-        for key,val in optattr.iteritems():
+        for key,val in optattr.items():
             setattr(self,key,val)
     
     def subdir(self,*pathfragments):
@@ -92,15 +92,15 @@ class System (object):
     def execute(self):
         """
         """
-	if self.log is None:
-	    self.log = logging.getLogger(__name__)
+        if self.log is None:
+            self.log = logging.getLogger(__name__)
         for task in self.tasks:
             self.log.debug('{0}.{1}'.format(self.name,task))
-	    try:
-		if task.log is None:
-		    task.log is self.log
-	    except AttributeError:
-		pass
+            try:
+                if task.log is None:
+                    task.log is self.log
+            except AttributeError:
+                pass
             task()
         return None
             
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     s2 = System(workdir='Si')
     def f1(data):
         output={}
-        for k,v in data.iteritems():
+        for k,v in list(data.items()):
             output[k]=v*2
         return output
     a1 = Analyser(analyse=f1, data={'p':3.}, results=s1.calculated)
@@ -123,8 +123,8 @@ if __name__ == "__main__":
     s2.tasks.append(a2)
     s1()
     s2()
-    print s1.refdata
-    print s1.calculated
-    print s2.refdata
-    print s2.calculated
+    print(s1.refdata)
+    print(s1.calculated)
+    print(s2.refdata)
+    print(s2.calculated)
 

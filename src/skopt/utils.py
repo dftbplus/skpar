@@ -9,7 +9,7 @@ def flatten (dd):
     and produce a lists of values corresponding, dropping the keys.
     """
     try: # assume current item is a dictionary; iterate over its items
-        for key,val in dd.iteritems():
+        for key,val in dd.items():
             for nested_val in flatten(val):
                 yield nested_val
     except AttributeError: # not a dictionary
@@ -34,7 +34,7 @@ def flatten_two (d1, d2):
     ...some assertions may help here...
     """
     try: # assume current item is a dictionary; iterate over its items
-        for key, val in d1.iteritems():
+        for key, val in d1.items():
             for nested_val_1,nested_val_2 in flatten_two(val,d2[key]):
                 yield nested_val_1, nested_val_2
     except AttributeError: # not a dictionary
@@ -85,13 +85,13 @@ if __name__ == "__main__":
     d2 = OrderedDict({  'SKFgen':{},
             'Si':{'Egap':1.12, 'Etot':300, 'bands':bands2,},
             'SiO2':{'Egap':8.9, 'Etot':900, 'bands':bands4} })
-    print list(flatten(d1))             
-    print d1
+    print(list(flatten(d1)))
+    print (d1)
 
 
     #for data in flatten(d1,d2):
     #    print data
-    ref,calc = zip(*list(flatten_two(d1,d2)))
+    ref,calc = list(zip(*list(flatten_two(d1,d2))))
     print (ref)
     print (calc)
 
@@ -99,4 +99,4 @@ if __name__ == "__main__":
             'Si':{'Egap':1.12, 'Etot':300, 'bands':1./3.,},
             'SiO2':{'Egap':8.9, 'Etot':900, 'bands':bands4} })
     # uncomment for assertion test
-    #ref1,cal1 = zip(*list(flatten_two(d1,d3)))
+    # ref1,cal1 = zip(*list(flatten_two(d1,d3)))
