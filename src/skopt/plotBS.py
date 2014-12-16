@@ -44,8 +44,8 @@ def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
         ax.set_xticklabels(kLabels)
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     # plot the bands
-    xx = xrange(nk)
-    yy = np.transpose([bands[:, i] for i in xrange(nE)])
+    xx = range(nk)
+    yy = np.transpose([bands[:, i] for i in range(nE)])
     # plot the bands
     if cycle_colors:
         ax.plot(xx, yy)
@@ -73,7 +73,7 @@ def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
             log.warning('Ignoring refBands since refBands.shape != Bands.' + \
                         'Cannot handle different k-pts in refBands.')
         else:
-            yy0 = np.transpose([refBands[:, i] for i in xrange(nE)])
+            yy0 = np.transpose([refBands[:, i] for i in range(nE)])
             ax.plot(xx, yy0, color=colRef)
     ax.set_xlim(krange)
     return fig

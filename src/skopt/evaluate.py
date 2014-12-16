@@ -2,7 +2,7 @@
 """
 import logging
 import numpy as np
-from utils import flatten, flatten_two
+from skopt.utils import flatten, flatten_two
 
 
 def calcErrors(ref, calc):
@@ -95,7 +95,7 @@ def normaliseWeights(weights):
 
 
 class EvaluateCost (object):
-    """
+    r"""
     ### Cost Function
 
     The following cost function is applied in the context of ETB fitting 
@@ -231,7 +231,7 @@ class Evaluator (object):
     ...
     """   
     def __init__(self, systems, systemweights = None,  
-		 workdir='./', 
+                 workdir='./', 
                  costfunc=None, verbose=True, useRelErr=False,
                  skipexecution=False,
                  log=logging.getLogger(__name__),**kwargs):
@@ -279,12 +279,12 @@ class Evaluator (object):
         self.flatrefdata = []
         for ss,sw in zip(self.systems,self.systemweights):
             if not np.allclose(sw,0.0,1.e-12):
-                ref, weights = zip(*flatten_two(ss.refdata,ss.weights))
+                ref, weights = list(zip(*flatten_two(ss.refdata,ss.weights)))
                 weights = np.asarray(weights)*sw
                 self.flatweights.extend(weights)
                 self.flatrefdata.extend(ref)
                 self.log.debug('Flattened refdata and weights for system {0}'.
-                          format(ss.name))
+                                format(ss.name))
         
         
     def evaluate(self, parameters, iteration=None):
@@ -300,18 +300,19 @@ class Evaluator (object):
                 ss.update(parameters=parameters, iteration=iteration)
                 self.log.debug('Executing system {0}.'.format(ss.name))
                 ss.execute()
+                self.log.debug('...done with system {0}.'.format(ss.name))
             if not np.allclose(sw,0.0,1.e-12):
                 self.log.debug('Flattening calculated data for system {0}...'.
-                          format(ss.name))
-                ref,calc = zip(*flatten_two(ss.refdata,ss.calculated))
+                                format(ss.name))
+                ref,calc = list(zip(*flatten_two(ss.refdata,ss.calculated)))
                 self.flatcalcdata.extend(calc)
                 self.log.debug('\t...done.')
         assert len(self.flatcalcdata) == len(self.flatrefdata)
         self.log.info('Evaluating cost function...')
         self.cost = self.evalcost(self.flatcalcdata, self.flatrefdata, self.flatweights)
-	self.log.info('============================================================')
-	self.log.info('Cost at iteration {0} is: {1}'.format(iteration, self.cost))
-	self.log.info('')
+        self.log.info('============================================================')
+        self.log.info('Cost at iteration {0} is: {1}'.format(iteration, self.cost))
+        self.log.info('')
         return self.cost 
     
     def __call__(self,parameters,iteration=None):

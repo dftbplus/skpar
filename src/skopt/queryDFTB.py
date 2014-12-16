@@ -1,5 +1,8 @@
-import os, logging
+import os
+import logging
 from collections import OrderedDict
+from skopt.queryBands import Bands
+from skopt.querykLines import getkLines, rmEquivkPts, greekLabels
 
 class DetailedOutput (OrderedDict):
     
@@ -69,11 +72,11 @@ class DFTBOutput(object):
         fp.close()
 
     def getEnergy (self, etag):
-	try:
-	    energy = self.data[etag]
-	except:
-	    energy = None
-	return energy
+        try:
+            energy = self.data[etag]
+        except:
+            energy = None
+        return energy
     
     def getOutputElectrons (self):
         try:
@@ -149,30 +152,27 @@ class QueryDataDFTB (object):
     """
     
     def __init__(self, data, workdir='.', 
-	         postfix='', bandsprefix='bands',
+                 postfix='', bandsprefix='bands',
                  getBands=True, Eref=None, getHOMO=True, getkLines=True,
-		 prepareforplot=True, log=logging.getLogger('__name__')):
+                 prepareforplot=True, log=logging.getLogger('__name__')):
         self.workdir = workdir
-	self.postfix = postfix
-	self.bandsprefix = bandsprefix
+        self.postfix = postfix
+        self.bandsprefix = bandsprefix
         self.data = data
         self.getBands = getBands
         self.Eref = Eref
         self.getHOMO = getHOMO
-	self.getkLines = getkLines
+        self.getkLines = getkLines
         self.prepareforplot = prepareforplot
         self.log = log
         
     def query(self):
         """
         """
-#        from skopt.queryDFTB import DFTBOutput
-        from queryBands import Bands
-        from querykLines import getkLines, rmEquivkPts, greekLabels
         # get data from detailed.out of dftb+
-	self.log.debug("Parsing dftb output from {0}".format(self.workdir))
+        self.log.debug("Parsing dftb output from {0}".format(self.workdir))
         dftbout = DFTBOutput(self.workdir)
-        for key,value in dftbout.data.iteritems():
+        for key,value in dftbout.data.items():
             self.data[key] = value
         
         # attempt to obtain the band structure
@@ -184,38 +184,40 @@ class QueryDataDFTB (object):
                 nElectrons = 0
                 withSOC = False
 
-	    self.log.debug("...obtained nElectrons={0}".format(nElectrons))
-	    self.log.debug("...obtained withSOC={0}".format(withSOC))
+            self.log.debug("...obtained nElectrons={0}".format(nElectrons))
+            self.log.debug("...obtained withSOC={0}".format(withSOC))
 
             try:
                 bs = Bands(workdir=self.workdir, prefix=self.bandsprefix, postfix=self.postfix,
-			    nElectrons=nElectrons, SOC=withSOC,)
+                           nElectrons=nElectrons, SOC=withSOC,)
             except:
                 self.log.critical('\tCould not parse the bandstructure file.'
-                                  '\tCheck bands_tot.dat exists in {0}'.format(self.workdir))
+                                  '\tCheck the bands data file exists in {0}'.format(self.workdir))
                 sys.exit([1])
             # if we pass the try statement, then we have the bs object
-	    self.log.debug("...acquired the following items:\n{0}".format(bs.data.keys()))
-            for key,value in bs.data.iteritems():
+            #self.log.debug("...acquired the following items:\n{0}".format(list(bs.data.keys())))
+            self.log.debug("...acquired the following:\n{0}".format(list(bs.data.items())))
+            for key,value in list(bs.data.items()):
                 self.data[key] = value
 
-	    if self.Eref is not None:
-		self.data['Bands'] = bs.getBands(self.Eref)[0]
+        if self.Eref is not None:
+            self.data['Bands'] = bs.getBands(self.Eref)[0]
                 
-            # now prepare data for analysis and plotting. here we need to know the k-lines, 
-	    # to label them properly and therefore we need to know what lattice we have
-	    if self.getkLines:
-		if 'lattice' in self.data:
-		    kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'])
-		    self.data['kLines'] = kLines
-		    self.data['kLinesDict'] = kLinesDict
-		else:
-		    self.log.warning('\tCould not interpret the kLines info without a given lattice in mind'
-                                      '\tMake sure data[''lattice''] is specified before quering the band-structure')
-		
+        # now prepare data for analysis and plotting. here we need to know the k-lines, 
+        # to label them properly and therefore we need to know what lattice we have
+        if self.getkLines:
+            if 'lattice' in self.data:
+                kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'])
+                self.data['kLines'] = kLines
+                self.data['kLinesDict'] = kLinesDict
+            else:
+                self.log.warning('\tCould not interpret the kLines info without a given lattice in mind'
+                                 '\tMake sure data[''lattice''] is specified before quering the band-structure')
+        
             if self.prepareforplot and self.getkLines and 'lattice' in self.data:
-                bandsPlt,kLinesPlt = rmEquivkPts(bs.getBands(E0=self.Eref)[0], # note that getBands returns (bands,E0)
-                                                kLines, self.data.get('equivkpts',[]))
+                # note that getBands below returns (bands,E0)                
+                bandsPlt,kLinesPlt = rmEquivkPts(bs.getBands(E0=self.Eref)[0],
+                                                 kLines, self.data.get('equivkpts',[]))
                 self.data['bandsPlt'] = bandsPlt
                 self.data['kLinesPlt'] = greekLabels(kLinesPlt)
                 

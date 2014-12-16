@@ -6,21 +6,23 @@
     structure calculations: Challenges and tools", Comp. Mat. Sci. 49 (2010),
     pp. 291--312.
     """
+import sys
 import numpy as np
+from fractions import Fraction
 
 # The following dictionary contains the symmetry points, for a given lattice
 # in terms of the reciprocal vectors.
 # The first entry in the list for a symmetry point comes from the above mentioned publication.
 # Eventually, we could expand the list for each SymPt, e.g. (0,1/2,1/2) is also X, etc; Another
 # option being generate the permutations of the components on the fly, in order to expand the list...
-SymPts_k = { 'FCC': { 'G': [(0.,0.,0.),], 'Gamma': [(0.,0.,0.),],
+SymPts_k = { 'FCC': { 'Gamma': [(0.,0.,0.),],
                     'K': [(3./8.,3./8.,3./4.), (3./8., 3./4., 3./8.),],
                     'L': [(1./2.,1./2.,1./2.),],
                     'U': [(5./8.,1./4.,5./8.), (1./4., 5./8., 5./8.), ],
                     'W': [(1./2.,1./4.,3./4.),],
                     'X': [(1./2.,0.,1./2.), (0., 1./2., 1./2.)],  } ,
 
-             'HEX': { 'G': [(0,0,0),], 'Gamma': [(0,0,0),],
+             'HEX': { 'Gamma': [(0,0,0),],
                       'A': [(0., 0., 1./2.),],
                       'H': [(1./3., 1./3., 1./2.),],
                       'K': [(1./3., 1./3., 0.),],
@@ -73,7 +75,7 @@ class FCC(object):
         self.SymPts_k = {} # in terms of k-vectors
         self.SymPts = {}   # in terms of reciprocal length
 
-        for k,v in SymPts_k[self.name].items():
+        for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
 
@@ -106,7 +108,7 @@ class HEX(object):
         self.SymPts_k = {} # in terms of k-vectors
         self.SymPts = {}   # in terms of reciprocal length
 
-        for k,v in SymPts_k[self.name].items():
+        for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
 
@@ -139,7 +141,7 @@ class CUB(object):
         self.SymPts_k = {} # in terms of k-vectors
         self.SymPts = {}   # in terms of reciprocal length
 
-        for k,v in SymPts_k[self.name].items():
+        for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
 
@@ -172,7 +174,7 @@ class TET(object):
         self.SymPts_k = {} # in terms of k-vectors
         self.SymPts = {}   # in terms of reciprocal length
 
-        for k,v in SymPts_k[self.name].items():
+        for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
 
@@ -193,7 +195,7 @@ def get_recipr (A,scale):
     volume = np.dot(A[0],np.cross(A[1],A[2]))
     B = []
     # use this to realise circular shift
-    index = np.array(range(len(A)))
+    index = np.array(list(range(len(A))))
     for i in range(len(A)):
         (i1,i2) = np.roll(index,-(i+1))[0:2]
         B.append( scale * np.cross(A[i1],A[i2]) / volume )
@@ -209,13 +211,11 @@ def getSymPtLabel(kvec, lattice, log):
     see the lattice.py module for the implementation details
     """
 #    from skopt.lattice import SymPts_k
-    import sys
-    from fractions import Fraction
 
     kLabel = None
     
     try:
-        for l,klist in SymPts_k[lattice].items():
+        for l,klist in list(SymPts_k[lattice].items()):
             if tuple(kvec) in klist:
                 kLabel = l
     except KeyError:
@@ -242,29 +242,29 @@ def test_FCC(a,scale=None):
         test = FCC(a,scale)
     else:
         test = FCC(a)   
-    print ("\n\n *** {0} lattice ***".format(test.name))
-    print "\nPrimitive vectors:"
+    print(("\n\n *** {0} lattice ***".format(test.name)))
+    print("\nPrimitive vectors:")
     for pvec in test.prim:
-        print pvec
+        print(pvec)
 
-    print "\nReciprocal vectors:"
+    print("\nReciprocal vectors:")
     for rvec in test.recipr:
-        print rvec
+        print(rvec)
 
-    print "\nSymmetry points in terms of k vectors:"
-    for pt in test.SymPts_k.items():
-        print pt
+    print("\nSymmetry points in terms of k vectors:")
+    for pt in list(test.SymPts_k.items()):
+        print(pt)
 
-    print "\nSymmetry points in reciprocal lengths:"
-    for pt in test.SymPts.items():
-        print pt
+    print("\nSymmetry points in reciprocal lengths:")
+    for pt in list(test.SymPts.items()):
+        print(pt)
 
-    print "\nLength of lines L-Gamma-X-U,K-Gamma, [2pi/a]"
+    print("\nLength of lines L-Gamma-X-U,K-Gamma, [2pi/a]")
     scale = (a/(2.*np.pi))
-    print scale*np.linalg.norm(test.SymPts['L'])
-    print scale*np.linalg.norm(test.SymPts['X'])
-    print scale*np.linalg.norm(test.SymPts['X']-test.SymPts['U'])
-    print scale*np.linalg.norm(test.SymPts['K'])
+    print(scale*np.linalg.norm(test.SymPts['L']))
+    print(scale*np.linalg.norm(test.SymPts['X']))
+    print(scale*np.linalg.norm(test.SymPts['X']-test.SymPts['U']))
+    print(scale*np.linalg.norm(test.SymPts['K']))
 
 
 def test_HEX(a,c,scale=None):
@@ -276,37 +276,37 @@ def test_HEX(a,c,scale=None):
         test = HEX(a,c,scale)
     else:
         test = HEX(a,c)   
-    print ("\n\n *** {0} lattice ***".format(test.name))
-    print "\nLattice constants: ", a, c
-    print "\nPrimitive vectors:"
+    print(("\n\n *** {0} lattice ***".format(test.name)))
+    print("\nLattice constants: ", a, c)
+    print("\nPrimitive vectors:")
     for pvec in test.prim:
-        print pvec
+        print(pvec)
 
-    print "\nReciprocal vectors:"
+    print("\nReciprocal vectors:")
     for rvec in test.recipr:
-        print rvec
+        print(rvec)
 
-    print "\nSymmetry points in terms of k vectors:"
-    for pt in test.SymPts_k.items():
-        print pt
+    print("\nSymmetry points in terms of k vectors:")
+    for pt in list(test.SymPts_k.items()):
+        print(pt)
 
-    print "\nSymmetry points in reciprocal lengths:"
-    for pt in test.SymPts.items():
-        print pt
+    print("\nSymmetry points in reciprocal lengths:")
+    for pt in list(test.SymPts.items()):
+        print(pt)
 
-    print "\nSymmetry points in 2pi/a units:"
-    for pt in test.SymPts.items():
-        print pt[0],pt[1]/(2*np.pi/a)
+    print("\nSymmetry points in 2pi/a units:")
+    for pt in list(test.SymPts.items()):
+        print(pt[0],pt[1]/(2*np.pi/a))
 
-    print "\nLength of lines A-L-M-Gamma-A-H-K-Gamma, [2pi/a]"
+    print("\nLength of lines A-L-M-Gamma-A-H-K-Gamma, [2pi/a]")
     scale = (a/(2.*np.pi))
-    print scale*np.linalg.norm(test.SymPts['L']-test.SymPts['A'])
-    print scale*np.linalg.norm(test.SymPts['M']-test.SymPts['L'])
-    print scale*np.linalg.norm(test.SymPts['M'])
-    print scale*np.linalg.norm(test.SymPts['A'])
-    print scale*np.linalg.norm(test.SymPts['H']-test.SymPts['A'])
-    print scale*np.linalg.norm(test.SymPts['K']-test.SymPts['H'])
-    print scale*np.linalg.norm(test.SymPts['K'])
+    print(scale*np.linalg.norm(test.SymPts['L']-test.SymPts['A']))
+    print(scale*np.linalg.norm(test.SymPts['M']-test.SymPts['L']))
+    print(scale*np.linalg.norm(test.SymPts['M']))
+    print(scale*np.linalg.norm(test.SymPts['A']))
+    print(scale*np.linalg.norm(test.SymPts['H']-test.SymPts['A']))
+    print(scale*np.linalg.norm(test.SymPts['K']-test.SymPts['H']))
+    print(scale*np.linalg.norm(test.SymPts['K']))
 
 def test_TET(a,c,scale=None):
     """
@@ -317,40 +317,40 @@ def test_TET(a,c,scale=None):
         test = TET(a,c,scale)
     else:
         test = TET(a,c)   
-    print("\n\n *** {0} lattice ***".format(test.name))
-    print("\nLattice constants: ", a, c)
+    print(("\n\n *** {0} lattice ***".format(test.name)))
+    print(("\nLattice constants: ", a, c))
     print("\nPrimitive vectors:")
     for pvec in test.prim:
         print(pvec)
 
     print("\nReciprocal vectors:")
     for rvec in test.recipr:
-        print rvec
+        print(rvec)
 
     print("\nSymmetry points in terms of k vectors:")
-    for pt in test.SymPts_k.items():
+    for pt in list(test.SymPts_k.items()):
         print(pt)
 
     print("\nSymmetry points in reciprocal lengths:")
-    for pt in test.SymPts.items():
+    for pt in list(test.SymPts.items()):
         print(pt)
 
     print("\nSymmetry points in 2pi/a units:")
-    for pt in test.SymPts.items():
-        print(pt[0],pt[1]/(2*np.pi/a))
+    for pt in list(test.SymPts.items()):
+        print((pt[0],pt[1]/(2*np.pi/a)))
 
     print("\nLength of lines along a standard path,")
     print("Gamma--X--M--Gamma--Z--R--A--Z|X--R|M--A, in [2pi/a]:")
     scale = (a/(2.*np.pi))
-    print(scale*np.linalg.norm(test.SymPts['X']))
-    print(scale*np.linalg.norm(test.SymPts['M']-test.SymPts['X']))
-    print(scale*np.linalg.norm(test.SymPts['M']))
-    print(scale*np.linalg.norm(test.SymPts['Z']))
-    print(scale*np.linalg.norm(test.SymPts['Z']-test.SymPts['R']))
-    print(scale*np.linalg.norm(test.SymPts['R']-test.SymPts['A']))
-    print(scale*np.linalg.norm(test.SymPts['A']-test.SymPts['Z']))
-    print(scale*np.linalg.norm(test.SymPts['X']-test.SymPts['R']))
-    print(scale*np.linalg.norm(test.SymPts['M']-test.SymPts['A']))
+    print((scale*np.linalg.norm(test.SymPts['X'])))
+    print((scale*np.linalg.norm(test.SymPts['M']-test.SymPts['X'])))
+    print((scale*np.linalg.norm(test.SymPts['M'])))
+    print((scale*np.linalg.norm(test.SymPts['Z'])))
+    print((scale*np.linalg.norm(test.SymPts['Z']-test.SymPts['R'])))
+    print((scale*np.linalg.norm(test.SymPts['R']-test.SymPts['A'])))
+    print((scale*np.linalg.norm(test.SymPts['A']-test.SymPts['Z'])))
+    print((scale*np.linalg.norm(test.SymPts['X']-test.SymPts['R'])))
+    print((scale*np.linalg.norm(test.SymPts['M']-test.SymPts['A'])))
 
 if __name__ == "__main__":
 

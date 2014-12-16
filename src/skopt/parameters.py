@@ -106,35 +106,51 @@ def parse_par_template(pardefs, log=logging.getLogger(__name__)):
     However, currently, we have hardcoded the format here, rather
     than reusing whatever is defined in the Parameter class....
     """
-    # get all substrings of the form 
+    # get all substrings of the form
     # %(ParName, initialvalue, minvalue, maxvalue)ParType
-    pattern = re.compile(r'%\(.+?\)[fi]')
-    try:
-        parstr = re.findall(pattern, pardefs)
-    except:
-        parstr = ""
+    pattern = re.compile(r"%\(.+?\)[fi]")
+
+    # The pattern below serves to remove the optional initial value, and
+    # the min and max values from the output string template, 
+    # leaving only %(ParName)ParType format strings
+    # note the use of named group in the matching pattern, so later we
+    # form the replacement by selecting only the matching elements of interest
+    grouppattern = re.compile(r'(?P<pOpen>%[(])\s*' +  # %( 
+                              r'(?P<pName>\w+)\s*,(?P<pData>.+?)' +  # Parameter name and Data
+                              r'(?P<pClose>[)][fi])')  # )i or )f closing/type definition
+    # this is how the output should look like %(ParName)[fi]
+    outpattern = re.compile(r'%\(\w+\)[fi]')
+
+    # it may be nice to check if we're not already given list of lines, but how?
+    lines_in = pardefs.split('\n')
+    lines_out = []
+    parstr = []
+
+    for line in lines_in:
+        if line.strip().startswith('#'):
+            line_out = line
+        else:
+            newparstr = pattern.findall(line)
+
+            if newparstr is not None:
+                parstr.extend(newparstr)
+
+            try:
+                line_out = re.sub(grouppattern,
+                                  "\g<pOpen>\g<pName>\g<pClose>",
+                                  line)
+            except AttributeError:
+                line_out = line
+
+        lines_out.append(line_out)
+
+    reduced_pardefs = '\n'.join(lines_out)
+                              
     # note that parstr is a list of strings, 
     # each string describing one parameter
     parstr = stripall(parstr)
 
-    # update the pardefs template by eliminating the initial,min,max values
-    # and leaving only %(ParName)ParType format strings
-    # note the use of named group in the matching pattern, so later we
-    # form the replacement by selecting only the matching elements of interest
-    grouppattern = re.compile(r'(?P<pOpen>%[(])\s*' +  # %( 
-                              r'(?P<pName>\w+)\s*,.+?' +  # Parameter name
-                              r'(?P<pClose>[)][fi])')  # )i or )f closing/type definition
-    try:
-        assert isinstance(pardefs, str)
-        reduced_pardefs = re.sub(grouppattern,
-                                "\g<pOpen>\g<pName>\g<pClose>",
-                                pardefs)
-    except AttributeError:
-        reduced_pardefs = pardefs
-
-        # check integrity
-    outpattern = re.compile(r'%\(\w+\)[fi]')
-    if parstr == "":
+    if parstr == []:
         log.warning("The given parameter template contains no parameter definitions")
     else:
         found = re.findall(outpattern, reduced_pardefs)
@@ -194,7 +210,15 @@ def write_parameters(par_template, pardict, fileobj):
     assert isinstance(pardict, OrderedDict)
     if isinstance(fileobj, str):
         fileobj = open(fileobj, 'w')
-    fileobj.writelines(par_template % pardict)
+    lines_in = par_template.split('\n')
+    lines_out = []
+    for line in lines_in:
+        if line.strip().startswith('#'):
+            lines_out.append(line)
+        else:
+            lines_out.append(line % pardict)
+
+    fileobj.writelines('\n'.join(lines_out))
 
 
 

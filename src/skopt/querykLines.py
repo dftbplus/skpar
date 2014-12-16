@@ -7,8 +7,14 @@ We also need to figure out what to do with equivalent points, or points where a 
 Finally, points internal to the Brilloin Zone are labeled with Greek letters,
 which should be rendered properly.
 """
-
+import sys
+import os
 import logging
+import numpy as np
+from collections import defaultdict
+from skopt.lattice import getSymPtLabel
+#from skopt.queryDFTB import DFTBOutput
+#from skopt.queryBands import Bands
 
 def getkLines(workdir='./',hsdfile='dftb_pin.hsd',DirectLattice='TET',log=logging.getLogger('__name__')):
     """
@@ -31,9 +37,6 @@ def getkLines(workdir='./',hsdfile='dftb_pin.hsd',DirectLattice='TET',log=loggin
     symmetry k-points, e.g. (see for 'Gamma' above): 
         {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
     """
-    from collections import defaultdict
-    from lattice import getSymPtLabel
-    import sys,os
 
     kLines_dftb = list()
 
@@ -76,10 +79,9 @@ def rmEquivkPts (bands, kLines, equivpts):
     equivalent points. If yes, then the latter point is removed from the bands and
     the kLines, and the label of the former point is changed ot 'Lbl1|Lbl2'.
     """
-    import numpy as np
     maskbands = np.ones(bands.shape[0], dtype=bool)
     maskkLines = np.ones(len(kLines),dtype=bool)
-    klabels, kindexes = zip(*kLines)
+    klabels, kindexes = list(zip(*kLines))
     newkLines = kLines
     sortedpairedindexes = []
 
@@ -118,7 +120,7 @@ def greekLabels(kLines):
     (i.e. points that are inside the BZ, not at the faces) but in the future.
     """
     try:
-        lbls,ixs = zip(*kLines)
+        lbls,ixs = list(zip(*kLines))
     except ValueError:
         lbls,ixs = kLines,None
     lbls = list(lbls)
@@ -127,29 +129,27 @@ def greekLabels(kLines):
         if lbl == 'Gamma':
             lbls[i] = r'$\Gamma$'
     if ixs is not None:
-        result = zip(lbls,ixs)
+        result = list(zip(lbls,ixs))
     else:
         result = lbls
     return result
 
 
 
-if __name__ == "__main__":
-## test the rmEquivkPts routine, exhanging the order of K|U and R|M
-    from queryDFTB import DFTBOutput
-    from queryBands import Bands
-    dftbout = DFTBOutput(workdir='./Plotter example/bulkSi',postfix='.bs')
-    nElectrons = dftbout.getOutputElectrons()
-    withSOC = dftbout.withSOC()
-    bs_Si = Bands(workdir='./Plotter example/bulkSi',prefix='band',nElectrons=nElectrons,SOC=withSOC)
-    bands,E0 = bs_Si.getBands('VBtop') 
-    kLines1 = [('L', 0), ('Gamma', 108), ('X', 233), ('U', 277), ('K', 278), 
-               ('K',300),('U',301), ('R',350), ('M',351),
-               ('Gamma', 411),]
-    newbands, newkLines = rmEquivkPts(bands,kLines1,[('K','U'),('M','R')])
-    print newkLines
-    print newbands.shape
-
+#if __name__ == "__main__":
+### test the rmEquivkPts routine, exhanging the order of K|U and R|M
+#    dftbout = DFTBOutput(workdir='./Plotter example/bulkSi',postfix='.bs')
+#    nElectrons = dftbout.getOutputElectrons()
+#    withSOC = dftbout.withSOC()
+#    bs_Si = Bands(workdir='./Plotter example/bulkSi',prefix='band',nElectrons=nElectrons,SOC=withSOC)
+#    bands,E0 = bs_Si.getBands('VBtop') 
+#    kLines1 = [('L', 0), ('Gamma', 108), ('X', 233), ('U', 277), ('K', 278), 
+#               ('K',300),('U',301), ('R',350), ('M',351),
+#               ('Gamma', 411),]
+#    newbands, newkLines = rmEquivkPts(bands,kLines1,[('K','U'),('M','R')])
+#    print(newkLines)
+#    print(newbands.shape)
+#
 
 
 

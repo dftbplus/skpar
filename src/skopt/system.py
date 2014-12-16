@@ -5,20 +5,27 @@ from skopt.utils import flatten
 class Analyser(object):
     """
     """
-    def __init__(self, analyse, data, results, log=None, **kwargs):
+    def __init__(self, analyse, data, results, log=logging.getLogger(__name__), **kwargs):
         self.analyse = analyse
         self.data = data
         self.results = results
-        self.log = log
         self.kwargs = kwargs
+        self.log = log
         
+
     def execute(self):
-        if self.log is None:
-            self.log = logging.getLogger(__name__)
-            self.output = self.analyse(self.data, **self.kwargs)
-            for key,val in self.output.items():
-                self.results[key] = val
+        # this allows external parties to modify the logger
+        # between the __init__() and execute() calls, and yet have
+        # a default
+        if 'log' not in self.kwargs.keys():
+            self.kwargs['log'] = self.log
+
+        self.output = self.analyse(self.data, **self.kwargs)
+
+        for key,val in self.output.items():
+            self.results[key] = val
             
+
     def __call__(self):
         self.execute()
 
@@ -70,8 +77,7 @@ class System (object):
                  refdata = None, weights = None,
                  updatesystem = None,
                  tasks = None,
-         log=None,
-#                 log=logging.getLogger(__name__),
+                 log=None,
                  **optattr):
         self.workdir = workdir
         self.refdata = refdata or OrderedDict({})
@@ -83,6 +89,7 @@ class System (object):
                              # because different analysers will
                              # put data in unpredictable order
         self.log = log
+
         for key,val in optattr.items():
             setattr(self,key,val)
     
@@ -94,6 +101,7 @@ class System (object):
         """
         if self.log is None:
             self.log = logging.getLogger(__name__)
+
         for task in self.tasks:
             self.log.debug('{0}.{1}'.format(self.name,task))
             try:

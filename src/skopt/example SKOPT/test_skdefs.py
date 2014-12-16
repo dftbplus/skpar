@@ -4,6 +4,8 @@ compressions = {
 		potcomp = "potential",
 		potcomp_parameters = [[4, 3.45], 
                           [5, 
+#                       [%( Dummy_1 ,1,7)i, 
+#                        %(Dummy_2, 2,3)f,
                            3.670000 ], 
                            [4, 7.67]],
 		wavecomp = "potential",

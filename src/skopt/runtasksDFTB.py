@@ -24,9 +24,9 @@ class RunDFTB(object):
 
     def execute(self):
 
-	# verify a logger is available
-	if self.log is None:
-	    self.log = logging.getLogger(__name__)
+        # verify a logger is available
+        if self.log is None:
+            self.log = logging.getLogger(__name__)
 
         # prepare the shell environment
         env = os.environ.copy()
@@ -56,7 +56,7 @@ class RunDFTB(object):
             self.log.critical('\tERROR: dftb+ failed somehow. Check {0}!'.format(self.dftb_out))
             sys.exit()
 
-	os.chdir(callerdir)
+        os.chdir(callerdir)
         # success of some sort
         return success
 
@@ -75,26 +75,27 @@ class RunSKgen_sh(object):
         self.workdir = workdir
         self.exe = exe
         self.infile = 'skdefs.py'
-	self.logfile = 'skgen.sh.log' # this will take stdout and stderr
+        self.logfile = 'skgen.sh.log' # this will take stdout and stderr
         self.log = log
 
     def execute(self):
 
-	# verify a logger is available
-	if self.log is None:
-	    self.log = logging.getLogger(__name__)
+        # verify a logger is available
+        if self.log is None:
+            self.log = logging.getLogger(__name__)
 
         callerdir = os.getcwd()
         os.chdir(self.workdir)
-        self.log.debug('Executing {e} in {d} with input from {i}; stdout/err will be in {o}'.format(
-			e=self.exe, d=self.workdir, i=self.infile, o=self.logfile))
+        self.log.debug('Executing {e} in {d} with input from {i}; stdout/err will be in {o}'.
+                       format( e=self.exe, d=self.workdir, i=self.infile, o=self.logfile))
         process = subprocess.Popen(['/bin/bash',self.exe,], stdout=open(self.logfile, 'w'),stderr=STDOUT,)
         process.wait()
+        self.log.debug('...Done, with exit status {0}'.format(process.returncode))
         success = not(process.returncode)
         if not success:
             self.log.critical('\tERROR: {e} failed somehow. Check {log}!'.
-		    format(e=self.exe,log=self.logfile))
-	    sys.exit()
+            format(e=self.exe,log=self.logfile))
+            sys.exit()
         os.chdir(callerdir)
         return success
 
@@ -124,33 +125,33 @@ class RunDPbands(object):
         -s, --separate-spins  create separate band structure for each spin channel
     """
     def __init__(self, workdir = '.', exe='dp_bands', infile='band.out', opts = None,
-	         outprefix='bands', log=None):
-	self.workdir = workdir
-	self.exe = exe
+             outprefix='bands', log=None):
+        self.workdir = workdir
+        self.exe = exe
         self.infile = infile 
         self.outprefix = outprefix
-	self.options = opts or []
+        self.options = opts or []
         self.logfile = 'dp_bands.log'
         self.log = log
     
     def execute(self):
 
-	# verify a logger is available
-	if self.log is None:
-	    self.log = logging.getLogger(__name__)
+        # verify a logger is available
+        if self.log is None:
+            self.log = logging.getLogger(__name__)
 
         callerdir = os.getcwd()
         os.chdir(self.workdir)
         self.log.debug('Executing {e} in {d} on {i}, result will be in {o}_tot.dat'.
                 format(e=self.exe, d=self.workdir, i=self.infile, o=self.outprefix))
         process = subprocess.Popen( [self.exe, self.infile, self.outprefix], 
-				    stdout=open(self.logfile, 'w'), stderr=STDOUT,)
+                    stdout=open(self.logfile, 'w'), stderr=STDOUT,)
         process.wait()
         success = not(process.returncode)
-	if not success:
+        if not success:
             self.log.critical('\tERROR: {e} failed somehow. Check {log}!'.
-		    format(e=self.exe,log=self.outprefix))
-	    sys.exit()
+                format(e=self.exe,log=self.outprefix))
+            sys.exit()
         os.chdir(callerdir)
         return success
     
@@ -268,9 +269,9 @@ if __name__ == "__main__":
     """
     """
     import os,sys
-    from calculate import Task
-    from BandStructure import readBandStructure, getkLines
-    from plotterBS import PlotterBS, preconditionEkPlt_FCC
+    from skopt.calculate import Task
+    from skopt.BandStructure import readBandStructure, getkLines
+    from skopt.plotterBS import PlotterBS, preconditionEkPlt_FCC
     os.chdir('test_calculator_1')
 
     logging.basicConfig(level=logging.DEBUG)
@@ -295,6 +296,6 @@ if __name__ == "__main__":
     for task in [t3,t7,t8,t9]:
         task.execute()
         if task.output is not None:
-            for k,v in task.output.items():
+            for k,v in list(task.output.items()):
                 data[k] = v
-    print data
+    print (data)
