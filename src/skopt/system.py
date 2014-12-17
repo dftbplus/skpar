@@ -36,10 +36,9 @@ def skipSystemUpdate(*args,**kwargs):
 
     
 
-def queryData(data,keys):
+def queryData(data,keys,**kwargs):
     """ 
-    A query function that returns a sub-dictionary of 
-    data based on keys.
+    Return a sub-dictionary of *data* based on *keys*.
     data is the input dictionary
     keys determine the key,value pairs returned in the
     output dictionary
