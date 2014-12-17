@@ -181,7 +181,7 @@ def pso_args(**kwargs):
     return init_args, call_args, init_optional_args, call_optional_args
 
 
-def report_PSO_stats(stats, wre_stats, log=logging.getLogger(__name__)):
+def report_stats(stats, log=logging.getLogger(__name__)):
     """
     """
     statsHeader = "".join([
@@ -196,21 +196,22 @@ def report_PSO_stats(stats, wre_stats, log=logging.getLogger(__name__)):
     log.info("PSO statistics follow:")
     log.info(statsHeader)
     log.info('============================================================')
-    ngen = len(stats.Min[0])
+    ngen = len(stats)
     for gen in range(ngen):
+        s = stats[gen]
         log.info("".join([
         '{0:>5d}'.format(gen),
-        '{0:>10.4f}'.format(stats.Min[0][gen][0]),
-        '{0:>10.4f}'.format(stats.Max[0][gen][0]),
-        '{0:>10.4f}'.format(stats.Avg[0][gen][0]),
-        '{0:>10.4f}'.format(stats.Std[0][gen][0]),
-        '{0:>12.2f}'.format(wre_stats.Min[0][gen][0]*100.),
+        '{0:>10.4f}'.format(s['Fitness']['Min']),
+        '{0:>10.4f}'.format(s['Fitness']['Max']),
+        '{0:>10.4f}'.format(s['Fitness']['Avg']),
+        '{0:>10.4f}'.format(s['Fitness']['Std']),
+        '{0:>12.2f}'.format(s['WRE']['Min']*100),
             ]))
     log.info('============================================================')
 
 
-def minabs(swarm):
-    return np.min(np.abs([part.worstErr for part in swarm]))
+#def minabs(swarm):
+#    return np.min(np.abs([part.worstErr for part in swarm]))
 
 
 class PSO(object):
@@ -237,28 +238,26 @@ class PSO(object):
         # create a swarm from particles with the above defined properties
         self.toolbox.register("swarm", tools.initRepeat, creator.Swarm, self.toolbox.create)
         self.swarm = self.toolbox.swarm(npart)
-        # provide with statistics collector and evolution logger
-        # these must be further customized, may be by directly operating on the
-        # PSO instance 
-        # fitness statistics
-        self.stats = tools.Statistics(lambda ind: ind.fitness.values)
-        self.stats.register("Avg", tools.mean)
-        self.stats.register("Std", tools.std)
-        self.stats.register("Min", min)
-        self.stats.register("Max", max)
-        # worstRelErr statistics
-        self.wre_stats = tools.Statistics(lambda ind: ind.worstErr)
-        self.wre_stats.register("Min", minabs)
-
-        column_names = ["gen",]
-        column_names.extend(list(self.stats.functions.keys()))
-        self.logger = tools.EvolutionLogger(column_names)
+        # Provide with statistics collector and evolution logger
+        #  - fitness statistics
+        fit_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
+        fit_stats.register("Avg", np.mean)
+        fit_stats.register("Std", np.std)
+        fit_stats.register("Min", np.min)
+        fit_stats.register("Max", np.max)
+        #  - Worst Relative Error statistics
+        wre_stats = tools.Statistics(key=lambda ind: ind.worstErr)
+        wre_stats.register("Min", np.min)
+        # All statistics will be compiled for each generation and added to the record
+        self.mstats = tools.MultiStatistics(Fitness=fit_stats, WRE=wre_stats)
+        self.stats_record = []
 
 
     def optimise(self, ngen, ErrTol=None):
         """
         Let the swarm evolve for ngen generations.
         """
+        self.stats_record = []
         for g in range(ngen):
             for i, part in enumerate(self.swarm):
                 iteration = (g, i)
@@ -286,15 +285,14 @@ class PSO(object):
                 self.toolbox.evolve(part, self.swarm.gbest)
 
             # Gather all the fitnesses and worst errors and update the stats
-            self.stats.update(self.swarm)
-            self.wre_stats.update(self.swarm)
+            self.stats_record.append(self.mstats.compile(self.swarm))
 
             # Try an alternative exit criterion
             if ErrTol is not None:
                 if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
                     break
 
-        return self.swarm, self.stats
+        return self.swarm, self.stats_record
 
 
     def __call__(self, *args, **kwargs):

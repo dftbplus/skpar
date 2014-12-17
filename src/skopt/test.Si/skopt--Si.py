@@ -8,7 +8,6 @@ import numpy as np
 from datetime import datetime
 from types import *
 from subprocess import STDOUT
-
 from collections import OrderedDict
 
 # skopt
@@ -23,6 +22,7 @@ from skopt.parameters import read_parameters, write_parameters
 from deap.base import Toolbox
 from skopt.optimise import SKopt
 
+print (sys.version)
 
 def main():
     """

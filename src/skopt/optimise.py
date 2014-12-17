@@ -10,7 +10,7 @@ from collections import OrderedDict
 from skopt.runtasksDFTB import RunSKgen_sh
 from skopt.system import System
 from skopt.evaluate import Evaluator
-from skopt.pso import PSO, pso_args, report_PSO_stats
+from skopt.pso import PSO, pso_args, report_stats
 from skopt.parameters import read_parameters, write_parameters, report_parameters, update_pardict
 from deap.base import Toolbox
 
@@ -206,7 +206,7 @@ class SKopt(object):
                       format(self.swarm.gbest.fitness.values[0],
                              self.swarm.gbest.worstErr*100.))
 
-        report_PSO_stats(self.optimise.stats, self.optimise.wre_stats, self.log)
+        report_stats(self.stats, self.log)
 
         self.log.info('')
         self.log.info('Logging ends at {0}'.format(datetime.now()))
