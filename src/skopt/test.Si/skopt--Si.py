@@ -13,7 +13,7 @@ from collections import OrderedDict
 # skopt
 from skopt.runtasksDFTB import RunDFTB, RunDPbands, RunSKgen_sh
 from skopt.queryDFTB import QueryDataDFTB
-from skopt.plotBS import Plotter
+#from skopt.plotBS import Plotter
 from skopt.system import Analyser, System, queryData
 from skopt.evaluate import Evaluator
 from skopt.pso import PSO
@@ -62,9 +62,9 @@ def main():
 #    s1.tasks.append(QueryDataDFTB(s1.sccdata, workdir=s1.dirSCC,
 #                                  getBands=True, getHOMO=True, getkLines=False,
 #                                  prepareforplot=False))
-    s1.tasks.append(Plotter(data=s1.bsdata,
-                            filename=os.path.join(s1.workdir, 'BS_Si.fcc.pdf'),
-                            Erange=(-12, 6)))
+#   s1.tasks.append(Plotter(data=s1.bsdata,
+#                            filename=os.path.join(s1.workdir, 'BS_Si.fcc.pdf'),
+#                            Erange=(-12, 6)))
     s1.tasks.append(Analyser(analyse=analyseEk_Si, data=s1.bsdata, results=s1.calculated))
     s1.tasks.append(Analyser(analyse=analyseEkst_Si, data=s1.bsdata, results=s1.calculated))
     s1.tasks.append(Analyser(analyse=analyseMeff_Si, data=s1.bsdata, results=s1.calculated))
