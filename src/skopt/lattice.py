@@ -202,7 +202,7 @@ def get_recipr (A,scale):
     return B
 
 def getSymPtLabel(kvec, lattice, log):
-    """
+    """ 
     This routine returns the label of a k-space symmetry point, given a tupple, representing the corresponding
     k-vector.
     __NOTA BENE:__ The symmetry points are defined as a dictionary for a given lattice type.
@@ -216,16 +216,17 @@ def getSymPtLabel(kvec, lattice, log):
     
     try:
         for l,klist in list(SymPts_k[lattice].items()):
-            if tuple(kvec) in klist:
+            if tuple(kvec)  in klist:
                 kLabel = l
     except KeyError:
-        log.critical("ERROR: No symmetry point definition for the {lattice} lattice are defined.".format(lattice))
-        log.critical("       Please, extend the SymPts dictionary in lattice.py module before continuing.")
+        log.critical("ERROR : No symmetry point definition for the {lattice} lattice are defined.".format(lattice))
+        log.critical("        Please, extend the SymPts dictionary in lattice.py module before continuing.")
         sys.exit(1)
             
     if not kLabel:
-        log.debug("WARNING: Unable to match the given kvector {0} to a symmetry point of the given {1} lattice".format(kvec,lattice))
-        log.debug("         Returnning fractions of reciprocal vectors as a k-point label".format(kvec,lattice))
+        log.warning("Unable to match k-vector {0} to a symmetry point of {1} lattice".
+                    format(kvec,lattice))
+        log.warning("\tReturnning fractions of reciprocal vectors as k-pt label")
         kx,ky,kz = Fraction(kvec[0]).limit_denominator(), Fraction(kvec[1]).limit_denominator(), Fraction(kvec[2]).limit_denominator()
         kLabel = '({0}/{1}, {2}/{3}, {4}/{5})'.format(kx.numerator, kx.denominator,
                                                       ky.numerator, ky.denominator,

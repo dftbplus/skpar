@@ -62,6 +62,11 @@ def subpath (wd,*pathfragments):
     return os.path.join(wd,*pathfragments)
 
 
+def is_monotonic(x):
+    dx = np.diff(x)
+    return np.all(dx <= 0) or np.all(dx >= 0)
+
+
 def normaliseWeights(weights):
     """
     normalise weights so that their sum evaluates to 1
