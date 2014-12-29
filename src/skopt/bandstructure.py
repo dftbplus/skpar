@@ -53,7 +53,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
     meffdict = {'min': 'me', 'max': 'mh'}
 
     def meff_id(ix):
-        return '{0}_{1}{2:n}'.format(meffdict[extrtype], meff_tag, ix)
+        return '_'.join([meffdict[extrtype], meff_tag, '{0:n}'.format(ix)])
 
     try: 
         fextr = extrdict[extrtype]
@@ -102,10 +102,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
 
     for ib in range(nb):
         # set the references for the current band
-        if nb > 1:
-            band = bands[ib0 + ib]
-        else:
-            band = bands
+        band = bands[ib0 + ib]
 
         # desired extremum values for each band
         extr = fextr(band)
@@ -126,30 +123,6 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
         
         extr_pos_label = getSymPtLabel(extr_pos, lattice, log)
 
-#        ## Special treatment is required if the point is right at the boundary,
-#        ## or very near it, in which case we must extend the band by mirror 
-#        ## symmetry around the extremum, before we attempt to fit.
-#        ## Ideally, this should not happen, if we provide carefully selected 
-#        ## paths that surround the band extrema. But this may not be possible 
-#        ## at all to control when masses are roughly estimated in the course of
-#        ## optimisation process, where it is better to minimize the number of 
-#        ## calculations.
-#        if iextr == 0:
-#            log.debug('\tMirroring the band, since its {extr} is at {iextr}'.
-#                    format(extr=extremum,iextr=iextr))
-#            kline = np.concatenate((-kline[:0 :-1],kline))
-#            band = np.concatenate((band[:0 :-1],band))
-#        if iextr == nk-1:
-#            log.debug('\tMirroring the band, since its {extr} is at {iextr}'.
-#                    format(extr=extremum,iextr=iextr))
-#            band = np.concatenate((band,band[len(band)-2: :-1]))
-#            kline = np.concatenate((-kline[: :-1],kline[1:]))
-#        iextr  = np.where(band==extr)[0][0]
-#        assert len(kline) == len(band), \
-#            ("Mismatch in the length of kLline {0}, and band {1}, "
-#                "while trying to fit effective mass")
-#        nk1 = len(kline) # if we have mirrored the band, then we have new nk
-
         # Select how many points to use around the extremum, in order to make the fit.
         krange = np.where(abs(band-extr)<=Erng)[0]
         # We have a problem if the band wiggles and we get an inflection point
@@ -158,6 +131,9 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
         # So the above determination is not good.
         # We have to narrow the k-range further, to guarantee that E
         # is monotonously increasing/decreasing within the krange.
+        # NOTABENE: using is_monotonic as below effectively narrows the krange
+        #           independently of Erange, which may lead to a far too narrow
+        #           range, e.g. 1 or 2 points, especially for coarser sampling.
         while not is_monotonic(band[krange<iextr]):
             krange = krange[1:]
         while not is_monotonic(band[krange>iextr]):
@@ -165,12 +141,11 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
         nlow = min(krange)
         nhigh = max(krange)
 
-
 #        log.debug(("\tFitting eff.mass on {n:3d} points around {i:3d}-th k; "
 #                "extremum value {v:7.3f} at {p:5.2f} of k-line").
 #                format(n=nhigh-nlow+1, i=iextr+1, v=extr,
 #                        p=kline[iextr]/kline[nk-1]*100))
-        if nhigh-iextr < 3 and iextr != len(band)-1:
+        if nhigh-iextr < 3 and iextr != nk-1:
             log.warning('Too few points ({0}) to right of extremum: Poor {1} fit likely.'.
                         format(nhigh - iextr, meff_id(ib)))
             log.warning("\tCheck if extremum is at the end of k-line; "
@@ -205,3 +180,50 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
                  id=meff_id(ib), mass=meff, pos=extr_pos_label, ee=extr))
     return meff_data
 
+
+def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=None):
+    """
+    Return the effective masses for electrons and holes for the first
+    *nb* *bands* in the VB and CB, along the given *directions*.
+    """
+    meff = OrderedDict()
+    bands      = np.transpose(bsdata['Bands'])
+    nE, nk     = bands.shape
+    nVBtop     = bsdata['nVBtop']
+    kLines = bsdata['kLines']
+    kLinesDict = bsdata['kLinesDict']
+    lattice = bsdata['lattice']
+    latticeconst = bsdata['latticeconst']
+
+    for dir in directions:
+        kLabels = dir.split('-')
+        ix0 = None
+        ix1 = None
+        for ii,pt in enumerate(kLines[:-1]):
+            if kLines[ii][0] in kLabels and kLines[ii+1][0] in kLabels:
+                kLineEnds = sorted([kLines[ii], kLines[ii+1]], key=lambda x: x[1])
+                ix0 = kLineEnds[0][1]
+                ix1 = kLineEnds[1][1]
+                break
+        assert ix0 is not None
+        assert ix1 is not None
+        kEndPts = [SymPts_k[lattice][kEnd[0]][0] for kEnd in kLineEnds]
+
+        # hole masses
+        if carriers in ['both', 'eh', True, 'h', 'holes']:
+            ib0 = nVBtop-1
+            kLine = bands[ib0:ib0+nb, ix0:ix1+1]
+            meff_data = calc_masseff(kLine, 'max', kEndPts, lattice, latticeconst,
+                                    meff_tag=dir, Erange=Erange, nb=nb, log=log)
+            meff.update(meff_data)
+
+        # electron masses
+        if carriers in ['both', 'eh', True, 'e', 'electrons']:
+            ib0 = nVBtop+1
+            kLine = bands[ib0:ib0+nb, ix0:ix1+1]
+            meff_data = calc_masseff(kLine, 'min', kEndPts, lattice, latticeconst,
+                                    meff_tag=dir, Erange=Erange, nb=nb, log=log)
+            meff.update(meff_data)
+
+    return meff
+    

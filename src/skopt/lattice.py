@@ -70,9 +70,12 @@ class FCC(object):
                            np.array((0, 0, a,)) ]
 
 
+        # reciprocal lattice vectors
         self.recipr = get_recipr(self.prim,self.scale)
 
-        self.SymPts_k = {} # in terms of k-vectors
+        # symmetry points in terms of reciprocal lattice vectors
+        # and in terms of reciprocal length, e.g. 1/a
+        self.SymPts_k = {} # in terms of k-space unit vectors
         self.SymPts = {}   # in terms of reciprocal length
 
         for k,v in list(SymPts_k[self.name].items()):
@@ -139,7 +142,7 @@ class CUB(object):
         self.recipr = get_recipr(self.prim,self.scale)
 
         self.SymPts_k = {} # in terms of k-vectors
-        self.SymPts = {}   # in terms of reciprocal length
+        self.SymPts = {}   # in terms of reciprocal length 1/a
 
         for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
@@ -189,7 +192,7 @@ def get_recipr (A,scale):
     B0 = scale * (A1 x A2)/(A1 . A2 x A3)
     B1 = scale * (A2 x A0)/(A1 . A2 x A3)
     B2 = scale * (A0 x A1)/(A1 . A2 x A3)
-    note that the triple-scalar product is invariant under circular shift,
+    Recall that the triple-scalar product is invariant under circular shift,
     and equals the (signed) volume of the primitive cell.
     """
     volume = np.dot(A[0],np.cross(A[1],A[2]))
@@ -232,6 +235,16 @@ def getSymPtLabel(kvec, lattice, log):
                                                       ky.numerator, ky.denominator,
                                                       kz.numerator, kz.denominator)
     return kLabel
+
+def getkLineLength(kpt0,kpt1,Bvec,scale):
+    """
+    Given two k-points in terms of unit vectors of the reciprocal lattice, Bvec,
+    return the distance between the two points, in terms of reciprocal length.
+    """
+    k0 = np.dot(np.array(kpt0),np.array(Bvec))
+    k1 = np.dot(np.array(kpt1),np.array(Bvec))
+    klen = scale*np.linalg.norm(k0-k1)
+    return klen
 
 
 def test_FCC(a,scale=None):
