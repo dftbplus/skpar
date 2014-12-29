@@ -19,6 +19,7 @@ hbar = 1.054572e-34 # [J.s] reduced Planck's constant (h/2pi)
 q0 = 1.602176e-19   # [C] electron charge
 m0 = 9.10938e-31    # [kg] electron rest mass
 
+
 def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=None, 
                  Erange=0.008, ib0=0, nb=1, log = logging.getLogger(__name__)):
     """
@@ -53,7 +54,24 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
     meffdict = {'min': 'me', 'max': 'mh'}
 
     def meff_id(ix):
-        return '_'.join([meffdict[extrtype], meff_tag, '{0:n}'.format(ix)])
+        """
+        Change Gamma to G and eliminate - from meff_tag if a direction
+        is recognized (e.g. something like Gamma-X becomes GX.
+        prepend type of mass (me or mh) and index if more than 1 bands
+        are requested.
+        """
+        tag = meff_tag.split('-')
+        try:
+            tag[tag.index('Gamma')] = 'G'   # works for Gamma-X directional tags
+        except ValueError:  # directional tag (e.g. A-X) but no Gamma
+            pass
+        tag = ''.join(tag)  # leaves a non-directional tag intact; GX otherwise
+        if nb==1:
+            tag = '_'.join([meffdict[extrtype], tag])
+        else:
+            tag = '_'.join([meffdict[extrtype], tag, '{0:n}'.format(ix)])
+        return tag
+
 
     try: 
         fextr = extrdict[extrtype]
@@ -183,7 +201,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
 
 def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=None):
     """
-    Return the effective masses for electrons and holes for the first
+    Return the effective masses for the given *carriers* for the first
     *nb* *bands* in the VB and CB, along the given *directions*.
     """
     meff = OrderedDict()
@@ -222,7 +240,7 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=No
             ib0 = nVBtop+1
             kLine = bands[ib0:ib0+nb, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice, latticeconst,
-                                    meff_tag=dir, Erange=Erange, nb=nb, log=log)
+                                     meff_tag=dir, Erange=Erange, nb=nb, log=log)
             meff.update(meff_data)
 
     return meff
