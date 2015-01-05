@@ -30,10 +30,8 @@ class Analyser(object):
         self.execute()
 
     
-    
 def skipSystemUpdate(*args,**kwargs):
     pass
-
     
 
 def queryData(data, keys, **kwargs):
@@ -48,7 +46,6 @@ def queryData(data, keys, **kwargs):
     for key in keys:
         odict[key]=data[key]
     return odict
-
 
 
 class System (object):
@@ -92,9 +89,11 @@ class System (object):
         for key,val in optattr.items():
             setattr(self,key,val)
     
+
     def subdir(self,*pathfragments):
         return os.path.join(self.workdir,*pathfragments)
             
+
     def execute(self):
         """
         """
@@ -113,7 +112,6 @@ class System (object):
             
     def __call__(self):
         return self.execute()
-
 
 
 if __name__ == "__main__":

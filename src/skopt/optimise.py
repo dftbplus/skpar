@@ -124,7 +124,7 @@ class SKopt(object):
                     workdir=self.workdir,
                     # costfunc=costfunc,   # use default cost function       
                     verbose=True,
-                    useRelErr=False,     # if true, would use relerr in constfunc
+                    useRelErr=False,     # if true, would use relerr in costfunc
                     skipexecution=False, # True if you don't have skgen,dftb+,dp_bands etc.
                     log=self.log)
 

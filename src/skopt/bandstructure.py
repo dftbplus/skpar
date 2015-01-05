@@ -167,12 +167,12 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
             log.warning('Too few points ({0}) to right of extremum: Poor {1} fit likely.'.
                         format(nhigh - iextr, meff_id(ib)))
             log.warning("\tCheck if extremum is at the end of k-line; "
-                        "else enlarge Erange or finer resolve k-line.")
+                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
         if iextr-nlow < 3 and iextr != 0:
             log.warning("Too few points ({0}) to left of extremum: Poor {1} fit likely.".
                         format(iextr - nlow, meff_id(ib)))
             log.warning("\tCheck if extremum is at the end of k-line; "
-                        "else enlarge Erange or finer resolve k-line.")
+                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
 
         # Fit 2nd order polynomial over a few points surrounding the selected band extremum
         x = kline[krange]
@@ -199,10 +199,33 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
     return meff_data
 
 
+def expand_meffdata(meff_data):
+    """
+    """
+    expanded_data = OrderedDict()
+    for k,v in meff_data.items():
+        tagdict = {'me': ('cbmin', 'cbminpos'), 'mh': ('vbmax', 'vbmaxpos')}
+        tagbits = k.split('_')
+        masstag = k
+        massval = v[0]
+        extrtag = '_'.join([tagdict[tagbits[0]][0],] + tagbits[1:])
+        extrval = v[1]
+        kpostag = '_'.join([tagdict[tagbits[0]][1],] + tagbits[1:])
+# TODO: this will be more useful in fractions of the kLineLength
+#       so that it can be compared against a reference, e.g. during
+#       optimisation
+        kposval = v[2]
+        expanded_data[masstag] = massval
+        expanded_data[extrtag] = extrval
+        expanded_data[kpostag] = kposval
+    return expanded_data
+
+
 def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=None):
     """
-    Return the effective masses for the given *carriers* for the first
-    *nb* *bands* in the VB and CB, along the given *directions*.
+    Return a dictionary with effective masses for the given *carriers* for the 
+    first *nb* *bands* in the VB and CB, along the given *directions*, as well 
+    as the values of the extrema and their position along the *directions*.
     """
     meff = OrderedDict()
     bands      = np.transpose(bsdata['Bands'])
@@ -228,20 +251,21 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=No
         kEndPts = [SymPts_k[lattice][kEnd[0]][0] for kEnd in kLineEnds]
 
         # hole masses
+        # NOTABENE the reverse indexing of bands, so that mh_*_0 is the top VB
         if carriers in ['both', 'eh', True, 'h', 'holes']:
-            ib0 = nVBtop-1
-            kLine = bands[ib0:ib0+nb, ix0:ix1+1]
+            ib0 = nVBtop
+            kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'max', kEndPts, lattice, latticeconst,
                                     meff_tag=dir, Erange=Erange, nb=nb, log=log)
-            meff.update(meff_data)
+            meff.update(expand_meffdata(meff_data))
 
         # electron masses
+        # NOTABENE the direct indexing of bands, so that me_*_0 is the bottom CB
         if carriers in ['both', 'eh', True, 'e', 'electrons']:
             ib0 = nVBtop+1
             kLine = bands[ib0:ib0+nb, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice, latticeconst,
                                      meff_tag=dir, Erange=Erange, nb=nb, log=log)
-            meff.update(meff_data)
+            meff.update(expand_meffdata(meff_data))
 
     return meff
-    

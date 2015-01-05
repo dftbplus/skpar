@@ -7,7 +7,7 @@ import logging
 
 def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
            refEkpts=None, refBands=None, \
-           col='darkred', colref='blue', \
+           col='darkred', withmarkers=False, colref='blue', \
            cycle_colors=False, log=logging.getLogger('__name__'), **kwargs):
     """
     Plot the bands supplied to bands argument, along the k-lines in the kLines argument.
@@ -50,7 +50,11 @@ def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
     if cycle_colors:
         ax.plot(xx, yy)
     else:
-        ax.plot(xx, yy, color=col)
+        if withmarkers:
+            ax.plot(xx, yy, color=col, marker='o',)
+        else:
+            ax.plot(xx, yy, color=col)
+
     # plot vertical lines at special symmetry points if these are known
     if kLines is not None:
         [plt.axvline(x=k, color='k') for k in kTicks]
@@ -93,18 +97,21 @@ class Plotter(object):
     """
 
     def __init__(self, data=None, filename=None,
-                 Erange=[-13, +13], figsize=(6, 7), log=logging.getLogger(__name__),
-                 refEkpts=None, refBands=None, col='darkred', colref='blue', cycle_colors=False):
+                 Erange=[-13, +13], krange=None, figsize=(6, 7), log=logging.getLogger(__name__),
+                 refEkpts=None, refBands=None, col='darkred', withmarkers=False, 
+                 colref='blue', cycle_colors=False):
         """
         """
         self.data = data or {}
         self.filename = filename
         self.Erange = Erange
+        self.krange = krange
         self.figsize = figsize
         self.refEkpts = refEkpts
         self.refBands = refBands
         self.log = log
         self.col = col
+        self.withmarkers = withmarkers
         self.colref = colref
         self.cycle_colors = cycle_colors
 
@@ -158,9 +165,11 @@ class Plotter(object):
             except:
                 self.log.critical('Plotter {0} has wrongly assigned data field'.format(self))
 
-        self.fig = plotBS(bands, kLines, Erange=self.Erange, figsize=self.figsize,
+        self.fig = plotBS(bands, kLines, Erange=self.Erange, krange=self.krange,
+                        figsize=self.figsize,
                         refEkpts=self.refEkpts, refBands=self.refBands,
-                        col=self.col, colref=self.colref, cycle_colors=self.cycle_colors,
+                        col=self.col, withmarkers=self.withmarkers, 
+                        colref=self.colref, cycle_colors=self.cycle_colors,
                         log=self.log)
         self.fig.savefig(self.filename, bbox_inches='tight', pad_inches=0.01)
         plt.close()

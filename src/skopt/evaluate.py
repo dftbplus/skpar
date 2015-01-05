@@ -297,7 +297,7 @@ class Evaluator (object):
         self.flatcalcdata = []
         for ss,sw in zip(self.systems,self.systemweights):
             if not self.skipexecution:
-                ss.update(parameters=parameters, iteration=iteration)
+                ss.update(ss, parameters=parameters, iteration=iteration)
                 self.log.debug('Executing system {0}.'.format(ss.name))
                 ss.execute()
                 self.log.debug('...done with system {0}.'.format(ss.name))
