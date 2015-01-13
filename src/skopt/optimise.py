@@ -19,7 +19,7 @@ class SKopt(object):
     """
     """
     def __init__(self, workdir = "./",
-        skopt_in='skdefs.template.py',
+        skdefs_template_file='skdefs.template.py',
         skfdir='skf',
         skdefs_out='skdefs.py',
         systems=None,
@@ -58,7 +58,7 @@ class SKopt(object):
         self.workdir = workdir
         os.chdir(self.workdir)
         self.log.info('Execution directory is {0}'.format(os.getcwd()))
-        self.log.info('\tskdefs template is {0}'.format(skopt_in))
+        self.log.info('\tskdefs template is {0}'.format(skdefs_template_file))
         self.log.info('\tskdefs.py will be {0}'.
                       format(os.path.join(skfdir,skdefs_out)))
 
@@ -70,8 +70,8 @@ class SKopt(object):
         self.skdefs_out = os.path.join(self.skfdir,skdefs_out) # skgen input
         
         # input for the optimiser, and initial/range values for parameters
-        self.skopt_in = os.path.join(self.workdir, skopt_in)
-        skdefs_template, pardict, parrangedict = read_parameters(skopt_in, log)
+        self.skdefs_template_file = os.path.join(self.workdir, skdefs_template_file)
+        skdefs_template, pardict, parrangedict = read_parameters(skdefs_template_file, log)
         self.skdefs_template = skdefs_template
         self.pardict = pardict
         self.parrangedict = parrangedict
