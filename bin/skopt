@@ -68,20 +68,25 @@ def main():
     # Import the definition of the systems
     # -------------------------------------------------------------------
     # the skoptdefs input is a python file; may be specified either as a
-    # module name (something_else) or as a python file (something.py)
+    # module name (something) or as a python file (something.py)
     # first we have to get rid of the .py, in order to use the import_module()
-    fname, fext = os.path.splitext(args.skopt_input)
+    # we must get rid of path too, if present, i.e. './blah.py' should become 'blah'
+    argskoptinp = os.path.basename(args.skopt_input)
+    fname, fext = os.path.splitext(argskoptinp)
     if fext=='.py':
-        skoptdefs_module = fname
+        skoptinp_module = fname
     else:
-        skoptdefs_module = args.skopt_input
+        skoptinp_module = argskoptinp
     # now we should have a clean module name, w/o .py trailing
     try:
-        skoptdefs = importlib.import_module(skoptdefs_module)
+        log.info('Looking for input in {} python module'.format(skoptinp_module))
+        skoptinp = importlib.import_module(skoptinp_module)
     except ImportError:
         log.critical('The specified skopt_input {0} module is missing.'.format(args.skopt_input))
         log.critical('Make sure it is in the current directory and is a valid python3 file.')
         sys.exit()
+
+    skoptdefs = skoptinp.SKoptInput(workdir=workdir)
 
     systems    = skoptdefs.systems
     sysweights = skoptdefs.sysweights
