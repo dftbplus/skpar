@@ -207,12 +207,13 @@ class QueryDataDFTB (object):
         # to label them properly and therefore we need to know what lattice we have
         if self.getkLines:
             if 'lattice' in self.data:
-                kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'])
+                kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'].name)
                 self.data['kLines'] = kLines
                 self.data['kLinesDict'] = kLinesDict
             else:
                 self.log.warning('\tCould not interpret the kLines info without a given lattice in mind'
-                                 '\tMake sure data[''lattice''] is specified before quering the band-structure')
+                                 '\tMake sure data[''lattice''] is a valid lattice class instance,'
+                                 '\tbefore quering the band-structure')
         
             if self.prepareforplot and self.getkLines and 'lattice' in self.data:
                 # note that getBands below returns (bands,E0)                

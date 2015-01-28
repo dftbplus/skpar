@@ -20,13 +20,36 @@ q0 = 1.602176e-19   # [C] electron charge
 m0 = 9.10938e-31    # [kg] electron rest mass
 
 
-def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=None, 
+def meff(band, kline):
+    """
+    Return the effective mass, in units of m0 (the electron mass at rest),
+    as the inverse of the curvature of *bands*, assuming parabolic dispersion
+    within *kline*, working in atomic units:
+        *bands* and *kline* are in Hartree and 1/Bohr, h_bar = 1, m0 = 1
+
+        meff = (h_bar**2) / (d**2E/dk**2), [m0]
+
+    """
+    # Fit 2nd order polynomial over the points surrounding the selected band extremum
+    x = kline   # [1/Bohr]
+    y = band    # [Hartree]
+    c = np.polyfit(x,y,2)
+    fit = np.poly1d(c)
+    # NOTA BENE:
+    # in numpy.poly[fit|1d], the 2nd order coeff is c[0]
+    c2 = c[0]
+    # assuming E = c2*k^2 + c1*k + c0 =>
+    # dE/dk = 2*c2*k and d^2E/dk^2 = 2*c2
+    return 1./(2.*c2)
+
+
+def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None, 
                  Erange=0.008, ib0=0, nb=1, log = logging.getLogger(__name__)):
     """
     Calculate parabolic effective mass at the specified *extrtype* of 
     given *bands*, calculated along two points in k-space defined by a
-    list of two 3-tuples - *kLineEnds*. The direct *latticeconsant* defines
-    the length in k-space as 2pi/*latticeconst*.
+    list of two 3-tuples - *kLineEnds*. *lattice* is a lattice object, defining
+    the metric of the kspace.
 
     :param bands: an array (nb, nk) energy values in [eV], or a 1D array like
     :param extrtype: type of extremum to search for: 'min' or 'max',
@@ -37,7 +60,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
                       is obtained along a number of points from \Gamma to
                       X, of the BZ of a cubic lattice, then kLineEnds
                       should read ((0, 0, 0), (1, 0, 0))
-    :param latticeconst: length [A] of the direct lattice constant
+    :param lattice: lattice object, holding mapping to kspace.
     :param meff_name: the name to be featured in the log 
     :param Erange: Energy range [eV] over which to fit the parabola 
                    [dflt=8meV], i.e. 'depth' of the assumed parabolic well.
@@ -106,15 +129,14 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
                     "\tWill fit only the first {1} masses, as per the available bands".format(nb, nE))
         nb = nE
 
-    # Scale the k-vectors in [A^{-1}], taking into account direction and lattice parameter
-    a = latticeconst                  # lattice constant, [A] 
-    scale = 2*pi/a                    # first brillouin zone is [-pi/a : +pi/a]
-    k1 = scale*np.array(kLineEnds[0]) # e.g. Gamma = (0,0,0)
-    k2 = scale*np.array(kLineEnds[1]) # e.g. X = (1,0,0)
+    beta1 = kLineEnds[0]
+    beta2 = kLineEnds[1]
+    k1 = lattice.get_kvec(beta1)      # get reciprocal vectors
+    k2 = lattice.get_kvec(beta2)
+    dk = (k2 - k1)/(nk-1)             # delta vector in direction of k1->k2
+    dklen = np.linalg.norm(dk)
     klen=np.linalg.norm(k2-k1)        # length of the vector from k1 to k2
-    dk = klen/(nk-1)                  # distance between available k-points
-    kline = dk * np.array(range(nk))  # reconstruction of kline, in units of A^{-1}
-
+    kline = dklen * np.array(range(nk))  # reconstruction of kline, in units of A^{-1}
 
     meff_data = OrderedDict([])       # permits list-like extraction of data too
 
@@ -134,19 +156,17 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
 
         iextr  = np.where(band==extr)[0][0] # where along kLine it is?
 
-        # find the position in k-space
-        extr_pos = np.array(kLineEnds[0]) +\
-                   (np.array(kLineEnds[1])-np.array(kLineEnds[0]))*\
-                   (iextr*dk)/klen
-        
-        extr_pos_label = getSymPtLabel(extr_pos, lattice, log)
+        # find the position in k-space, and the relative position along the kline
+        kextr = k1 + iextr * dk
+        extr_relpos = iextr * dklen / klen
+        #extr_pos_label = lattice.get_SymPtLabel(kextr)
 
         # Select how many points to use around the extremum, in order to make the fit.
         krange = np.where(abs(band-extr)<=Erng)[0]
         # We have a problem if the band wiggles and we get an inflection point
-        # within the krange -- this happens due to zone folding, e.g. in 
-        # Si, due to its indirect band-gap.
-        # So the above determination is not good.
+        # within the krange -- this happens e.g. due to zone folding in Si,
+        # due to its indirect band-gap.
+        # So checking we are within Erng is not sufficient.
         # We have to narrow the k-range further, to guarantee that E
         # is monotonously increasing/decreasing within the krange.
         # NOTABENE: using is_monotonic as below effectively narrows the krange
@@ -159,10 +179,6 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
         nlow = min(krange)
         nhigh = max(krange)
 
-#        log.debug(("\tFitting eff.mass on {n:3d} points around {i:3d}-th k; "
-#                "extremum value {v:7.3f} at {p:5.2f} of k-line").
-#                format(n=nhigh-nlow+1, i=iextr+1, v=extr,
-#                        p=kline[iextr]/kline[nk-1]*100))
         if nhigh-iextr < 3 and iextr != nk-1:
             log.warning('Too few points ({0}) to right of extremum: Poor {1} fit likely.'.
                         format(nhigh - iextr, meff_id(ib)))
@@ -174,28 +190,11 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, latticeconst, meff_tag=Non
             log.warning("\tCheck if extremum is at the end of k-line; "
                         "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
 
-        # Fit 2nd order polynomial over a few points surrounding the selected band extremum
-        x = kline[krange]
-        y = band[krange]
-        c = np.polyfit(x,y,2)
-        fit = np.poly1d(c)
-        # NOTA BENE:
-        # We need the c[0] coefficient when we use numpy.poly[fit|1d]
-        c2 = c[0]
-
-        # report the effective mass as the inverse of the curvature 
-        # (i.e. inverse of the 2nd derivative, which is a const.)
-        # recall that meff = (h_bar**2) / (d**2E/dk**2), in [kg]
-        # meff is needed in terms of m0 a.u. - the mass of free electron at rest;
-        # in a.u. h_bar is 1, m0 is 1 => we need to convert E and k in atomic units
-        # our E and k are in eV and A-1, respectively and 
-        # d**2E/dk**2 = 2*c[0] = const. [eV/A^-2] = const. [eV*A^2] = const/(Eh*aB^2)[a.u.]
-        #meff = (hbar*hbar)/((2*c[0])*(q0*(1.e-10)**2))/m0
-        meff = 1./(2.*c2)*(Eh*aB**2)
+        mass = meff(band[krange]/Eh, kline[krange]*aB)  # transform to atomic units
         
-        meff_data[meff_id(ib)] = (meff, extr, extr_pos_label)
-        log.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {pos}".format(
-                 id=meff_id(ib), mass=meff, pos=extr_pos_label, ee=extr))
+        meff_data[meff_id(ib)] = (mass, extr, extr_relpos)
+        log.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {relpos:.2f}".format(
+                 id=meff_id(ib), mass=mass, relpos=extr_relpos, ee=extr))
     return meff_data
 
 
@@ -211,9 +210,6 @@ def expand_meffdata(meff_data):
         extrtag = '_'.join([tagdict[tagbits[0]][0],] + tagbits[1:])
         extrval = v[1]
         kpostag = '_'.join([tagdict[tagbits[0]][1],] + tagbits[1:])
-# TODO: this will be more useful in fractions of the kLineLength
-#       so that it can be compared against a reference, e.g. during
-#       optimisation
         kposval = v[2]
         expanded_data[masstag] = massval
         expanded_data[extrtag] = extrval
@@ -224,48 +220,54 @@ def expand_meffdata(meff_data):
 def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=None):
     """
     Return a dictionary with effective masses for the given *carriers* for the 
-    first *nb* *bands* in the VB and CB, along the given *directions*, as well 
-    as the values of the extrema and their position along the *directions*.
+    first *nb* *bands* in the VB and CB, along the given *paths*, as well 
+    as the values of the extrema and their position along the directions in the *paths*.
     """
-    meff = OrderedDict()
+    masses = OrderedDict()
     bands      = np.transpose(bsdata['Bands'])
     nE, nk     = bands.shape
     nVBtop     = bsdata['nVBtop']
     kLines = bsdata['kLines']
     kLinesDict = bsdata['kLinesDict']
     lattice = bsdata['lattice']
-    latticeconst = bsdata['latticeconst']
 
-    for dir in directions:
-        kLabels = dir.split('-')
+    # suppose we have something like "L-Gamma-X|K-Gamma"
+    # this makes for two paths and three directions in total
+#    for path in paths.split('|'):
+    for direction in directions:
+        kLabels = direction.split('-')
+        assert len(kLabels)==2
+        endpoints = (kLabels[0], kLabels[1]) 
         ix0 = None
         ix1 = None
         for ii,pt in enumerate(kLines[:-1]):
-            if kLines[ii][0] in kLabels and kLines[ii+1][0] in kLabels:
+            # check that the labels specifying a direction form a consequtive pair
+            # in kLines, and then get the corresponding indexes, sorting them too
+            if kLines[ii][0] in endpoints and kLines[ii+1][0] in endpoints:
                 kLineEnds = sorted([kLines[ii], kLines[ii+1]], key=lambda x: x[1])
                 ix0 = kLineEnds[0][1]
                 ix1 = kLineEnds[1][1]
                 break
         assert ix0 is not None
         assert ix1 is not None
-        kEndPts = [SymPts_k[lattice][kEnd[0]][0] for kEnd in kLineEnds]
+        kEndPts = [lattice.SymPts_k[point[0]] for point in kLineEnds]
 
         # hole masses
         # NOTABENE the reverse indexing of bands, so that mh_*_0 is the top VB
         if carriers in ['both', 'eh', True, 'h', 'holes']:
             ib0 = nVBtop
             kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
-            meff_data = calc_masseff(kLine, 'max', kEndPts, lattice, latticeconst,
-                                    meff_tag=dir, Erange=Erange, nb=nb, log=log)
-            meff.update(expand_meffdata(meff_data))
+            meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
+                                    meff_tag=direction, Erange=Erange, nb=nb, log=log)
+            masses.update(expand_meffdata(meff_data))
 
         # electron masses
         # NOTABENE the direct indexing of bands, so that me_*_0 is the bottom CB
         if carriers in ['both', 'eh', True, 'e', 'electrons']:
             ib0 = nVBtop+1
             kLine = bands[ib0:ib0+nb, ix0:ix1+1]
-            meff_data = calc_masseff(kLine, 'min', kEndPts, lattice, latticeconst,
-                                     meff_tag=dir, Erange=Erange, nb=nb, log=log)
-            meff.update(expand_meffdata(meff_data))
+            meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
+                                    meff_tag=direction, Erange=Erange, nb=nb, log=log)
+            masses.update(expand_meffdata(meff_data))
 
-    return meff
+    return masses

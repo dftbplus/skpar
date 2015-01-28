@@ -82,7 +82,7 @@ def main():
         log.info('Looking for input in {} python module'.format(skoptinp_module))
         skoptinp = importlib.import_module(skoptinp_module)
     except ImportError:
-        log.critical('The specified skopt_input {0} module is missing.'.format(args.skopt_input))
+        log.critical('The specified {0} module is missing.'.format(args.skopt_input))
         log.critical('Make sure it is in the current directory and is a valid python3 file.')
         sys.exit()
 

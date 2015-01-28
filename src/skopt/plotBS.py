@@ -51,7 +51,7 @@ def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
         ax.plot(xx, yy)
     else:
         if withmarkers:
-            ax.plot(xx, yy, color=col, marker='o',)
+            ax.plot(xx, yy, color=col, marker='o', markersize=8)
         else:
             ax.plot(xx, yy, color=col)
 

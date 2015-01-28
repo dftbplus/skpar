@@ -41,6 +41,7 @@ SymPts_k = { 'FCC': { 'Gamma': [(0.,0.,0.),],
                       'X': [(0., 1./2., 0.),],
                       'Z': [(0., 0., 1./2.),], },
             }
+        
 
 class FCC(object):
     """
@@ -71,7 +72,8 @@ class FCC(object):
 
 
         # reciprocal lattice vectors
-        self.recipr = get_recipr(self.prim,self.scale)
+        self.recipr = get_recipr_unitvectors(self.prim,self.scale)
+        self.bvec = self.recipr
 
         # symmetry points in terms of reciprocal lattice vectors
         # and in terms of reciprocal length, e.g. 1/a
@@ -81,6 +83,14 @@ class FCC(object):
         for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
+
+        self.SymPts_b = self.SymPts_k
+        self.SymPts_inva = self.SymPts
+
+
+    def get_kvec (self, beta):
+        return get_kvec(beta, self.recipr)
+
 
 
 class HEX(object):
@@ -106,7 +116,7 @@ class HEX(object):
                            np.array((a/2., +a*np.sqrt(3)/2., 0.)),
                            np.array((0, 0, c)) ]
 
-        self.recipr = get_recipr(self.prim,self.scale)
+        self.recipr = get_recipr_unitvectors(self.prim,self.scale)
 
         self.SymPts_k = {} # in terms of k-vectors
         self.SymPts = {}   # in terms of reciprocal length
@@ -114,6 +124,11 @@ class HEX(object):
         for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
+
+
+    def get_kvec (self, beta):
+        return get_kvec(beta, self.recipr)
+
 
 
 class CUB(object):
@@ -139,7 +154,7 @@ class CUB(object):
                            np.array((0., a, 0.)),
                            np.array((0., 0., a)) ]
 
-        self.recipr = get_recipr(self.prim,self.scale)
+        self.recipr = get_recipr_unitvectors(self.prim,self.scale)
 
         self.SymPts_k = {} # in terms of k-vectors
         self.SymPts = {}   # in terms of reciprocal length 1/a
@@ -147,6 +162,11 @@ class CUB(object):
         for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
+
+
+    def get_kvec (self, beta):
+        return get_kvec(beta, self.recipr)
+
 
 
 class TET(object):
@@ -172,26 +192,40 @@ class TET(object):
                            np.array((0., a, 0.)),
                            np.array((0, 0, c)) ]
 
-        self.recipr = get_recipr(self.prim,self.scale)
+        self.recipr = get_recipr_unitvectors(self.prim,self.scale)
 
         self.SymPts_k = {} # in terms of k-vectors
-        self.SymPts = {}   # in terms of reciprocal length
+        self.SymPts = {}   # in terms of reciprocal length vectors
 
         for k,v in list(SymPts_k[self.name].items()):
             self.SymPts_k[k] = np.array(v[0])
             self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
 
+    def get_kvec (self, beta):
+        return get_kvec(beta, self.recipr)
 
 
-def get_recipr (A,scale):
+
+
+def get_kvec(beta, Bvec):
     """
-    Given a set of set of three vectors, A, assumed to be that of the 
+    Return a vector of reciprocal space with *beta* being the components
+    and *Bvec* being the unit vectors (list of three np.arrays). 
+    """
+    kvec = np.dot(np.array(beta),np.array(Bvec))
+# the above is equivalent to: kvec = np.sum([beta[i]*Bvec[i] for i in range(3)], axis=0)
+    return kvec
+
+def get_recipr_unitvectors (A,scale):
+    """
+    Given a set of set of three vectors *A*, assumed to be that of the 
     primitive lattice, return the corresponding set of reciprocal lattice
-    vectors, B, scaled by the input parameter 'scale'.
+    vectors *B*, scaled by the input parameter *scale*, which defaults to 2pi.
     The B-vectors are computed as follows:
     B0 = scale * (A1 x A2)/(A1 . A2 x A3)
     B1 = scale * (A2 x A0)/(A1 . A2 x A3)
     B2 = scale * (A0 x A1)/(A1 . A2 x A3)
+    and are returnd as a list of 1D arrays.
     Recall that the triple-scalar product is invariant under circular shift,
     and equals the (signed) volume of the primitive cell.
     """
@@ -213,8 +247,6 @@ def getSymPtLabel(kvec, lattice, log):
     W.Setyawan and S.Curtarolo, _Comp. Mat. Sci._ __49__ (2010) pp.299-312
     see the lattice.py module for the implementation details
     """
-#    from skopt.lattice import SymPts_k
-
     kLabel = None
     
     try:
@@ -229,8 +261,10 @@ def getSymPtLabel(kvec, lattice, log):
     if not kLabel:
         log.warning("Unable to match k-vector {0} to a symmetry point of {1} lattice".
                     format(kvec,lattice))
-        log.warning("\tReturnning fractions of reciprocal vectors as k-pt label")
-        kx,ky,kz = Fraction(kvec[0]).limit_denominator(), Fraction(kvec[1]).limit_denominator(), Fraction(kvec[2]).limit_denominator()
+        log.warning("\tReturnning fractions of reciprocal unit vectors")
+        kx = Fraction(kvec[0]).limit_denominator()
+        ky = Fraction(kvec[1]).limit_denominator()
+        kz = Fraction(kvec[2]).limit_denominator()
         kLabel = '({0}/{1}, {2}/{3}, {4}/{5})'.format(kx.numerator, kx.denominator,
                                                       ky.numerator, ky.denominator,
                                                       kz.numerator, kz.denominator)
@@ -341,9 +375,9 @@ def test_TET(a,c,scale=None):
     for rvec in test.recipr:
         print(rvec)
 
-    print("\nSymmetry points in terms of k vectors:")
+    print("\nSymmetry points in terms of B-vectors, and corresp, kvectors:")
     for pt in list(test.SymPts_k.items()):
-        print(pt)
+        print (pt, test.get_kvec(pt[1]))
 
     print("\nSymmetry points in reciprocal lengths:")
     for pt in list(test.SymPts.items()):
