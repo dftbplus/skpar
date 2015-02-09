@@ -16,8 +16,7 @@ atomconfigs = {
         relativistic=True,
         orbitalresolved=True,
         override_onsite={ 
-	    (3, 1): 0.007822,
-	    (3, 2): 0.219827 
+	    (3, 2): %(DeltaE_Si_3d, -0.1, 0.3)f 
 	    }
         ),
     }
@@ -35,13 +34,13 @@ compressions = {
     "Si": Compression(
         potcomp="potential",
         potcomp_parameters= [ 
-		(4, 3.490626 ),
-		(4, 6.479860 ),
-		(4, 6.459532 ), ],
+            (4, %(PotCompRad_Si_s, 2, 5)f ),
+            (4, %(PotCompRad_Si_p, 4, 8)f ),
+            (4, %(PotCompRad_Si_d, 4, 8)f ), ],
         wavecomp="potential",
         wavecomp_parameters=[ 
-		(4, 3.490626 ),
-		(4, 6.479860 ),
-		(4, 6.459532 ), ],
+            (4, %(PotCompRad_Si_s, 2, 5)f ),
+            (4, %(PotCompRad_Si_p, 4, 8)f ),
+            (4, %(PotCompRad_Si_d, 4, 8)f ), ],
         ),
     }

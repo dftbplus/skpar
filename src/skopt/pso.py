@@ -59,7 +59,10 @@ def createParticle(prange):
     part.smax = smax
     part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in prange]
     part.shift = [0.5 * (r[1] + r[0]) for r in prange]
-    part.renormalized = map(operator.add, map(operator.div, part, part.norm), part.shift)
+    try:
+        part.renormalized = list(map(operator.add, list(map(operator.div, part, part.norm)), part.shift))
+    except AttributeError:
+        part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
     return part
 
 
@@ -80,16 +83,19 @@ def evolveParticle_0(part, best, phi1=2, phi2=2):
     """
     u1 = (random.uniform(0, phi1) for _ in range(len(part)))
     u2 = (random.uniform(0, phi2) for _ in range(len(part)))
-    v_u1 = list(map(operator.mul, u1, map(operator.sub, part.best, part)))
-    v_u2 = list(map(operator.mul, u2, map(operator.sub, best, part)))
-    part.speed = list(map(operator.add, part.speed, map(operator.add, v_u1, v_u2)))
+    v_u1 = list(map(operator.mul, u1, list(map(operator.sub, part.best, part))))
+    v_u2 = list(map(operator.mul, u2, list(map(operator.sub, best, part))))
+    part.speed = list(map(operator.add, part.speed, list(map(operator.add, v_u1, v_u2))))
     for i, speed in enumerate(part.speed):
         if speed < part.smin:
             part.speed[i] = part.smin
         elif speed > part.smax:
             part.speed[i] = part.smax
     part[:] = list(map(operator.add, part, part.speed))
-    part.renormalized = list(map(operator.add, map(operator.div, part, part.norm), part.shift))
+    try:
+        part.renormalized = list(map(operator.add, list(map(operator.div, part, part.norm)), part.shift))
+    except AttributeError:
+        part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
 
 
 def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
@@ -113,9 +119,9 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
     # calculate persistence and influence terms
     u1 = (random.uniform(0, acceleration / degree) for _ in range(len(part)))
     u2 = (random.uniform(0, acceleration / degree) for _ in range(len(part)))
-    v_u1 = list(map(operator.mul, u1, map(operator.sub, part.best, part)))
-    v_u2 = list(map(operator.mul, u2, map(operator.sub, best, part)))
-    persistence = list(map(operator.mul, [inertia] * len(part), map(operator.sub, part, part.past)))
+    v_u1 = list(map(operator.mul, u1, list(map(operator.sub, part.best, part))))
+    v_u2 = list(map(operator.mul, u2, list(map(operator.sub, best, part))))
+    persistence = list(map(operator.mul, [inertia] * len(part), list(map(operator.sub, part, part.past))))
     influence = list(map(operator.add, v_u1, v_u2))
     part.speed = list(map(operator.add, persistence, influence))
     # assign current position to the old one
@@ -129,7 +135,10 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
             part.speed[i] = part.smax
     # update current position in both normalized and physical coordinates
     part[:] = list(map(operator.add, part, part.speed))
-    part.renormalized = map(operator.add, map(operator.div, part, part.norm), part.shift)
+    try:
+        part.renormalized = list(map(operator.add, list(map(operator.div, part, part.norm)), part.shift))
+    except AttributeError:
+        part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
 
 
 # init arguments: 
@@ -147,22 +156,22 @@ def pso_args(**kwargs):
     args = {}
     optargs = {}
     for arg in pso_obligatory_args:
-	try: 
-	    args[arg] = kwargs[arg]
-	except KeyError:
-	    errormsg = "PSO missing obligatory argument {0}\n".format(arg)+\
-	        "Please define at least:\n{0}\n".format(pso_obligatory_args)+\
-	        "PSO supports also:\n{0}\n".format(pso_optional_args)
-	    try:
-		kwargs['log'].critical(errormsg)
-	    except KeyError:
-		print (errormsg)
-		sys.exit(1)
+        try: 
+            args[arg] = kwargs[arg]
+        except KeyError:
+            errormsg = "PSO missing obligatory argument {0}\n".format(arg)+\
+                "Please define at least:\n{0}\n".format(pso_obligatory_args)+\
+                "PSO supports also:\n{0}\n".format(pso_optional_args)
+            try:
+                kwargs['log'].critical(errormsg)
+            except KeyError:
+                print (errormsg)
+            sys.exit(1)
     for arg in pso_optinit_args + pso_optcall_args:
-	try: 
-	    optargs[arg] = kwargs[arg]
-	except KeyError:
-	    pass
+        try: 
+            optargs[arg] = kwargs[arg]
+        except KeyError:
+            pass
 
     init_args = [args[key] for key in pso_init_args]
     call_args = [args[key] for key in pso_call_args]
@@ -172,36 +181,37 @@ def pso_args(**kwargs):
     return init_args, call_args, init_optional_args, call_optional_args
 
 
-def report_PSO_stats(stats, wre_stats, log=logging.getLogger(__name__)):
+def report_stats(stats, log=logging.getLogger(__name__)):
     """
     """
     statsHeader = "".join([
-	'{0:>5s}'.format('Gen.'),
-	'{0:>10s}'.format('Min.'),
-	'{0:>10s}'.format('Max.'),
-	'{0:>10s}'.format('Avg.'),
-	'{0:>10s}'.format('Std.'),
-	'{0:>12s}'.format('WorstErr(%)'),
-	])
+    '{0:>5s}'.format('Gen.'),
+    '{0:>10s}'.format('Min.'),
+    '{0:>10s}'.format('Max.'),
+    '{0:>10s}'.format('Avg.'),
+    '{0:>10s}'.format('Std.'),
+    '{0:>12s}'.format('WorstErr(%)'),
+    ])
     log.info('')
     log.info("PSO statistics follow:")
     log.info(statsHeader)
     log.info('============================================================')
-    ngen = len(stats.Min[0])
+    ngen = len(stats)
     for gen in range(ngen):
-	log.info("".join([
-	'{0:>5d}'.format(gen),
-	'{0:>10.4f}'.format(stats.Min[0][gen][0]),
-	'{0:>10.4f}'.format(stats.Max[0][gen][0]),
-	'{0:>10.4f}'.format(stats.Avg[0][gen][0]),
-	'{0:>10.4f}'.format(stats.Std[0][gen][0]),
-	'{0:>12.2f}'.format(wre_stats.Min[0][gen][0]*100.),
-	    ]))
+        s = stats[gen]
+        log.info("".join([
+        '{0:>5d}'.format(gen),
+        '{0:>10.4f}'.format(s['Fitness']['Min']),
+        '{0:>10.4f}'.format(s['Fitness']['Max']),
+        '{0:>10.4f}'.format(s['Fitness']['Avg']),
+        '{0:>10.4f}'.format(s['Fitness']['Std']),
+        '{0:>12.2f}'.format(s['WRE']['Min']*100),
+            ]))
     log.info('============================================================')
 
 
-def minabs(swarm):
-    return np.min(np.abs([part.worstErr for part in swarm]))
+#def minabs(swarm):
+#    return np.min(np.abs([part.worstErr for part in swarm]))
 
 
 class PSO(object):
@@ -228,28 +238,26 @@ class PSO(object):
         # create a swarm from particles with the above defined properties
         self.toolbox.register("swarm", tools.initRepeat, creator.Swarm, self.toolbox.create)
         self.swarm = self.toolbox.swarm(npart)
-        # provide with statistics collector and evolution logger
-        # these must be further customized, may be by directly operating on the
-        # PSO instance 
-	# fitness statistics
-        self.stats = tools.Statistics(lambda ind: ind.fitness.values)
-        self.stats.register("Avg", tools.mean)
-        self.stats.register("Std", tools.std)
-        self.stats.register("Min", min)
-        self.stats.register("Max", max)
-	# worstRelErr statistics
-	self.wre_stats = tools.Statistics(lambda ind: ind.worstErr)
-        self.wre_stats.register("Min", minabs)
-
-        column_names = ["gen",]
-        column_names.extend(self.stats.functions.keys())
-        self.logger = tools.EvolutionLogger(column_names)
+        # Provide with statistics collector and evolution logger
+        #  - fitness statistics
+        fit_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
+        fit_stats.register("Avg", np.mean)
+        fit_stats.register("Std", np.std)
+        fit_stats.register("Min", np.min)
+        fit_stats.register("Max", np.max)
+        #  - Worst Relative Error statistics
+        wre_stats = tools.Statistics(key=lambda ind: ind.worstErr)
+        wre_stats.register("Min", np.min)
+        # All statistics will be compiled for each generation and added to the record
+        self.mstats = tools.MultiStatistics(Fitness=fit_stats, WRE=wre_stats)
+        self.stats_record = []
 
 
     def optimise(self, ngen, ErrTol=None):
         """
         Let the swarm evolve for ngen generations.
         """
+        self.stats_record = []
         for g in range(ngen):
             for i, part in enumerate(self.swarm):
                 iteration = (g, i)
@@ -277,15 +285,14 @@ class PSO(object):
                 self.toolbox.evolve(part, self.swarm.gbest)
 
             # Gather all the fitnesses and worst errors and update the stats
-            self.stats.update(self.swarm)
-            self.wre_stats.update(self.swarm)
+            self.stats_record.append(self.mstats.compile(self.swarm))
 
             # Try an alternative exit criterion
-	    if ErrTol is not None:
-		if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
-		    break
+            if ErrTol is not None:
+                if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
+                    break
 
-        return self.swarm, self.stats
+        return self.swarm, self.stats_record
 
 
     def __call__(self, *args, **kwargs):

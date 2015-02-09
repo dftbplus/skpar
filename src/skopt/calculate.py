@@ -1,7 +1,10 @@
 """
 Routines for performing calculations and evaluating deviations from targets
 """
-import logging,sys
+import logging
+import sys
+import os
+import inspect
 
 class Task(object):
     """ 
@@ -35,26 +38,24 @@ class Calculator(object):
     a directory and logger and must be supplied upon initialisation or 
     otherwise later, explicitly.
     """
-    import logging
-    
-    def __init__(self, workdir='', tasks = None, data = None, log=logging.getLogger(__name__), name=''):
+    def __init__(self, workdir='', tasks = None, data = None, 
+                 log=logging.getLogger(__name__), name=''):
         """
         Initialise the task list with an empty one, and set a logger
         Tasks should be filled in by the instantiator, using self.append()
         or directly appending calleable objects to the takslist
         """
-        import os
         self.tasks = tasks or []
         self.data = data or {}
         self.log = log
         self.name, self.directory = set_name_directory(name, workdir)
+
 
     def chwdir(self):
         """
         Remember where we're called from, chack if the working directory of the calculator exists; 
         exit if not.
         """
-        import os,sys
         self.callerdir = os.getcwd()
         if not os.path.isdir(self.directory):
             self.log.critical('Directory {d} for {c} calculator does not exist in {cwd}. Cannot continue.'.
@@ -73,9 +74,9 @@ class Calculator(object):
         Dependency must be handled by introduction of intemediary tasks, at the
         level where tasks are appended by the instantiator of the calculator.
         """
-        import os
         self.chwdir()
-        self.log.info('Executing tasks for {c} calculator in {d} directory'.format(c=self.name,d=self.directory))
+        self.log.info('Executing tasks for {c} calculator in {d} directory'.
+                     format(c=self.name,d=self.directory))
         for task in self.tasks:
             """
             Assume that any report of the activity is done by the task itself.
@@ -110,14 +111,14 @@ class Analyser(object):
         
     def execute(self):
         self.output = self.analyse(self.data,**self.kwargs)
-        for key,val in self.output.iteritems():
+        for key,val in self.output.items():
             self.results[key] = val
             
     def __call__(self):
         self.execute()
-	
-	
-	
+    
+    
+    
 class System(object):
     """
     An abstraction layer above calculators, offering the opportunity to include and analyse
@@ -126,7 +127,6 @@ class System(object):
     By systems is understood an atomic configuration, for example, whose properties we need to
     calculate with several calculators (associated  with different properties).
     """
-    import logging
     def __init__(self, workdir='', name='', log=logging.getLogger(__name__), tasks=None, 
                  calculators = None, plotters = None, targets = None, analysers = None):
         """
@@ -134,7 +134,6 @@ class System(object):
         The calculators and plotters could be configured post-instantiation.
         The targets and analysers are optional anyway.
         """
-        import os
         self.log = log
         self.name, self.directory = set_name_directory(name,workdir)
         # some system level tasks -- these are functions only, do file or io involved
@@ -187,7 +186,6 @@ class System(object):
         This is just a dummy capsule that runs all calculators, plotters and analyser.
         iteration allows to label plots and other saved items if system is iteratively called
         """
-        import os, inspect
         self.chwdir()
         self.iteration = iteration
         self.log.debug('\nSYSTEM: {n} executed in {d} directory. Iteration {i}.'.
@@ -253,7 +251,6 @@ def append_task(taskmaster, exe, *args, **kwargs):
     Do not pass implicit arguments, since this will lead to errors, if
     the 'exe' function does not support such.
     """
-    import inspect
     if inspect.isroutine(exe):
         # if we pass just a function, then we convert to class, storing 
         # reference to the arguments that must be passed to it at the time of call, 
@@ -328,87 +325,88 @@ def get_named(named_objects,name):
             break
     return named
 
-if __name__ == "__main__":
 
-    import logging
-    import sys, os
-    import bandstructure_Si as bsSi
-    from bandstructure_Si import analyseEk_Si, analyseEkst_Si
-    from bandstructure import setupCalculatorsBandStructure, analyseEelec, analyseEgap
-    from plotBS import PlotterBS, preconditionEkPlt_FCC
-    from runtasksDFTB import RunSKgen
-    from skconfig import SKdefs
-    import matplotlib
-    matplotlib.use('Agg')
+#if __name__ == "__main__":
 
-
-    #logging.basicConfig(level=logging.DEBUG)
-    log = logging.getLogger('SKauto')
-    log.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler(sys.stdout)
-    #ch.setFormatter(logging.Formatter('%(message)s'))
-    log.addHandler(ch)
-
-    # go to test directory
-    os.chdir('./test-Si-SiO2')
-
-    # --- Read in the skdefs file ---
-    skdefs = SKdefs(skdefs_in='skdefs-PSO.py',skdefs_out='skdefs-test.py')
-    pars = skdefs.parameters
-
-    # --- generate parameter values for skdefs file --
-    #     in an optimisation loop, these should be generated by the optimizer
-    parameters = [i/2. for i in range(len(pars))]
+#    import logging
+#    import sys, os
+#    import skopt.extras.bandstructure_Si as bsSi
+#    from skopt.extras.bandstructure_Si import analyseEk_Si, analyseEkst_Si
+#    from skopt.bandstructure import setupCalculatorsBandStructure, analyseEelec, analyseEgap
+#    from skopt.plotBS import PlotterBS, preconditionEkPlt_FCC
+#    from runtasksDFTB import RunSKgen
+#    from skconfig import SKdefs
+#    import matplotlib
+#    matplotlib.use('Agg')
 
 
-    # --- Set up generation of *.skf files ---
-    # ----------------------------------------
-    systems = []
+#    #logging.basicConfig(level=logging.DEBUG)
+#    log = logging.getLogger('SKauto')
+#    log.setLevel(logging.DEBUG)
+#    ch = logging.StreamHandler(sys.stdout)
+#    #ch.setFormatter(logging.Formatter('%(message)s'))
+#    log.addHandler(ch)
+#
+#    # go to test directory
+#    os.chdir('./test-Si-SiO2')
+#
+#    # --- Read in the skdefs file ---
+#    skdefs = SKdefs(skdefs_in='skdefs-PSO.py',skdefs_out='skdefs-test.py')
+#    pars = skdefs.parameters
+#
+#    # --- generate parameter values for skdefs file --
+#    #     in an optimisation loop, these should be generated by the optimizer
+#    parameters = [i/2. for i in range(len(pars))]
+#
+#
+#    # --- Set up generation of *.skf files ---
+#    # ----------------------------------------
+#    systems = []
+#
+#    S = System( name = 'SKF', log=log)
+#    
+#    C = Calculator(workdir='./', name='skgen', log=log)
+#    C.append(skdefs.write)
+#    C.append(RunSKgen(log=log))
+##
+##    S.calculators.append(C)
+#
+#    systems.append(S)
+#
+#    # --- Set up the calculation of atomic structures ---
+#    # ---------------------------------------------------
+#    S = AtomicSystem( name='Si', lattice='FCC', log=log)
+#
+#    S.targets   = [ (k,bsSi.ref_Si[k]) for k in ['Dmin_c', 'G15_c', 'G2pr_c','L1_c', 'L3_c'] ]
+#    S.plotterBS = PlotterBS(Erange = [-12.5, +6.5], preconditioner =  preconditionEkPlt_FCC, log=log)
+#    S.append(tag_filename_by_iteration, fileowner = S.plotterBS, nominator = S,
+#             base='../bandstructure_{0}'.format(S.name), extension='pdf')
+#
+#    S.calculators = setupCalculatorsBandStructure(S,log)
+#
+#    A = Analyser( 'SCC', S.data, datakey='SCC', log=log)
+#    A.append(analyseEelec, log=log)
+#    S.analysers.append(A)
+#    
+#    A = Analyser( 'BS', S.data, log=log)
+#    A.append(analyseEgap, log=log)
+#    A.append(analyseEk_Si, log=log)
+#    A.append(analyseEkst_Si, log=log)
+##    S.analysers.append(A)
+#
+#    systems.append(S)
+#
+#    S = AtomicSystem( name='SiO2', lattice='HEX', log=log)
+#    S.targets   = [('Egap',9.65), ('Ecmin',(0,0,0))]
+#    S.plotterBS = PlotterBS(Erange = [-20, +20],log=log)
+#    S.append(tag_filename_by_iteration, fileowner = S.plotterBS, nominator = S,
+#             base='../bandstructure_{0}'.format(S.name), extension='pdf')
 
-    S = System( name = 'SKF', log=log)
-    
-    C = Calculator(workdir='./', name='skgen', log=log)
-    C.append(skdefs.write)
-    C.append(RunSKgen(log=log))
-
-#    S.calculators.append(C)
-
-    systems.append(S)
-
-    # --- Set up the calculation of atomic structures ---
-    # ---------------------------------------------------
-    S = AtomicSystem( name='Si', lattice='FCC', log=log)
-
-    S.targets   = [ (k,bsSi.ref_Si[k]) for k in ['Dmin_c', 'G15_c', 'G2pr_c','L1_c', 'L3_c'] ]
-    S.plotterBS = PlotterBS(Erange = [-12.5, +6.5], preconditioner =  preconditionEkPlt_FCC, log=log)
-    S.append(tag_filename_by_iteration, fileowner = S.plotterBS, nominator = S,
-             base='../bandstructure_{0}'.format(S.name), extension='pdf')
-
-    S.calculators = setupCalculatorsBandStructure(S,log)
-
-    A = Analyser( 'SCC', S.data, datakey='SCC', log=log)
-    A.append(analyseEelec, log=log)
-    S.analysers.append(A)
-    
-    A = Analyser( 'BS', S.data, log=log)
-    A.append(analyseEgap, log=log)
-    A.append(analyseEk_Si, log=log)
-    A.append(analyseEkst_Si, log=log)
-    S.analysers.append(A)
-
-    systems.append(S)
-
-    S = AtomicSystem( name='SiO2', lattice='HEX', log=log)
-    S.targets   = [('Egap',9.65), ('Ecmin',(0,0,0))]
-    S.plotterBS = PlotterBS(Erange = [-20, +20],log=log)
-    S.append(tag_filename_by_iteration, fileowner = S.plotterBS, nominator = S,
-             base='../bandstructure_{0}'.format(S.name), extension='pdf')
-
-    S.calculators = setupCalculatorsBandStructure(S,log)
-
-    #systems.append(S)
-    # ----------------------------------------
-    
-    # bebop da boogie now
-    for s in systems:
-        s(iteration=(3,1))
+#    S.calculators = setupCalculatorsBandStructure(S,log)
+#
+#    #systems.append(S)
+#    # ----------------------------------------
+#    
+#    # bebop da boogie now
+#    for s in systems:
+#        s(iteration=(3,1))

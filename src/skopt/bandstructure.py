@@ -1,230 +1,310 @@
 """
-Routines for reading and interpreting band-structure information from file output by DFTB+.
+Routines for calculating, reading and interpreting band-structure 
+information, e.g. by means of dftb+, and dp_tools
 """
+import os
+import sys
 import logging
+from collections import OrderedDict
+import numpy as np
+from math import pi
+from skopt.lattice import getSymPtLabel, SymPts_k 
+from skopt.utils import is_monotonic
 
-def readBandStructure(fileBS, data, log, E0=None):
+
+# relevant fundamental constants
+Eh = 27.2114        # [eV] Hartree energy
+aB = 0.52918        # [A]  Bohr radius
+hbar = 1.054572e-34 # [J.s] reduced Planck's constant (h/2pi)
+q0 = 1.602176e-19   # [C] electron charge
+m0 = 9.10938e-31    # [kg] electron rest mass
+
+
+def meff(band, kline):
     """
-    Given a file as input argument 'fileBS', the routine will read in the band-structure
-    assuming the following format.
-    
-        1  E_1 E_2 ... E_nE
-        2  E_1 E_2 ... E_nE
-         ...
-        nk E_1 E_2 ... E_nE
-    
-    fileBS should normally be the output of `>dp_bands band.out bands`
-    
-    __NOTA BENE:__ There is no info about the k-points!!! only their index is available.
-    To derive info about the k-points automatically, one needs to parse the 
-    dftb_in.hsd.bs file, looking for the K-lines stanza.
+    Return the effective mass, in units of m0 (the electron mass at rest),
+    as the inverse of the curvature of *bands*, assuming parabolic dispersion
+    within *kline*, working in atomic units:
+        *bands* and *kline* are in Hartree and 1/Bohr, h_bar = 1, m0 = 1
+
+        meff = (h_bar**2) / (d**2E/dk**2), [m0]
+
+    """
+    # Fit 2nd order polynomial over the points surrounding the selected band extremum
+    x = kline   # [1/Bohr]
+    y = band    # [Hartree]
+    c = np.polyfit(x,y,2)
+    fit = np.poly1d(c)
+    # NOTA BENE:
+    # in numpy.poly[fit|1d], the 2nd order coeff is c[0]
+    c2 = c[0]
+    # assuming E = c2*k^2 + c1*k + c0 =>
+    # dE/dk = 2*c2*k and d^2E/dk^2 = 2*c2
+    return 1./(2.*c2)
+
+
+def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None, 
+                 Erange=0.008, ib0=0, nb=1, log = logging.getLogger(__name__)):
+    """
+    Calculate parabolic effective mass at the specified *extrtype* of 
+    given *bands*, calculated along two points in k-space defined by a
+    list of two 3-tuples - *kLineEnds*. *lattice* is a lattice object, defining
+    the metric of the kspace.
+
+    :param bands: an array (nb, nk) energy values in [eV], or a 1D array like
+    :param extrtype: type of extremum to search for: 'min' or 'max',
+                     handled by np.min()/max()
+    :param kLineEnds: two 3-tuples, defining the coordinates of the 
+                      endpoints of the k-line along which *band* is obtained,
+                      in terms of k-scace unit vectors, e.g. if *band* 
+                      is obtained along a number of points from \Gamma to
+                      X, of the BZ of a cubic lattice, then kLineEnds
+                      should read ((0, 0, 0), (1, 0, 0))
+    :param lattice: lattice object, holding mapping to kspace.
+    :param meff_name: the name to be featured in the log 
+    :param Erange: Energy range [eV] over which to fit the parabola 
+                   [dflt=8meV], i.e. 'depth' of the assumed parabolic well.
+    :param log: logger handler; if dflt (None), then module name will feature
+                as the source of the message, but logging must be configured
+                elsewhere
+
+    :return meff: the value of the parabolic effective mass [m_0]
+                  at the *extrtype* of the given E-kline,
+                  if the extremum is not at the boundary of the given k-line.
+    """
+    # check correct extremum type is specified
+    extrdict = {'min': np.amin, 'max': np.amax}
+    meffdict = {'min': 'me', 'max': 'mh'}
+
+    def meff_id(ix):
+        """
+        Change Gamma to G and eliminate - from meff_tag if a direction
+        is recognized (e.g. something like Gamma-X becomes GX.
+        prepend type of mass (me or mh) and index if more than 1 bands
+        are requested.
+        """
+        tag = meff_tag.split('-')
+        try:
+            tag[tag.index('Gamma')] = 'G'   # works for Gamma-X directional tags
+        except ValueError:  # directional tag (e.g. A-X) but no Gamma
+            pass
+        tag = ''.join(tag)  # leaves a non-directional tag intact; GX otherwise
+        if nb==1:
+            tag = '_'.join([meffdict[extrtype], tag])
+        else:
+            tag = '_'.join([meffdict[extrtype], tag, '{0:n}'.format(ix)])
+        return tag
+
+
+    try: 
+        fextr = extrdict[extrtype]
+    except KeyError:
+        # this message has to go through regardless the logger is configured or not
+        errmsg = ('Incorrect extremum type ({0}) for calc_masseff. '.format(extrtype),
+                  '"min" or "max" supported only.')
+        if log is not None:
+            log.critical(errmsg)
+        else:
+            print (errmsg)
+        sys.exit(2)
+
+    # check logger
+    if log is None:
+        # this get's a logger, but unless logger is configured
+        # somewhere, it outputs nothing
+        log = logging.getLogger(__name__)
+    log.debug('Fitting effective mass.')
+
+    # check how many bands we have to deal with
+    try:
+        nE, nk = bands.shape   # number of bands and k-points
+    except (AttributeError, ValueError): # DO NOT FORGET THE BRAKETS!
+        # exception if a signle band is passed as a list or 1d array
+        nE = 1                 # if bands is a list => one band only
+        nk = len(bands)
+        bands = np.array(bands) # we need an array from here onwards
+
+    if nE < nb:
+        log.warning("Too many effective masses demanded ({0})."
+                    "\tWill fit only the first {1} masses, as per the available bands".format(nb, nE))
+        nb = nE
+
+    beta1 = kLineEnds[0]
+    beta2 = kLineEnds[1]
+    k1 = lattice.get_kvec(beta1)      # get reciprocal vectors
+    k2 = lattice.get_kvec(beta2)
+    dk = (k2 - k1)/(nk-1)             # delta vector in direction of k1->k2
+    dklen = np.linalg.norm(dk)
+    klen=np.linalg.norm(k2-k1)        # length of the vector from k1 to k2
+    kline = dklen * np.array(range(nk))  # reconstruction of kline, in units of A^{-1}
+
+    meff_data = OrderedDict([])       # permits list-like extraction of data too
+
+    for ib in range(nb):
+        # set the references for the current band
+        band = bands[ib0 + ib]
+
+        # desired extremum values for each band
+        extr = fextr(band)
+
+        try:
+            Erng = Erange[ib]
+        except IndexError:
+            Erng = Erange[0]
+        except TypeError:
+            Erng = Erange
+
+        iextr  = np.where(band==extr)[0][0] # where along kLine it is?
+
+        # find the position in k-space, and the relative position along the kline
+        kextr = k1 + iextr * dk
+        extr_relpos = iextr * dklen / klen
+        #extr_pos_label = lattice.get_SymPtLabel(kextr)
+
+        # Select how many points to use around the extremum, in order to make the fit.
+        krange = np.where(abs(band-extr)<=Erng)[0]
+        # We have a problem if the band wiggles and we get an inflection point
+        # within the krange -- this happens e.g. due to zone folding in Si,
+        # due to its indirect band-gap.
+        # So checking we are within Erng is not sufficient.
+        # We have to narrow the k-range further, to guarantee that E
+        # is monotonously increasing/decreasing within the krange.
+        # NOTABENE: using is_monotonic as below effectively narrows the krange
+        #           independently of Erange, which may lead to a far too narrow
+        #           range, e.g. 1 or 2 points, especially for coarser sampling.
+        while not is_monotonic(band[krange<iextr]):
+            krange = krange[1:]
+        while not is_monotonic(band[krange>iextr]):
+            krange = krange[:-1]
+        nlow = min(krange)
+        nhigh = max(krange)
+
+        if nhigh-iextr < 3 and iextr != nk-1:
+            log.warning('Too few points ({0}) to right of extremum: Poor {1} fit likely.'.
+                        format(nhigh - iextr, meff_id(ib)))
+            log.warning("\tCheck if extremum is at the end of k-line; "
+                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
+        if iextr-nlow < 3 and iextr != 0:
+            log.warning("Too few points ({0}) to left of extremum: Poor {1} fit likely.".
+                        format(iextr - nlow, meff_id(ib)))
+            log.warning("\tCheck if extremum is at the end of k-line; "
+                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
+
+        mass = meff(band[krange]/Eh, kline[krange]*aB)  # transform to atomic units
         
-    __NOTA BENE:__ The routine also shifts the energy reference to the top of the valence 
-    band. 
+        meff_data[meff_id(ib)] = (mass, extr, extr_relpos)
+        log.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {relpos:.2f}".format(
+                 id=meff_id(ib), mass=mass, relpos=extr_relpos, ee=extr))
+    return meff_data
 
-    The routine returns number of k-points, number of bands, the bands, and the index of
-    the band that sets the energy reference, i.e. the index of highest VB.
+
+def expand_meffdata(meff_data):
     """
-    import numpy as np
-    import os
+    """
+    expanded_data = OrderedDict()
+    for k,v in meff_data.items():
+        tagdict = {'me': ('cbmin', 'cbminpos'), 'mh': ('vbmax', 'vbmaxpos')}
+        tagbits = k.split('_')
+        masstag = k
+        massval = v[0]
+        extrtag = '_'.join([tagdict[tagbits[0]][0],] + tagbits[1:])
+        extrval = v[1]
+        kpostag = '_'.join([tagdict[tagbits[0]][1],] + tagbits[1:])
+        kposval = v[2]
+        expanded_data[masstag] = massval
+        expanded_data[extrtag] = extrval
+        expanded_data[kpostag] = kposval
+    return expanded_data
 
-    # read the bands
-    log.debug("Reading bandstructure.")
-    bands = np.loadtxt(fileBS,dtype=float)
-    k = bands[:,0].astype(int)
-    bands = np.delete(bands,0,1) # removing the kpoint-index, we are left with the Energy points only
-    nk,nb = bands.shape
-    log.debug("\tBandstructure consists of {0} bands sampled over {1} k-points.".format(nb,nk))
 
-    # shift the energies to the specified reference or set the top of the valence band as a reference
-    nElectrons, SOfactor = data['nElectrons'], data['SOfactor']
-    nVBtop = int(nElectrons/2.*SOfactor)-1 
-    if E0 is None:
-        E0 = max(bands[:,nVBtop]) 
-        log.debug("\tThe top of the Valence Band ({0} eV, max(band[{1}]) becomes our energy reference (0).".format(E0,nVBtop))
-        bands = bands - E0
+def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=None):
+    """
+    Return a dictionary with effective masses for the given *carriers* for the 
+    first *nb* *bands* in the VB and CB, along the given *paths*, as well 
+    as the values of the extrema and their position along the directions in the *paths*.
+    """
+    masses = OrderedDict()
+    bands      = np.transpose(bsdata['Bands'])
+    nE, nk     = bands.shape
+    nVBtop     = bsdata['nVBtop']
+    kLines = bsdata['kLines']
+    kLinesDict = bsdata['kLinesDict']
+    lattice = bsdata['lattice']
+
+    # suppose we have something like "L-Gamma-X|K-Gamma"
+    # this makes for two paths and three directions in total
+#    for path in paths.split('|'):
+    for direction in directions:
+        kLabels = direction.split('-')
+        assert len(kLabels)==2
+        endpoints = (kLabels[0], kLabels[1]) 
+        ix0 = None
+        ix1 = None
+        for ii,pt in enumerate(kLines[:-1]):
+            # check that the labels specifying a direction form a consequtive pair
+            # in kLines, and then get the corresponding indexes, sorting them too
+            if kLines[ii][0] in endpoints and kLines[ii+1][0] in endpoints:
+                kLineEnds = sorted([kLines[ii], kLines[ii+1]], key=lambda x: x[1])
+                ix0 = kLineEnds[0][1]
+                ix1 = kLineEnds[1][1]
+                break
+        assert ix0 is not None
+        assert ix1 is not None
+        kEndPts = [lattice.SymPts_k[point[0]] for point in kLineEnds]
+
+        # hole masses
+        # NOTABENE the reverse indexing of bands, so that mh_*_0 is the top VB
+        if carriers in ['both', 'eh', True, 'h', 'holes']:
+            ib0 = nVBtop
+            kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
+            meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
+                                    meff_tag=direction, Erange=Erange, nb=nb, log=log)
+            masses.update(expand_meffdata(meff_data))
+
+        # electron masses
+        # NOTABENE the direct indexing of bands, so that me_*_0 is the bottom CB
+        if carriers in ['both', 'eh', True, 'e', 'electrons']:
+            ib0 = nVBtop+1
+            kLine = bands[ib0:ib0+nb, ix0:ix1+1]
+            meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
+                                    meff_tag=direction, Erange=Erange, nb=nb, log=log)
+            masses.update(expand_meffdata(meff_data))
+
+    return masses
+
+
+def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, **kwargs):
+    """
+    Plot the second order polynomial fitted to E(k) dispersion on top of
+    *ax* axes of a matplotlib figure object.
+    *mass* is the fitted effective mass
+    *extremum* is extremal energy, E0
+    *x0* is the relative position of the extremum along the given
+    kline *xx*. 
+
+    Assumed is that around the extremum at k0:
+
+        E"(k) = 1/mass => E(k) = E(x) = c2*x^2 + c1*x + c0.
+
+    Since E"(x) = 2*c2 => c2 = 1/(2*mass).
+    Since E'(x) = 2*c2*x + c1, and E'(x=x0) = 0 and E(x=x0) = E0 
+    => knowing E0 and x0, we can obtain c1 and c2:
+
+        c1 = -2*c2*x0
+        c0 = E0 - c2*x0^2 - c1*x0
+    
+    """
+    c2 = 1/(2*mass/Eh/aB/aB)    # NOTABENE: scaling to eV for E and AA^-1 for k
+    c1 = -2*c2*x0
+    c0 = extremum - c2*x0**2 - c1*x0
+    ff = np.poly1d([c2, c1, c0])
+    if dklen is None:
+        # xx is in Angstrom^{-1}
+        yy = ff(xx)
     else:
-        # __NOTA BENE:__ E0, if initialised through the argument, is a key to the data dictionary
-        log.debug("\t{0} = {1} eV becomes our energy reference (0).".format(E0,data[E0]))
-        bands = bands  - data[E0]   
+        # xx is integer; we need dklen and ix0 to establish length
+        assert ix0 is not None
+        yy = ff((np.array(xx)-ix0)*dklen)
+    assert len(xx) == len(yy), "len xx: {:d} != len yy {:d}".format(len(xx), len(yy))
+    ax.plot(xx, yy, **kwargs)
     
-    # construct the output
-    output = {'nkpts': nk, 'nbands': nb, 'nVBtop': nVBtop, 'bands': bands}
-    return output
-
-
-def getSymPtLabel(kvec, lattice, log):
-    """
-    This routine returns the label of a k-space symmetry point, given a tupple, representing the corresponding
-    k-vector.
-    __NOTA BENE:__ The symmetry points are defined as a dictionary for a given lattice type.
-    This dictionary, for each lattice type, is constructed from the tables in 
-    W.Setyawan and S.Curtarolo, _Comp. Mat. Sci._ __49__ (2010) pp.299-312
-    see the lattice.py module for the implementation details
-    """
-    from lattice import SymPts_k
-    import sys
-    from fractions import Fraction
-
-    kLabel = None
-    
-    try:
-        for l,klist in SymPts_k[lattice].items():
-            if tuple(kvec) in klist:
-                kLabel = l
-    except KeyError:
-        log.critical("ERROR: No symmetry point definition for the {lattice} lattice are defined.".format(lattice))
-        log.critical("       Please, extend the SymPts dictionary in lattice.py module before continuing.")
-        sys.exit(1)
-            
-    if not kLabel:
-        log.debug("WARNING: Unable to match the given kvector {0} to a symmetry point of the given {1} lattice".format(kvec,lattice))
-        log.debug("         Returnning fractions of reciprocal vectors as a k-point label".format(kvec,lattice))
-        kx,ky,kz = Fraction(kvec[0]).limit_denominator(), Fraction(kvec[1]).limit_denominator(), Fraction(kvec[2]).limit_denominator()
-        kLabel = '({0}/{1}, {2}/{3}, {4}/{5})'.format(kx.numerator, kx.denominator,
-                                                      ky.numerator, ky.denominator,
-                                                      kz.numerator, kz.denominator)
-    return kLabel
-
-
-def getkLines(hsdfile='dftb_pin.hsd',DirectLattice='FCC',log=logging.getLogger('__name__')):
-    """
-    This routine analyses the KPointsAndWeighs stanza in the input file of DFTB+ 
-    (given as an input argument 'hsdfile', and returns the k-path, based on 
-    the type of lattice (given as an input argument 'DirectLattice').
-    If the file name is not provided, the routine looks in the dftb_pin.hsd, i.e.
-    in the parsed file!
-
-    The routine returns a list of tuples (kLines) and a dictionary (kLinesDict)
-    with the symmetry points and indexes of the corresponding k-point in the 
-    output band-structure. 
-
-    kLines is ordered, as per the appearence of symmetry points in the hsd input, e.g.:
-            [('L', 0), ('Gamma', 50), ('X', 110), ('U', 130), ('K', 131), ('Gamma', 181)]
-    therefore it may contain repetitions (e.g. for 'Gamma', in this case).
-    
-    kLinesDict returns a dictionary of lists, so that there's a single entry for
-    non-repetitive k-points, and more than one entries in the list of repetitive
-    symmetry k-points, e.g. (see for 'Gamma'): 
-        {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
-    """
-    from collections import defaultdict
-    import sys
-
-    kLines_dftb = list()
-
-    with open(hsdfile) as f:
-        for line in f:
-            if 'KPointsAndWeights = Klines {' in ' '.join(line.split()):
-                extraline = next(f)
-                while not extraline.strip().startswith("}"):
-                    try:
-                        words = extraline.split()[:4]
-                        nk,k = int(words[0]),[float(w) for w in words[1:]]
-                        kLabel = getSymPtLabel(k,DirectLattice,log)
-                        if kLabel:
-                            kLines_dftb.append((kLabel,nk))
-                        if len(words)>4 and words[4] == "}":
-                            extraline = "}"
-                        else:
-                            extraline = next(f)
-                    except:
-                        log.critical("ERROR: Problem getting kLines from {f}. Cannot continue.".format(f=hsdfile))
-                        sys.exit(0)
-
-    kLines = [(sp[0],sum([sp[1] for sp in kLines_dftb[:i+1]])-1) for (i,sp) in enumerate(kLines_dftb)]
-    kLinesDict = defaultdict(list)
-    [kLinesDict[k].append(v) for (k,v) in kLines]
-    
-    log.debug('Parsed {f} and obtained the follwoing\n\tkLines:{l}\n\tkLinesDict:{d}'.
-            format(f=hsdfile, l=kLines, d=kLinesDict))
-
-    output = {'kLines': kLines, 'kLinesDict': kLinesDict}
-    return output
-
-
-def setupCalculatorsBandStructure (system,log=logging.getLogger(__name__)):
-    """
-    """
-    from calculate import Calculator
-    from runtasksDFTB import RunDFTB, RunDPbands, AnalyseDFTBOut, check_var
-
-    calculators = []
-
-    # Configure the SCC calculator to obtain the average SCC density within dftb
-    C = Calculator(name='SCC', workdir='SCC', log=log)
-
-    # Append the mandatory tasks to the calculator
-    ## here we append instances of classes with a __call__() method
-    C.append(RunDFTB('dftb_in.hsd','dftb_out.log',log=log))
-    C.append(AnalyseDFTBOut(fileDetails='detailed.out',log=log))
-    ## here we append a function that is implicitely transformed in an instance of a Task
-    ### __NOTA BENE:__ Below, we pass C.data as a reference.
-    ###                This works fine since C is an instant that would not change,
-    ###                and since C.data is a list, declared upon instantiation of C
-    ###                and thereafter appended to, so that the reference to C.data
-    ###                does not change while its contents changes (grows).
-    ###                However, if a variable _data is passed instead, then its value
-    ###                will never be updated. Any subsequent updates to the value of _data
-    ###                will not be seen upon the execution of the function.
-    C.append(check_var, var='SCC_converged', data=C.data, value=True, critical=True, log=log)
-    
-    # optional tasks appended one by one 
-    if hasattr(system,'plotterDOS'):
-        system.plotterDOS.data = C.data
-        C.append(system.plotterDOS)
-
-    # Append the calculator to the list of calculators
-    calculators.append(C)
-
-
-    ## Configure the BS calculation for dftb calculation along selected k-lines
-    C = Calculator(name='BS', workdir='BS', log=log)
-
-    C.append(RunDFTB('dftb_in.hsd','dftb_out.log', chargesfile='../SCC/charges.bin', log=log))
-    C.append(AnalyseDFTBOut(fileDetails='detailed.out',units='eV',log=log))
-
-    C.append(RunDPbands(log=log))
-    C.append(readBandStructure,'band_tot.dat', C.data, log=log)
-    C.append(getkLines,'dftb_in.hsd', system.lattice, log=log)
-    
-
-    # optional tasks appended one by one 
-    if hasattr(system,'plotterBS'):
-        system.plotterBS.data = C.data 
-        C.append(system.plotterBS)
-
-    calculators.append(C)
-
-    # return a list of the calculators
-    return calculators
-
-def analyseEelec(data, log=logging.getLogger(__name__)):
-    """
-    Analyse the 'Eelec' values in the data dictionary
-    """
-    import numpy as np
-
-    try:
-        Eelec      = data['Eh0'] + data['Escc']
-    except KeyError:
-        log.critical('Critical analyser error: Eh0 or Escc is not in the provided data. Cannot continue.')
-        exit(1)
-    return {'Eelec': Eelec}
-
-def analyseEgap(data, log=logging.getLogger(__name__)):
-    """
-    Analyse the 'bands' values in the data dictionary and return the fundamental
-    band-gap (Ecbmin - Evbmax).
-    """
-    import numpy as np
-
-    bands      = data['bands']
-    nVBtop     = data['nVBtop']
-
-    calcEgap = dict()
-
-    calcEgap['Egap'] = np.min(bands[:,nVBtop+1]) - np.max(bands[:,nVBtop])
-
-    return calcEgap
-
