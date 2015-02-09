@@ -271,3 +271,40 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=No
             masses.update(expand_meffdata(meff_data))
 
     return masses
+
+
+def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, **kwargs):
+    """
+    Plot the second order polynomial fitted to E(k) dispersion on top of
+    *ax* axes of a matplotlib figure object.
+    *mass* is the fitted effective mass
+    *extremum* is extremal energy, E0
+    *x0* is the relative position of the extremum along the given
+    kline *xx*. 
+
+    Assumed is that around the extremum at k0:
+
+        E"(k) = 1/mass => E(k) = E(x) = c2*x^2 + c1*x + c0.
+
+    Since E"(x) = 2*c2 => c2 = 1/(2*mass).
+    Since E'(x) = 2*c2*x + c1, and E'(x=x0) = 0 and E(x=x0) = E0 
+    => knowing E0 and x0, we can obtain c1 and c2:
+
+        c1 = -2*c2*x0
+        c0 = E0 - c2*x0^2 - c1*x0
+    
+    """
+    c2 = 1/(2*mass/Eh/aB/aB)    # NOTABENE: scaling to eV for E and AA^-1 for k
+    c1 = -2*c2*x0
+    c0 = extremum - c2*x0**2 - c1*x0
+    ff = np.poly1d([c2, c1, c0])
+    if dklen is None:
+        # xx is in Angstrom^{-1}
+        yy = ff(xx)
+    else:
+        # xx is integer; we need dklen and ix0 to establish length
+        assert ix0 is not None
+        yy = ff((np.array(xx)-ix0)*dklen)
+    assert len(xx) == len(yy), "len xx: {:d} != len yy {:d}".format(len(xx), len(yy))
+    ax.plot(xx, yy, **kwargs)
+    
