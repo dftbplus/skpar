@@ -308,3 +308,45 @@ def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, **kwargs):
     assert len(xx) == len(yy), "len xx: {:d} != len yy {:d}".format(len(xx), len(yy))
     ax.plot(xx, yy, **kwargs)
     
+
+def get_Eatk(bsdata, sympts):
+    """
+    """
+    bands      = np.transpose(bsdata['Bands'])
+#    nE, nk     = bands.shape
+#    nVBtop     = bsdata['nVBtop']
+#    kLines = bsdata['kLines']
+    kLinesDict = bsdata['kLinesDict']
+#    lattice = bsdata['lattice']
+    Eatk = OrderedDict()
+# wrap this in try:except, and catch label not in kLinesDict
+    kindexes = [kLinesDict[label][0] for label in sympts]
+    for ix, label in zip(kindexes, sympts):
+        Eatk[label] = bands[:, ix]
+    return Eatk
+    
+
+def get_tagged_Eatk(bsdata, sympts, extract={'cb': [0, ], 'vb': [0, ]}, log=None):
+    """
+    """
+    def shorten (label):
+        shortlabel = {"Gamma": "G", }
+        try:
+            short = shortlabel[label]
+        except KeyError:
+            short = label
+        return short
+
+    Eatk = get_Eatk(bsdata, sympts)
+    nVBtop     = bsdata['nVBtop']
+    tagged_Eatk = OrderedDict()
+    for label in Eatk.keys():
+        for bandix in extract['cb']:
+            tag = 'Ec_{:s}_{:d}'.format(shorten(label), bandix)
+            value = Eatk[label][nVBtop + 1 + bandix]
+            tagged_Eatk[tag] = value
+        for bandix in extract['vb']:
+            tag = 'Ev_{:s}_{:d}'.format(shorten(label), bandix)
+            value = Eatk[label][nVBtop  - bandix]
+            tagged_Eatk[tag] = value
+    return tagged_Eatk
