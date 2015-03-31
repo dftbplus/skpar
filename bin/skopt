@@ -84,6 +84,8 @@ def main():
     except ImportError:
         log.critical('The specified {0} module is missing.'.format(args.skopt_input))
         log.critical('Make sure it is in the current directory and is a valid python3 file.')
+        log.critical('Doing "python3 {}" should pass without any output/error.'.format(args.skopt_input))
+        raise
         sys.exit()
 
     skoptdefs = skoptinp.SKoptInput(workdir=workdir)

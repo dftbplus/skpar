@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+import sys
+if sys.hexversion < 0x03020000:
+    sys.exit("SKOPT only works with python 3.2 or greater,"
+             " as required by the underlying SKGEN")
+import os
+import argparse
+from skopt.evaluate import Evaluator
+import logging
+import importlib
+import skopt
+
+
+def main():
+    # argument parsing at start
+    # -------------------------------------------------------------------
+    parser = argparse.ArgumentParser(
+            description="Tool for evaluating Slater-Koster for DFTB against a reference data."
+            )
+    parser.add_argument(
+            "-wd", "--workdir", type=str, dest="workdir", default=os.getcwd(), action="store", 
+            help="Working directory, where the systems directories are."
+            )
+    parser.add_argument(
+            "-se", "--skip-execution", dest="skip_execution", action="store_true",
+            default=False, help="Skip the executables (i.e. do not run DFTB+), "
+            "and assume that data is already available for analysis."
+            )
+    parser.add_argument(
+            "skeval_input", type=str, default="skeval_in.py", action="store", 
+            help="Input to skeval: description of systems, reference data, weights, etc."
+            )
+    args = parser.parse_args()
+
+
+    # Project work directory
+    # -------------------------------------------------------------------
+    # setup by option with default value workdir = os.getcwd()
+    workdir = os.path.abspath(args.workdir)
+    skipexecution = args.skip_execution
+
+
+    # Logging at console and to debug file
+    # -------------------------------------------------------------------
+    # Default logging is set so that skopt.debug.log gets all DEBUG
+    # messages and above. At the same time console gets INFO and above.
+    logging.basicConfig(level=logging.DEBUG,
+            format='%(name)s %(levelname)-8s %(message)s',
+            datefmt='%m-%d %H:%M',
+            filename=os.path.join(workdir,'skeval.debug.log'),
+            filemode='w')
+    log=logging.getLogger("SKEVAL")
+    # define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(name)s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logging.getLogger('SKEVAL').addHandler(console)
+
+
+    # Import the definition of the systems
+    # -------------------------------------------------------------------
+    # the skoptdefs input is a python file; may be specified either as a
+    # module name (something) or as a python file (something.py)
+    # first we have to get rid of the .py, in order to use the import_module()
+    # we must get rid of path too, if present, i.e. './blah.py' should become 'blah'
+    argskoptinp = os.path.basename(args.skeval_input)
+    fname, fext = os.path.splitext(argskoptinp)
+    if fext=='.py':
+        skoptinp_module = fname
+    else:
+        skoptinp_module = argskoptinp
+    # now we should have a clean module name, w/o .py trailing
+    try:
+        log.info('Looking for input in {} python module'.format(skoptinp_module))
+        skoptinp = importlib.import_module(skoptinp_module)
+    except ImportError:
+        log.critical('The specified {0} module is missing.'.format(args.skeval_input))
+        log.critical('Make sure it is in the current directory and is a valid python3 file.')
+        log.critical('Doing "python3 {}" should pass without any output/error.'.format(args.skeval_input))
+        raise
+        sys.exit()
+
+    skoptdefs = skoptinp.SKoptInput(workdir=workdir)
+
+    systems    = skoptdefs.systems
+    sysweights = skoptdefs.sysweights
+    reportkeys = skoptdefs.reportkeys
+
+
+    # Evaluator
+    # ----------------------------------------------------------------------
+    ## Configure the evaluator of fitness (cost)
+    evaluate = Evaluator(systems=systems, 
+                systemweights=sysweights, 
+                workdir=workdir,
+                # costfunc=costfunc,   # use default cost function       
+                verbose=True,
+                useRelErr=False,     # if true, would use relerr in costfunc
+                skipexecution=skipexecution, # True if you don't have skgen,dftb+,dp_bands etc.
+                log=log)
+
+    ## fine-tuning what should be reported at each evaluation:
+    ## in constructing reportkeys, recall that s0 is with 0 system-weight,
+    ## so nothing will be reported anyway (nothing from s0 goes to flatrefdata)
+    # TODO: reconsider this bit. This is strictly evaluator functionality so
+    #       it may be better to pass reortkeys as a kwarg directly to evaluator
+    #       and not burden skopt with that.
+    try:
+        evaluate.evalcost.keys = reportkeys or []
+    except AttributeError:
+        log.critical((
+        "You supply reportkeys to evaluator, "
+        "but the costfunc you supplied does not support that."))
+        log.debug("costfunc is {0}".costfunc)
+        sys.exit(2)
+
+
+    # do the evaluation
+    evaluate([])
+
+
+if __name__ == "__main__":
+    main()
