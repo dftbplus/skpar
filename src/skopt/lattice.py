@@ -40,6 +40,15 @@ SymPts_k = { 'FCC': { 'Gamma': [(0.,0.,0.),],
                       'R': [(0., 1./2., 1./2.),],
                       'X': [(0., 1./2., 0.),],
                       'Z': [(0., 0., 1./2.),], },
+
+             'ORC': { 'Gamma': [(0,0,0),],
+                      'R': [(1./2., 1./2., 1./2.),],
+                      'S': [(1./2., 1./2., 0.),],
+                      'T': [(0., 1./2., 1./2.),],
+                      'U': [(1./2., 0., 1./2.),],
+                      'Y': [(0., 1./2., 0.),],
+                      'X': [(1./2., 0.,  0.),],
+                      'Z': [(0., 0., 1./2.),], },
             }
         
 
@@ -191,6 +200,42 @@ class TET(object):
             self.prim =  [ np.array((a, 0., 0.)),
                            np.array((0., a, 0.)),
                            np.array((0, 0, c)) ]
+
+        self.recipr = get_recipr_unitvectors(self.prim,self.scale)
+
+        self.SymPts_k = {} # in terms of k-vectors
+        self.SymPts = {}   # in terms of reciprocal length vectors
+
+        for k,v in list(SymPts_k[self.name].items()):
+            self.SymPts_k[k] = np.array(v[0])
+            self.SymPts[k] = np.dot(np.array(v[0]),np.array(self.recipr))
+
+    def get_kvec (self, beta):
+        return get_kvec(beta, self.recipr)
+
+
+class ORC(object):
+    """
+    This is ORTHOROMBIC, oP lattice
+    """
+    def __init__(self, a, b, c, scale=2*np.pi,primvec=None):
+        """
+        Initialise the lattice parameter(s) upon instance creation, and
+        calculate the direct and reciprocal lattice vectors, as well
+        as the components of the k-vectors defining the high-symmetry
+        points known for the given lattice.
+        """
+        
+        self.name = 'ORC'
+        self.a, self.b, self.c = a, b, c
+        self.scale = scale
+
+        if primvec is not None:
+            self.prim = primvec
+        else:
+            self.prim =  [ np.array((a, 0., 0.)),
+                           np.array((0., b, 0.)),
+                           np.array((0., 0., c)) ]
 
         self.recipr = get_recipr_unitvectors(self.prim,self.scale)
 
@@ -400,6 +445,45 @@ def test_TET(a,c,scale=None):
     print((scale*np.linalg.norm(test.SymPts['X']-test.SymPts['R'])))
     print((scale*np.linalg.norm(test.SymPts['M']-test.SymPts['A'])))
 
+def test_ORC(a, b, c,scale=None):
+    """
+    test for ORC lattice, printing also the lengths of the 
+    k-lines between points of symmetry, in units of 2pi/a
+    """
+    if scale is not None:
+        test = ORC(a, b, c,scale)
+    else:
+        test = ORC(a, b, c)   
+    print(("\n\n *** {0} lattice ***".format(test.name)))
+    print(("\nLattice constants: ", a, b, c))
+    print("\nPrimitive vectors:")
+    for pvec in test.prim:
+        print(pvec)
+
+    print("\nReciprocal vectors:")
+    for rvec in test.recipr:
+        print(rvec)
+
+    print("\nSymmetry points in terms of B-vectors, and corresp, kvectors:")
+    for pt in list(test.SymPts_k.items()):
+        print (pt, test.get_kvec(pt[1]))
+
+    print("\nSymmetry points in reciprocal lengths:")
+    for pt in list(test.SymPts.items()):
+        print(pt)
+
+    print("\nSymmetry points in 2pi/a units:")
+    for pt in list(test.SymPts.items()):
+        print((pt[0],pt[1]/(2*np.pi/a)))
+
+    print("\nLength of lines along a standard path,")
+    print("Gamma--S--X--Gamma--Z, in [2pi/a]:")
+    scale = (a/(2.*np.pi))
+    print((scale*np.linalg.norm(test.SymPts['S'])))
+    print((scale*np.linalg.norm(test.SymPts['S']-test.SymPts['X'])))
+    print((scale*np.linalg.norm(test.SymPts['X'])))
+    print((scale*np.linalg.norm(test.SymPts['Z'])))
+
 if __name__ == "__main__":
 
     a = 5.431
@@ -412,3 +496,5 @@ if __name__ == "__main__":
     test_TET(a,c)
 
 
+    a, b, c = 8.77, 9.06, 12.80
+    test_ORC(a, b, c)
