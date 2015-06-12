@@ -38,6 +38,10 @@ def main():
     # setup by option with default value workdir = os.getcwd()
     workdir = os.path.abspath(args.workdir)
     skipexecution = args.skip_execution
+    # Make sure we add the working directory to sys.path(), or else
+    # we cannot import the skopt_input.py
+    # we will still fail if we attempt skopt_input.py from another directory...
+    sys.path.append(workdir)
 
 
     # Logging at console and to debug file

@@ -1,0 +1,40 @@
+================================
+Linux platform 
+================================
+
+
+RECOMMENDED for users: 
+======================================================================
+Install as user, locally: No root permissions required, no PATH/PYTHONPATH
+modifications required. 
+
+$ python3 setup.py install --user --record installed.info
+
+This will try to install skgen into your local home directory, creating
+~/.local/lib/python3.[?]/site-packages/skopt-J.I[.P[.S]].egg-info, 
+~/.local/lib/python3.[?]/site-packages/skopt/, 
+and
+~/.local/bin/skopt
+
+The last one, i.e. the executable ~/.local/bin/skopt, should be invoked with
+the path, or sym-linked or ~/.local/bin/ added to PATH.
+
+All installed files will be listed in installed.info, so to uninstall do:
+$cat installed.info | xargs rm -rf
+
+
+Option for admin/root-priviliged users e.g. installing on a cluster:
+======================================================================
+$ python3 setup.py install
+
+which will install on /usr/local/,
+
+or with a prefix:
+
+$ python setup.py install --prefix=somewhere_else
+
+
+
+Other ways:
+======================================================================
+Check http://docs.python.org/install/ for more information and understanding.

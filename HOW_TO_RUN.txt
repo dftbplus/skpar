@@ -1,0 +1,50 @@
+How to run SKOPT
+======================================================================
+
+The test directory in the distribution package contains a couple of
+examples (Si, and Perovskite).
+
+You need skopt_input.py, and skdefs.template.py.
+
+The directories of the systems to be optimised also need to be 
+created and input files for dftb+ and skgen must be specified too.
+Certain *skf pairs should be computed in advance, if the corresponding 
+elements are not to be optimised.
+
+Note also that skopt_input.py should import some reference data 
+representing a set of target datapoints, and is described in python.
+Again, examples are in the test directory.
+
+
+
+Once this is all ready, you may manually complete the skf sets run
+skeval to evaluate the system against the current targets and see
+the fitness, and adjust the weights if necessary.
+
+SKEVAL is run as follows (it takes the same input file as the skopt itself):
+
+> skeval -wd . skopt_input.py
+
+
+
+Once this is clean, you may start the optimisation:
+
+> nohup nice skopt -np 10 -ng 50 skopt_input.py > skopt.log 2>&1 &
+
+The above uses 'nohup' as the optimisation may be long, and you want to insure
+you won't accidentially kill it by closing the terminal or dropping your
+connection to the surver.
+The 'nice' adjusts priority so that you can do other things on your
+computer, if needed.
+
+Check skopt -h for the options. 
+Output goes to skopt.log; a more detailed version goes to skopt.debug.log by
+default.
+
+Note: skopt will spawn other processes that will come and go and come and go.
+If you need to kill the optimisation process do:
+
+> kill -TERM -`pgrep -o skopt`
+
+which will terminate the whole group of skopt and its child processes.
+
