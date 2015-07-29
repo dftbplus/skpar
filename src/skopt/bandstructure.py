@@ -44,7 +44,7 @@ def meff(band, kline):
 
 
 def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None, 
-                 Erange=0.008, ib0=0, nb=1, log = logging.getLogger(__name__)):
+                 Erange=0.008, forceErange=False, ib0=0, nb=1, log = logging.getLogger(__name__)):
     """
     Calculate parabolic effective mass at the specified *extrtype* of 
     given *bands*, calculated along two points in k-space defined by a
@@ -65,7 +65,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     :param Erange: Energy range [eV] over which to fit the parabola 
                    [dflt=8meV], i.e. 'depth' of the assumed parabolic well.
     :param log: logger handler; if dflt (None), then module name will feature
-                as the source of the message, but logging must be configured
+                as the source of the message, but l ogging must be configured
                 elsewhere
 
     :return meff: the value of the parabolic effective mass [m_0]
@@ -113,7 +113,6 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         # this get's a logger, but unless logger is configured
         # somewhere, it outputs nothing
         log = logging.getLogger(__name__)
-    log.debug('Fitting effective mass.')
 
     # check how many bands we have to deal with
     try:
@@ -141,6 +140,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     meff_data = OrderedDict([])       # permits list-like extraction of data too
 
     for ib in range(nb):
+        log.debug('Fitting effective mass {}.'.format(meff_id(ib)))
         # set the references for the current band
         band = bands[ib0 + ib]
 
@@ -162,7 +162,15 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         #extr_pos_label = lattice.get_SymPtLabel(kextr)
 
         # Select how many points to use around the extremum, in order to make the fit.
-        krange = np.where(abs(band-extr)<=Erng)[0]
+        _Erng = 0
+        krange = [0]
+        while len(krange) < 5 and _Erng < max(band)-min(band):
+            _Erng += Erng 
+            krange = np.where(abs(band-extr)<=_Erng)[0]
+        if _Erng > Erng:
+            log.warning("Erange pushed from {:.3f} to {:.3f} eV, to "\
+                        "encompass {:d} E-k points including the extremum".
+                        format(Erng, _Erng, len(krange)))
         # We have a problem if the band wiggles and we get an inflection point
         # within the krange -- this happens e.g. due to zone folding in Si,
         # due to its indirect band-gap.
@@ -172,23 +180,34 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         # NOTABENE: using is_monotonic as below effectively narrows the krange
         #           independently of Erange, which may lead to a far too narrow
         #           range, e.g. 1 or 2 points, especially for coarser sampling.
-        while not is_monotonic(band[krange<iextr]):
-            krange = krange[1:]
-        while not is_monotonic(band[krange>iextr]):
-            krange = krange[:-1]
-        nlow = min(krange)
+        #           So, where we want to NOT check for monotonic, we use the
+        #           override to impose the Erange
+#        log.debug("nlow, nhigh {} {}".format(min(krange), max(krange)))
+        if not forceErange:
+            nlow  = min(krange)
+            while not is_monotonic(band[krange<iextr]) and iextr - nlow >= 5:
+                krange = krange[1:]
+                nlow = min(krange)
+            nhigh = max(krange)
+            while not is_monotonic(band[krange>iextr]) and nhigh - iextr >= 5:
+                krange = krange[:-1]
+                nhigh = max(krange)
+        nlow  = min(krange)
         nhigh = max(krange)
 
-        if nhigh-iextr < 3 and iextr != nk-1:
-            log.warning('Too few points ({0}) to right of extremum: Poor {1} fit likely.'.
+        if nhigh-iextr < 4 and iextr != nk-1:
+            log.warning('Too few points ({0}) to the right of extremum: Poor {1} fit likely.'.
                         format(nhigh - iextr, meff_id(ib)))
             log.warning("\tCheck if extremum is at the end of k-line; "
-                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
-        if iextr-nlow < 3 and iextr != 0:
-            log.warning("Too few points ({0}) to left of extremum: Poor {1} fit likely.".
+                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
+        if iextr-nlow < 4 and iextr != 0:
+            log.warning("Too few points ({0}) to the left of extremum: Poor {1} fit likely.".
                         format(iextr - nlow, meff_id(ib)))
             log.warning("\tCheck if extremum is at the end of k-line; "
-                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(Erng))
+                        "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
+
+        log.debug("Fitting {id:8s} at {ee:8.3f} [eV], {relpos:.2f}, nlow/nhigh {nl:>6d}/{nh:>6d}".
+                format(id=meff_id(ib), relpos=extr_relpos, ee=extr, nl=nlow, nh=nhigh))
 
         mass = meff(band[krange]/Eh, kline[krange]*aB)  # transform to atomic units
         
@@ -217,7 +236,8 @@ def expand_meffdata(meff_data):
     return expanded_data
 
 
-def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=None):
+def get_effmasses(bsdata, directions, carriers='both', nb=1,
+        Erange=0.04, forceErange=False, log=None):
     """
     Return a dictionary with effective masses for the given *carriers* for the 
     first *nb* *bands* in the VB and CB, along the given *paths*, as well 
@@ -258,8 +278,12 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=No
             ib0 = nVBtop
             kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange, nb=nb, log=log)
+                                    meff_tag=direction, Erange=Erange, 
+                                    forceErange=forceErange, nb=nb, log=log)
             masses.update(expand_meffdata(meff_data))
+            # report also the average (arithmetic) mass
+            mav = np.mean([mm[0] for mm in meff_data.values()])
+            masses.update({'mh_av': mav})
 
         # electron masses
         # NOTABENE the direct indexing of bands, so that me_*_0 is the bottom CB
@@ -269,6 +293,9 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, log=No
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
                                     meff_tag=direction, Erange=Erange, nb=nb, log=log)
             masses.update(expand_meffdata(meff_data))
+            # report also the average (arithmetic) mass
+            mav = np.mean([mm[0] for mm in meff_data.values()])
+            masses.update({'me_av': mav})
 
     return masses
 
@@ -336,6 +363,14 @@ def get_tagged_Eatk(bsdata, sympts, extract={'cb': [0, ], 'vb': [0, ]}, log=None
         except KeyError:
             short = label
         return short
+
+    # let the user mute extraction of vb or cb by providing only the alternative key
+    # this may be needed if reference energies are not available for both CB and VB 
+    # at the same time
+    if 'cb' not in extract:
+        extract.update({'cb': []})
+    if 'vb' not in extract:
+        extract.update({'vb': []})
 
     Eatk = get_Eatk(bsdata, sympts)
     nVBtop     = bsdata['nVBtop']

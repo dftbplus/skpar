@@ -50,28 +50,6 @@ SymPts_k = { 'FCC': { 'Gamma': [(0.,0.,0.),],
                       'Y': [(0., 1./2., 0.),],
                       'X': [(1./2., 0.,  0.),],
                       'Z': [(0., 0., 1./2.),], },
-
-#             'RHL1': { 'Gamma': [ (0, 0, 0), ],
-#                    'B' : [ (eta, 1./2., 1-eta), ], 
-#                    'B1': [ (1./2., 1-eta, eta-1), ], 
-#                    'F' : [ (1./2., 1./2., 0), ], 
-#                    'L' : [ (1./2., 0, 0), ], 
-#                    'L1': [ (0, 0, -1./2.), ], 
-#                    'P' : [ (eta, nu, nu), ], 
-#                    'P1': [ (1-nu, 1-nu, 1-eta), ], 
-#                    'P2': [ (nu, nu, eta-1), ], 
-#                    'Q' : [ (1-nu, nu, 0), ], 
-#                    'X' : [ (nu, 0, -nu), ], 
-#                    'Z' : [ (1./2., 1/2., 1./2.), ], }, 
-#
-#             'RHL2': { 'Gamma': [ (0, 0, 0), ],
-#                    'F' : [ (1./2., -1./2., 0), ], 
-#                    'L' : [ (1./2., 0, 0), ], 
-#                    'P' : [ (1-nu, -nu, 1-nu), ], 
-#                    'P1': [ (nu, nu-1, nu-1), ], 
-#                    'Q' : [ (eta, eta, eta), ], 
-#                    'Q1': [ (1-eta, -eta, -eta), ], 
-#                    'Z' : [ (1./2., -1/2., 1./2.), ], }
             }
         
 
@@ -499,21 +477,29 @@ def get_recipr_cell (A,scale):
 
 def getSymPtLabel(kvec, lattice, log):
     """ 
-    This routine returns the label of a k-space symmetry point, given a tupple, representing the corresponding
-    k-vector.
-    __NOTA BENE:__ The symmetry points are defined as a dictionary for a given lattice type.
-    This dictionary, for each lattice type, is constructed from the tables in 
-    W.Setyawan and S.Curtarolo, _Comp. Mat. Sci._ __49__ (2010) pp.299-312
-    see the lattice.py module for the implementation details
+    This routine returns the symbol of a symmetry point that is 
+    given in terms of reciprocal cell-vectors (*kvec* -- a 3-tuple)
+    of the *lattice* object.
     """
     kLabel = None
     
+    # start with a hack: look first if we have the info in the 
+    # dictionary; else check the object itself.
     try:
-        for l,klist in list(SymPts_k[lattice].items()):
-            if tuple(kvec)  in klist:
-                kLabel = l
+        for lbl, klist in list(SymPts_k[lattice.name].items()):
+            if tuple(kvec) in klist:
+                kLabel = lbl
     except KeyError:
-        log.critical("ERROR : No symmetry point definition for the {lattice} lattice are defined.".format(lattice))
+        # note that we drop the support of lists of equivalent representation of symmetry points
+        # therefore each iteration we get one symbol and one tupple, instead a symbol and a list of tupples
+        # the tollerance bellow (atol) defines how loosely we can define the
+        # k-points in the dftb_in.hsd. 1.e-4 means we need 3 digits after the dot.
+        for lbl, kpt in list(lattice.SymPts_k.items()):
+            if np.allclose(kvec, kpt, atol=1.e-3):
+                kLabel = lbl
+    except:
+        log.critical("ERROR : No symmetry point definition for the {} lattice are defined.".format(lattice.name))
+        log.critical("        Problems with symmetry point definition for the {} lattice object too.".format(lattice.name))
         log.critical("        Please, extend the SymPts dictionary in lattice.py module before continuing.")
         sys.exit(1)
             
@@ -789,29 +775,27 @@ def len_pathsegments(lattice, scale=None, path=None):
 
 def get_dftbp_klines(lattice, delta=None, path=None):
     """
-    Print out the number of points  of the BZ _path_
-    (default for the lattice chosen if None) of a given _lattice_ object
+    Print out the number of points along each segment of the BZ *path*
+    (default for the lattice chosen if None) of a given *lattice* object
     """
     if path is None:
         path = lattice.standard_path
     if delta is None:
-        delta = 0.05 # reciprocal units
-    print(path)
+        delta = 0.01 # reciprocal units
+    print("# {:s}".format(path))
     for subpath in path.split('|'):
         segments = subpath.split('-')
         pt = segments[0]
-        ptcnt = 1
+        npts = 1
         len = 0
-        print("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(ptcnt,
+        print("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
             "".join(["{:>10.5f}".format(comp) for comp in lattice.SymPts_k[pt]]), pt, len))
         for i, pt in enumerate(segments[:-1]):
             nextpt = segments[i+1]
             len = np.linalg.norm(lattice.SymPts[pt]-lattice.SymPts[nextpt])
-            ptcnt = ptcnt + int(len/delta)
-            print("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(ptcnt,
+            npts = int(len/delta)
+            print("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
                 "".join(["{:>10.5f}".format(comp) for comp in lattice.SymPts_k[nextpt]]), nextpt, len))
-#            print("{:>8d}-{:<6s}: {:.3f}".format(pt, nextpt, 
-#                np.linalg.norm(lattice.SymPts[pt]-lattice.SymPts[nextpt])))
 
 
 if __name__ == "__main__":
@@ -829,13 +813,13 @@ if __name__ == "__main__":
 #    a, b, c = 8.77, 9.06, 12.80
 #    test_ORC(a, b, c)
 
-    a, alpha = 5.32208613808, 55.8216166097
-    repr_RHL(a, alpha)
-    lat = RHL(a, alpha)
-    get_dftbp_klines(lat)
-
-
-#    a, b, c, beta = 12.23, 3.04, 5.8, 103.70
-#    repr_MCLC(a, b, c, angle=beta)
-#    lat = MCLC(a, b, c, angle=beta)
+#    a, alpha = 5.32208613808, 55.8216166097
+#    repr_RHL(a, alpha)
+#    lat = RHL(a, alpha)
 #    get_dftbp_klines(lat)
+
+
+    a, b, c, beta = 12.23, 3.04, 5.8, 103.70
+    repr_MCLC(a, b, c, angle=beta)
+    lat = MCLC(a, b, c, angle=beta)
+    get_dftbp_klines(lat)

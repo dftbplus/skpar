@@ -207,7 +207,8 @@ class QueryDataDFTB (object):
         # to label them properly and therefore we need to know what lattice we have
         if self.getkLines:
             if 'lattice' in self.data:
-                kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'].name)
+                #kLines, kLinesDict = getkLines(self.workdir, DirectLattice=self.data['lattice'].name)
+                kLines, kLinesDict = getkLines(self.data['lattice'], self.workdir)
                 self.data['kLines'] = kLines
                 self.data['kLinesDict'] = kLinesDict
             else:

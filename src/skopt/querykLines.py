@@ -16,20 +16,21 @@ from skopt.lattice import getSymPtLabel
 #from skopt.queryDFTB import DFTBOutput
 #from skopt.queryBands import Bands
 
-def getkLines(workdir='./',hsdfile='dftb_pin.hsd',DirectLattice='TET',log=logging.getLogger('__name__')):
+def getkLines(lattice, workdir='./', hsdfile='dftb_pin.hsd',
+                log=logging.getLogger('__name__')):
     """
-    This routine analyses the KPointsAndWeighs stanza in the (parsed) input file of DFTB+ 
-    (given as an input argument 'hsdfile', and returns the k-path, based on 
-    the type of lattice (given as an input argument 'DirectLattice').
-    If the file name is not provided, the routine looks in the dftb_pin.hsd, i.e.
-    in the parsed file!
+    This routine analyses the KPointsAndWeighs stanza in the input file of DFTB+ 
+    (given as an input argument *hsdfile*), and returns the k-path, based on 
+    the lattice object (given as an input argument *lattice*).
+    If the file name is not provided, the routine looks in the default 
+    dftb_pin.hsd, i.e. in the parsed file!
 
     The routine returns a list of tuples (kLines) and a dictionary (kLinesDict)
     with the symmetry points and indexes of the corresponding k-point in the 
     output band-structure. 
 
     kLines is ordered, as per the appearence of symmetry points in the hsd input, e.g.:
-            [('L', 0), ('Gamma', 50), ('X', 110), ('U', 130), ('K', 131), ('Gamma', 181)]
+        [('L', 0), ('Gamma', 50), ('X', 110), ('U', 130), ('K', 131), ('Gamma', 181)]
     therefore it may contain repetitions (e.g. for 'Gamma', in this case).
     
     kLinesDict returns a dictionary of lists, so that there's a single entry for
@@ -45,18 +46,18 @@ def getkLines(workdir='./',hsdfile='dftb_pin.hsd',DirectLattice='TET',log=loggin
             if 'KPointsAndWeights = Klines {' in ' '.join(line.split()):
                 extraline = next(f)
                 while not extraline.strip().startswith("}"):
+                    # skip over commented line, in case of non-parsed .hsd file
+                    while extraline.strip().startswith("#"):
+                        extraline = next(f)
                     words = extraline.split()[:4]
-                    nk,k = int(words[0]),[float(w) for w in words[1:]]
-                    kLabel = getSymPtLabel(k,DirectLattice,log)
+                    nk, k = int(words[0]), [float(w) for w in words[1:]]
+                    kLabel = getSymPtLabel(k, lattice, log)
                     if kLabel:
-                        kLines_dftb.append((kLabel,nk))
+                        kLines_dftb.append((kLabel, nk))
                     if len(words)>4 and words[4] == "}":
                         extraline = "}"
                     else:
                         extraline = next(f)
-#                    except:
-#                        log.critical("ERROR: Problem getting kLines from {f}. Cannot continue.".format(f=hsdfile))
-#                        sys.exit(0)
 
     kLines = [(sp[0],sum([sp[1] for sp in kLines_dftb[:i+1]])-1) for (i,sp) in enumerate(kLines_dftb)]
     kLinesDict = defaultdict(list)
