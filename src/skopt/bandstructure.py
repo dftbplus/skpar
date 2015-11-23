@@ -8,7 +8,7 @@ import logging
 from collections import OrderedDict
 import numpy as np
 from math import pi
-from skopt.lattice import getSymPtLabel, SymPts_k 
+from skopt.lattice import getSymPtLabel
 from skopt.utils import is_monotonic
 
 
