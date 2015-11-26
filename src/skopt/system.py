@@ -33,18 +33,32 @@ class Analyser(object):
 def skipSystemUpdate(*args,**kwargs):
     pass
     
+def queryData(data, keys, log=None, **kwargs):
+    """Return a sub-dictionary of *data* based on *keys*.
 
-def queryData(data, keys, **kwargs):
-    """ 
-    Return a sub-dictionary of *data* based on *keys*.
-    data is the input dictionary
-    keys determine the key,value pairs returned in the
-    output dictionary
+    Parameters:
+        data : dictionary 
+            Input dictionary with data.
+        keys : list of strings
+            Sub-set of keys to be returned in the output dictionary.
+    Returns:
+        Output dictionary.
+    Raises:
+        AssertionError:
+            If not all *keys* are found in *data*.
     """
-    assert all(key in data for key in keys)
+    if log is None:
+        log = logging.getLogger(__name__)
     odict = dict()
+    missing = []
     for key in keys:
-        odict[key]=data[key]
+        try:
+            odict[key]=data[key]
+        except KeyError:
+            missing.append(key)
+    assert not missing,\
+            log.critical("Missing keys in output dictionary:\n{}".\
+                format(missing))
     return odict
 
 

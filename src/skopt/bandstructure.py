@@ -44,7 +44,8 @@ def meff(band, kline):
 
 
 def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None, 
-                 Erange=0.008, forceErange=False, ib0=0, nb=1, log = logging.getLogger(__name__)):
+                 Erange=0.008, forceErange=False, ib0=0, nb=1, 
+                 usebandindex=False, log = logging.getLogger(__name__)):
     """
     Calculate parabolic effective mass at the specified *extrtype* of 
     given *bands*, calculated along two points in k-space defined by a
@@ -65,7 +66,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     :param Erange: Energy range [eV] over which to fit the parabola 
                    [dflt=8meV], i.e. 'depth' of the assumed parabolic well.
     :param log: logger handler; if dflt (None), then module name will feature
-                as the source of the message, but l ogging must be configured
+                as the source of the message, but logging must be configured
                 elsewhere
 
     :return meff: the value of the parabolic effective mass [m_0]
@@ -76,12 +77,23 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     extrdict = {'min': np.amin, 'max': np.amax}
     meffdict = {'min': 'me', 'max': 'mh'}
 
-    def meff_id(ix):
-        """
-        Change Gamma to G and eliminate - from meff_tag if a direction
+    def meff_id(ix, usebandindex=False):
+        """Construct a string tag for an effective mass key.
+
+        Change Gamma to G and eliminate '-' from meff_tag if a direction
         is recognized (e.g. something like Gamma-X becomes GX.
-        prepend type of mass (me or mh) and index if more than 1 bands
-        are requested.
+        Prepend type of mass (me or mh) and index if more than 1 bands
+        are requested, or if *usebandindex*.
+        
+        Parameters:
+            ix : int
+                Band index.
+            usebandindex : bool (False)
+                Enforce band-index even if only one band requested.
+
+        Returns:
+            tag : string
+                String tag for a given effective mass.
         """
         tag = meff_tag.split('-')
         try:
@@ -89,7 +101,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         except ValueError:  # directional tag (e.g. A-X) but no Gamma
             pass
         tag = ''.join(tag)  # leaves a non-directional tag intact; GX otherwise
-        if nb==1:
+        if nb==1 and not usebandindex:
             tag = '_'.join([meffdict[extrtype], tag])
         else:
             tag = '_'.join([meffdict[extrtype], tag, '{0:n}'.format(ix)])
@@ -211,9 +223,9 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
 
         mass = meff(band[krange]/Eh, kline[krange]*aB)  # transform to atomic units
         
-        meff_data[meff_id(ib)] = (mass, extr, extr_relpos)
+        meff_data[meff_id(ib, usebandindex)] = (mass, extr, extr_relpos)
         log.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {relpos:.2f}".format(
-                 id=meff_id(ib), mass=mass, relpos=extr_relpos, ee=extr))
+                 id=meff_id(ib, usebandindex), mass=mass, relpos=extr_relpos, ee=extr))
     return meff_data
 
 
@@ -236,12 +248,12 @@ def expand_meffdata(meff_data):
     return expanded_data
 
 
-def get_effmasses(bsdata, directions, carriers='both', nb=1,
-        Erange=0.04, forceErange=False, log=None):
-    """
-    Return a dictionary with effective masses for the given *carriers* for the 
-    first *nb* *bands* in the VB and CB, along the given *paths*, as well 
-    as the values of the extrema and their position along the directions in the *paths*.
+def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, 
+                  usebandindex=False, forceErange=False, log=None):
+    """Return a dictionary with effective masses for the given *carriers* for 
+    the first *nb* *bands* in the VB and CB, along the given *paths*, as well 
+    as the values of the extrema and their position along the directions in 
+    the *paths*.
     """
     masses = OrderedDict()
     bands      = np.transpose(bsdata['Bands'])
@@ -278,8 +290,9 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1,
             ib0 = nVBtop
             kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange, 
-                                    forceErange=forceErange, nb=nb, log=log)
+                                    meff_tag=direction, Erange=Erange,
+                                    forceErange=forceErange, nb=nb,
+                                    usebandindex=usebandindex, log=log)
             masses.update(expand_meffdata(meff_data))
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
@@ -291,7 +304,9 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1,
             ib0 = nVBtop+1
             kLine = bands[ib0:ib0+nb, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange, nb=nb, log=log)
+                                    meff_tag=direction, Erange=Erange, 
+                                    forceErange=forceErange, nb=nb,
+                                    usebandindex=usebandindex, log=log)
             masses.update(expand_meffdata(meff_data))
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
