@@ -197,11 +197,11 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
 #        log.debug("nlow, nhigh {} {}".format(min(krange), max(krange)))
         if not forceErange:
             nlow  = min(krange)
-            while not is_monotonic(band[krange<iextr]) and iextr - nlow >= 5:
+            while not is_monotonic(band[np.where(krange<iextr)]) and iextr - nlow >= 5:
                 krange = krange[1:]
                 nlow = min(krange)
             nhigh = max(krange)
-            while not is_monotonic(band[krange>iextr]) and nhigh - iextr >= 5:
+            while not is_monotonic(band[np.where(krange>iextr)]) and nhigh - iextr >= 5:
                 krange = krange[:-1]
                 nhigh = max(krange)
         nlow  = min(krange)

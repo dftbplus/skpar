@@ -23,13 +23,14 @@ def plotBS(bands, kLines=None, Erange=[-13, 13], krange=None, figsize=(6, 7), \
     matplotlib.rcParams.update({'font.size': kwargs.get('fontsize', 20), \
                                 'font.family': kwargs.get('fontfamily', 'sans')})
     plt.rc('lines', linewidth=2)
-    plt.rc('axes', color_cycle=['Red', 'Green', 'Blue', 'DarkBlue', \
-                                'LightBlue', 'Purple', 'Cyan', 'Olive', 'Maroon'])
+    color_cycle=['Red', 'Green', 'Blue', 'DarkBlue', \
+                    'LightBlue', 'Purple', 'Cyan', 'Olive', 'Maroon']
 
     nk, nE = bands.shape
 
     # get a figure object with the desired figures size
     fig, ax = plt.subplots(figsize=figsize)
+    ax.prop_cycle = color_cycle
     # set axis labels and ranges
     ax.set_xlabel('$\mathbf{k}$-vector')
     ax.set_ylabel('Energy (eV)')
