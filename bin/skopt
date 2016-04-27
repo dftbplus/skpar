@@ -6,6 +6,7 @@ if sys.hexversion < 0x03020000:
 import os
 import argparse
 from skopt.optimise import SKopt
+from skopt.evaluate import Evaluator
 import logging
 import importlib
 import skopt
@@ -31,6 +32,11 @@ def main():
             "-etol", dest="etol", type=float, default=1.0, 
             action="store", 
             help="Maximum tolerable error [%%], below which optimisation stops."
+            )
+    parser.add_argument(
+            "--evaluate-only", dest="evaluate_only", action="store_true",
+            help=("Do not perform optimisation. Instead, only "
+                  "evaluate a given SKF set against reference data.")
             )
     parser.add_argument(
             "skopt_input", type=str, default="skopt_in.py", action="store", 
@@ -98,44 +104,73 @@ def main():
     sysweights = skoptdefs.sysweights
     reportkeys = skoptdefs.reportkeys
 
+    if args.evaluate_only:
+        # Instance of Evaluator
+        # ----------------------------------------------------------------------
+        ## Configure the evaluator of fitness (cost)
+        evaluate = Evaluator(systems=systems, 
+                    systemweights=sysweights, 
+                    workdir=workdir,
+                    # costfunc=costfunc,   # use default cost function       
+                    verbose=True,
+                    useRelErr=False,     # if true, would use relerr in costfunc
+                    log=log)
 
-    # Input parameter definition for the optimiser and for definitions 
-    # for skgen:
-    # skfdir is where skgen is run into: $workdir/$skfdir
-    # skdefs_out naturally goes into the skfdir; the file is actually 
-    # the input for skgen
-    # skdefs_template stays in $workdir, as it is for the optimiser
-    # -------------------------------------------------------------------
-    skfdir = "skf"
-    skdefs_out = "skdefs.py"
-    skdefs_template = "skdefs.template.py"
+        ## fine-tuning what should be reported at each evaluation:
+        ## in constructing reportkeys, recall that s0 is with 0 system-weight,
+        ## so nothing will be reported anyway (nothing from s0 goes to flatrefdata)
+        # TODO: reconsider this bit. This is strictly evaluator functionality so
+        #       it may be better to pass reortkeys as a kwarg directly to evaluator
+        #       and not burden skopt with that.
+        try:
+            evaluate.evalcost.keys = reportkeys or []
+        except AttributeError:
+            log.critical((
+            "You supply reportkeys to evaluator, "
+            "but the costfunc you supplied does not support that."))
+            log.debug("costfunc is {0}".costfunc)
+            sys.exit(2)
+
+        # do the evaluation
+        evaluate([])
+
+    else:
+        # Input parameter definition for the optimiser and for definitions 
+        # for skgen:
+        # skfdir is where skgen is run into: $workdir/$skfdir
+        # skdefs_out naturally goes into the skfdir; the file is actually 
+        # the input for skgen
+        # skdefs_template stays in $workdir, as it is for the optimiser
+        # -------------------------------------------------------------------
+        skfdir = "skf"
+        skdefs_out = "skdefs.py"
+        skdefs_template = "skdefs.template.py"
 
 
-    # Configure an instance of the optimiser
-    # ----------------------------------------------------------------------
-    # Parameters describing the optimisation strategy with PSO
-    objectives = (-1,)  # Keep single objective optimisation for now;
-                        # don't know how to handle multiobjective optimisation
-    npart  = args.np         # Number of particles in the warm
-    ngen   = args.ng         # Number of generations through which the swarm evolves
-    ErrTol = args.etol/100.  # Use this as an alternative, if ngen is rather large,
-                             # we stop as soon as the worst relative error accross
-                             # the reference data falls below ErrTol.
-    # instantiate an optimiser
-    optimise = SKopt(workdir=workdir, skfdir=skfdir,
-                     skdefs_template=skdefs_template, skdefs_out=skdefs_out,
-                     # Systems definition
-                     systems=systems, sysweights=sysweights, 
-                     # Evaluator arguments
-                     reportkeys=reportkeys,
-                     # optimiser arguments as a list of kwargs
-                     npart=npart, objectives=objectives,
-                     ngen=ngen, ErrTol=ErrTol,
-                     # log
-                     log=log)
-    # do the optimisation
-    swarm, stats = optimise()
-
+        # Configure an instance of the optimiser
+        # ----------------------------------------------------------------------
+        # Parameters describing the optimisation strategy with PSO
+        objectives = (-1,)  # Keep single objective optimisation for now;
+                            # don't know how to handle multiobjective optimisation
+        npart  = args.np         # Number of particles in the warm
+        ngen   = args.ng         # Number of generations through which the swarm evolves
+        ErrTol = args.etol/100.  # Use this as an alternative, if ngen is rather large,
+                                # we stop as soon as the worst relative error accross
+                                # the reference data falls below ErrTol.
+        # instantiate an optimiser
+        optimise = SKopt(workdir=workdir, skfdir=skfdir,
+                        skdefs_template=skdefs_template, skdefs_out=skdefs_out,
+                        # Systems definition
+                        systems=systems, sysweights=sysweights, 
+                        # Evaluator arguments
+                        reportkeys=reportkeys,
+                        # optimiser arguments as a list of kwargs
+                        npart=npart, objectives=objectives,
+                        ngen=ngen, ErrTol=ErrTol,
+                        # log
+                        log=log)
+        # do the optimisation
+        swarm, stats = optimise()
 
 if __name__ == "__main__":
     main()
