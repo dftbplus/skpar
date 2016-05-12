@@ -2,6 +2,7 @@
 """
 import os
 import numpy as np
+import logging
 
 def flatten (dd):
     """
@@ -67,11 +68,47 @@ def is_monotonic(x):
     return np.all(dx <= 0) or np.all(dx >= 0)
 
 
+def normalise(a):
+    """Normalise the given array so that sum of its elements yields 1.
+
+    Args:
+        a (array): input array
+
+    Returns:
+        a/norm (array): The norm is the sum of all elements across all dimensions.
+    """
+    norm = np.sum(np.asarray(a))
+    return np.asarray(a)/norm
+
 def normaliseWeights(weights):
     """
     normalise weights so that their sum evaluates to 1
     """
     return np.asarray(weights)/np.sum(np.asarray(weights))
+
+def setup_logger(name, filename, verbosity=logging.INFO):
+    """Return a named logger with file and console handlers.
+
+    Get a `name`-logger and define a console handler at INFO level,
+    and a file handler at DEBUG level, writing to `filename`.
+    """
+    # set up logging
+    # -------------------------------------------------------------------
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    # console handler with a higher log level
+    ch = logging.StreamHandler()
+    ch.setLevel(verbosity)
+    # file handler with full debug info
+    fh = logging.FileHandler(filename)
+    fh.setLevel(logging.DEBUG)
+    # message formatting
+    formatter = logging.Formatter('%(levelname)7s: %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
 
 
 if __name__ == "__main__":

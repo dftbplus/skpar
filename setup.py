@@ -3,9 +3,11 @@
 # Copyright (C) 2013, 2016  Stanislav Markov, The University of Hong Kong
 # Please see the accompanying LICENSE file for further information.
 
-from distutils.core import setup, Command
-from distutils.command.build_py import build_py as _build_py
-from glob import glob
+#from distutils.core import setup, Command
+#from distutils.command.build_py import build_py as _build_py
+#from glob import glob
+from setuptools import setup
+
 from os.path import join
 
 import os

@@ -1,5 +1,5 @@
 """
-Routines to handle input files in yaml.
+Routines to handle input files in yaml and data files (with array-like floats).
 """
 import matplotlib
 matplotlib.use("Agg")
@@ -11,44 +11,21 @@ import yaml
 #import pprint
 from collections import OrderedDict
 import logging
+import os
 import sys
+from skopt.utils import normalise
 
-def normalise(a):
-    """Normalise the given input array.
-
-    Args:
-        a (array): input array
-
-    Returns:
-        a/norm (array): The norm is the sum of all elements across all dimensions.
-    """
-    norm = np.sum(a)
-    return a/norm
-
-def loadyaml (file, cue):
-    """Load yaml file and return the contents of the given cue.
-
-    Crawls through each document in the yaml `file` and looks for a key=`cue`.
-    Returns the value corresponding to the `cue`, or exits with error.
-
-    Args:
-        file (filename): Input Yaml file
-        cue (string): Key to extract from the Yaml file
-    
-    Returns:
-        data (dict): The value of the cue in the yaml document,
-            if found; Exits with error if cue not found.
-    """
-
-    docs = yaml.load_all(open(file))
-    for doc in docs:
-        try:  
-            data = doc[cue] 
+def loadyaml (file, key=None, **kwargs):
+    """Load yaml file and return the contents of selected key."""
+    doc = yaml.load(open(file))
+    if key is not None:
+        try: 
+            data = doc[key]
             return data
         except KeyError:
-            pass
-    return None
-    
+            return None
+    return doc
+
 def remap(dd, mm):
     """Get a subdicitonary of the input data, with translated keys.
     
@@ -73,86 +50,178 @@ def remap(dd, mm):
             newdict.append((k, dd[v]))
     return OrderedDict(newdict)
 
+def get_file_data(data, file=None, logger=None, **kwargs):
+    """Update the input dictionary with items from file.
     
-class RefData (object):
-    """Reference Data Object.
-
-    This class encapsulates a group of reference items obtained from
-    a data file; It sets up a global weight for the group of data
-    items, and sub-weights for the relative importance of each individual
-    data item within the group.
-    """
-    loaders = {"np.loadtxt": np.loadtxt, 
-              "yaml": loadyaml}
-    def __init__(self, ref, cue, **kwargs):
-        """Initialise reference data structure and weights from user input.
-
-        Assumed is that the user input `ref` specifies how to get data
-        from files that contain it. By `How` we mean what file, how to
-        read it, how to interpret the data, what weights to associate with
-        each data item, and what weight of importance to associate with
-        the entire group of data items tagged by `cue`.
-
-        The following attributes are available after initialisation:
-            * the value of `cue`: (setattr(self, cue, data) is used, where
-                `data` is initialised from a file specified in `ref`
-            * weight: global weight for the created instance
-            * subweights: individual weights of relative importance, for 
-                each item in `data`. If `data` is an array, subweights will
-                have the same shape. If `data` is a list or OrderedDict, 
-                subweights will have the same length.
-
-        NOTABENE: 
-            `ref` does not contain the data; it merely hold description of
-            how to get it.
-
-        The following content of `ref` is handled within the current method:
-            {'file': 'data_file'} mandatory.
-            {'loader': 'loader_routine'} optional; default np.loadtxt;
-                name of the function to use to read the `data_file`.
-                Currently supported are ['np.loadtxt', 'loadyaml'].
-            {'loader_args': {dict of keyword args} passed as **kwargs to the
-                loader routines. e.g. 'skiprows' or 'unpack' to np.loadtxt.
-            {'weight': value} Group weight, meant as a relative importance
-                with respect to other `cue`s in `ref`. Default is 1.0.
+    The input dictionary `data` may or may not contain an item 'file'.
+    If it does, or alternatively, if `file` is provided, then 
+    the file-data is loaded according to its extension:
+        * .yaml and .yml files are read into a dict and the dict
+          is then updated with the input dictionary `data`.
+        * .dat, .txt, .data files are assumed to be arrays and
+          readin via np.loadtxt() and the array is added as a new
+          item: data['data'] = np.loadtxt()
+          
+    The updated `data` dictionary is returned.
+    
+    Remark:
+        Items in `data` overwrite items in from `file` or `data['file']`.
+    
+    Args:
+        data (dict): the input dictionary
+        file (str):  filename, alternative for loading additional data
         
-        Args:
-            ref (dict): Dictionary with input reference data.
-            cue (string): Cue or tag or name of a group of data items to
-                be extracted from `ref`.
-            kwargs (dict): keyword arguments supplied to the loader of a 
-                the actual reference data.
+    Returns:
+        data (dict): extended with entries from files
+    """
+    if logger is None:
+        logger = logging.getLogger('__name__')
+    try:
+        if 'file' not in data.keys():
+            if file is not None:
+                data['file'] = file
+            else:
+                return data
+    except AttributeError: # data not a dictionary
+        return data
+    try:
+        _file = data['file']
+        _loader_args = kwargs.get('loader_args', {})
+        # caller gives specific instructions how to load the file
+        try:
+            _loader = kwargs['loader']
+        except KeyError:
+            # try to guess appropriate loader by extension
+            if os.path.splitext(_file)[-1] in ['.yaml', '.yml']:
+                _loader = loadyaml
+            if os.path.splitext(_file)[-1] in ['.dat', '.txt', '.data']:
+                _loader = np.loadtxt
+        logger.info('Reading data from {} with {}: {}'.
+                    format(_file, _loader, _loader_args))
+        file_data = _loader(_file, **_loader_args)
+        # Now deal with file data:
+        try:
+            # Loader delivered a dictionary: update it with entries from data
+            # Note: we want the entries in the upper file to override
+            # the loaded file, hence we update file_data, not 
+            # the other way around
+            file_data.update(data)
+            data = file_data
+        except AttributeError:
+            # Loader delivered array (or something else): add a new 'data' entry
+            # so that the array can be addressable as a whole
+            data['data'] = file_data
+    except FileNotFoundError:
+        logger.critical('File not found: {}'.format(_file))
+        sys.exit(2)
+    return data
 
-        Returns:
-            None
+def get_all_data (data, file=None):
+    """
+    """
+    if isinstance(data, dict):
+        data = get_file_data(data, file)
+        for key, _data in data.items():
+            if key == 'meff':
+                pprint.pprint (data)
+            _data = get_all_data(_data)
+            if key == 'meff':
+                pprint.pprint (data)
+    if isinstance(data, list):
+        for _data in data:
+            _data = get_all_data(_data)
+    return data
+    
+
+class System (object):
+    """
+    A system is a named ('name' attribute) abstraction layer of the 
+    calculations and analysis that can be performed over a given well
+    defined entity, for example an atomic structure.
+    Properties are calculated by 'tasks' (a list of functions).
+    Tasks are a mixture of auxiliary executable and analyser functions
+    (typically user provided functions for post-processing the
+    data output from auxiliary executable).
+    The sequence of task execution is predefined by the user, and
+    the actual execution of the tasks populates the 'calculated' 
+    dictionary of the system (could be a nested dictionary).
+    A system has by default 'refdata' and 'weights', defining the
+    reference data and weights of each reference datum.
+    The 'updatesystem' method can optionally be supplied, permitting
+    the system's environment to be updated based on some call arguments.
+    Note that updatesystem is user provided and can have whatever
+    interface, unlike tasks, which would typically not accept 
+    arguments supplied at runtime. Default method is skipSystemUpdate (pass).
+    Additional attributes can be supplied as keyword arguments.
+    """
+    def __init__(self, logger=None, **kwargs):
+        self.name    = kwargs['name']
+        self.workdir = kwargs.get('dir', self.name)
+        self.refdata = kwargs.get('refdata', OrderedDict({}))
+        self.weight  = kwargs.get('weight', 1.0)
+        self.refweights = kwargs.get('refweights', OrderedDict({}))
+        self.tasks   = kwargs.get('tasks', [])
+        self.update  = kwargs.get('update', lambda: None)
+        self.modeldata = kwargs.get('modeldata', {})
+                            # because different analysers will
+                            # put data in unpredictable order
+        if logger is None:
+            self.logger  = logging.getLogger('__name__')
+
+        # set any optional attributes that don't need a default value
+        for key, val in kwargs.items():
+            if key not in self.__dict__:
+                setattr(self, key, val)
+    
+    def execute(self):
         """
-        logger = logging.getLogger('skopt')
-        if cue in ref.keys():
-            if not ref[cue].get('ignore', False):
-                # assuming `ref` is a general dictionary object,
-                # we first extract its 'cue' only
-                self.ref = ref[cue]
-                # how to load the data
-                file     = self.ref['file']
-                #
-                dflt_loader = kwargs.get('dflt_loader', 'np.loadtxt')
-                loader      = self.ref.get('loader', dflt_loader)
-                #
-                dflt_loader_args = kwargs.get('dflt_loader_args', {})
-                loader_args      = self.ref.get('loader_args', dflt_loader_args)
-                # The major part: the reference data goes under the same cue(name)
-                # and we specify default subweights, and a global weight for the cue.
-                setattr(self, cue, self.loaders[loader](file, **loader_args))
-                setattr(self, 'weight', self.ref.get('weight', 1.0))
-                cuedata = getattr(self, cue)
-                try:
-                    shape = cuedata.shape
-                except AttributeError:
-                    shape = len(cuedata)
+        TODO: should check task exit status, especially for 
+              auxiliary executables!
+        """
+        for task in self.tasks:
+            self.log.debug('{0}.{1}'.format(self.name,task))
+            try:
+                if task.log is None:
+                    task.log is self.log
+            except AttributeError:
+                pass
+            task()
+        # should return task exit status or something
+        return None
+            
+    def __call__(self):
+        return self.execute()
+
+
+class RefData (object):
+    """Reference Data.
+    """
+    mandatoryattr = {'ignore': False, 
+                     'data': None, 
+                     'weight': 1.0,
+                     'doc': ''}
+    def __init__(self, ini_data, logger=None, **kwargs):
+        """Initialise reference data structure and from user input"""
+        if logger is None:
+           logger = logging.getLogger('__name__')
+        # if not data but a file is given, load it in          
+        data = get_file_data(ini_data, logger=logger, **kwargs)
+        # set the mandatory attributes with defaults if necessary 
+        # and hook the initialisation data as attribute to be
+        # accessible to children
+        for key, val in self.mandatoryattr.items():
+            setattr(self, key, ini_data.get(key, val))
+        if self.data is not None:
+            try:
+                # if data is array
+                shape = self.data.shape
                 setattr(self, 'subweights', np.ones(shape))
-        else:
-            logger.critical("Reference data cue '{}' not found".format(cue))
-            sys.exit(2)
+            except AttributeError:
+                # if data is not array, it should be parsed further
+                # so subweights will be established later
+                pass
+        self.ini_data = ini_data
+
 
 class RefYaml (RefData):
     """Reference data initialised from Yaml data files.
@@ -202,51 +271,56 @@ class RefBands (RefData):
         topvb = bands[nelectrons-1]
     """
     
-    def __init__(self, ref):
-        cue = 'bands'
-        dflts = {'dflt_loader': 'np.loadtxt',
-                 'dflt_loader_args': {'unpack':True},
+    def __init__(self, ini_data, logger=None, **kwargs):
+        if logger is None:
+            logger = logging.getLogger('__name__')
+        dflts = {'loader': np.loadtxt,
+                 'loader_args': {'unpack':True},
                  }
-        RefData.__init__(self, ref, cue=cue, **dflts)
-        if self.ref.get('enumerate', True):
+        RefData.__init__(self, ini_data, logger=logger, **dflts)
+        if self.ini_data.get('enumerate', True):
             # if k-points are enumerated in the datafile, then at this
             # stage they would appear as bands[0], so we remove them
-            self.bands = np.delete(self.bands, 0, 0)
+            self.data = np.delete(self.data, 0, 0)
         # how to interpret the bands:
         #   CB offset to match Band-gap? 
         #   what energy to take for 0?
         #   number of electrons (to destinguish VB from CB in insulators)
-        eref            = self.ref.get('reference_energy', 0)
-        bandgap         = self.ref.get('bandgap', None)
-        self.nelectrons = self.ref.get('nelectrons', 0)
+        eref            = self.ini_data.get('reference_energy', 0)
+        bandgap         = self.ini_data.get('band_gap', None)
+        self.nelectrons = self.ini_data.get('num_electrons', 0)
+        self.g_spin     = self.ini_data.get('spin_degeneracy', 2)
+        if self.nelectrons > 0:
+            self.nvb = int(self.nelectrons / self.g_spin)
+        else:
+            # set up a time bomb
+            self.nvb = -1
         # shift energy reference if needed
         if eref == 'vbtop':
-            assert self.nelectrons > 0
-            self.eref = max(self.bands[self.nelectrons-1])
+            assert self.nvb > 0
+            self.eref = max(self.data[self.nvb-1])
         else:
             self.eref = eref
-        self.bands = self.bands - self.eref
+        self.data = self.data - self.eref
         # fix fundamental BG if needed
-        if bandgap is not None and self.nelectrons > 0:
-            ehomo = max(self.bands[self.nelectrons-1])
-            elumo = min(self.bands[self.nelectrons  ])
+        if bandgap is not None and self.nvb > 0:
+            ehomo = max(self.data[self.nvb-1])
+            elumo = min(self.data[self.nvb  ])
             deltaEgap = (elumo-ehomo) - bandgap
-            self.bands[self.nelectrons: , ] += deltaEgap
-        # now deal with the weight, and subweights (per E-k point)
-        self.weight = self.ref.get('weight', 1.0)
+            self.data[self.nvb: , ] += deltaEgap
         # make sure we re-initialise subweights, since bands.shape 
         # may have change after the initialisation in RefData.__init__()
         # due to enumerate=True
-        self.subweights = np.ones(self.bands.shape)
+        self.subweights = np.ones(self.data.shape)
         try:
-            for item in self.ref['subweights']['eV']:
+            for item in self.ini_data['subweights']['eV']:
                 emin, emax, w = item[0][0], item[0][1], item[1]
-                self.subweights[(emin < self.bands) & (self.bands < emax) & 
+                self.subweights[(emin < self.data) & (self.data < emax) & 
                                 (self.subweights < w)] = w
         except KeyError:
             pass
         try:
-            for item in self.ref['subweights']['nb']:
+            for item in self.ini_data['subweights']['nb']:
                 # note below we make the specified range INCLUSIVE of both ends!
                 ibmin, ibmax, w = item[0][0], item[0][1]+1, item[1]
                 mask = np.where(self.subweights[ibmin: ibmax] < w)                 
@@ -255,16 +329,16 @@ class RefBands (RefData):
             pass
         self.subweights = normalise(self.subweights)
         # visualise
-        self.plotfile = self.ref.get('plot', None)
+        self.plotfile = self.ini_data.get('plot', None)
         if self.plotfile is not None:
-            plotargs = self.ref.get('plotargs', {})
+            plotargs = self.ini_data.get('plotargs', {})
             self.plot(outfile=self.plotfile, **plotargs)
             
     def plot(self, figsize=(6, 7), outfile=None, Erange=None, krange=None):
-        """Visual representation of the bands-structure and sub-weights.
+        """Visual representation of the band-structure and sub-weights.
         """
         fig, ax = plt.subplots(figsize=figsize)
-        nb, nk = self.bands.shape
+        nb, nk = self.data.shape
         xx = np.arange(nk)
         ax.set_xlabel('$\mathbf{k}$-point')
         ax.set_ylabel('Energy (eV)')
@@ -280,8 +354,16 @@ class RefBands (RefData):
                         (np.max(self.subweights)-np.min(self.subweights)))
         else:
             color = ['b']*nb
-        for yy, cc in zip(self.bands, color):
+        for yy, cc in zip(self.data, color):
             ax.scatter(xx, yy, s=1.5, c=cc, edgecolor='None')
         if self.plotfile is not None:
             fig.savefig(outfile)
         return fig, ax
+
+
+refdatahandler = {
+    'bands': RefBands,
+    'ekpts': RefData,
+    'meff':  RefData,
+    'volume_energy': RefData,
+    }

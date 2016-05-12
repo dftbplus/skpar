@@ -63,16 +63,17 @@ def main():
             datefmt='%m-%d %H:%M',
             filename=os.path.join(workdir,'skopt.debug.log'),
             filemode='w')
-    log=logging.getLogger("SKOPT")
+    log=logging.getLogger('skopt')
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     # set a format which is simpler for console use
-    formatter = logging.Formatter('%(name)s: %(levelname)-8s %(message)s')
+    # formatter = logging.Formatter('%(name)s: %(levelname)-8s %(message)s')
+    formatter = logging.Formatter('%(levelname)-8s %(message)s')
     # tell the handler to use this format
     console.setFormatter(formatter)
     # add the handler to the root logger
-    logging.getLogger('SKOPT').addHandler(console)
+    logging.getLogger('skopt').addHandler(console)
 
 
     # Import the definition of the systems
