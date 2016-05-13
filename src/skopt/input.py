@@ -15,17 +15,6 @@ import os
 import sys
 from skopt.utils import normalise
 
-def loadyaml (file, key=None, **kwargs):
-    """Load yaml file and return the contents of selected key."""
-    doc = yaml.load(open(file))
-    if key is not None:
-        try: 
-            data = doc[key]
-            return data
-        except KeyError:
-            return None
-    return doc
-
 def remap(dd, mm):
     """Get a subdicitonary of the input data, with translated keys.
     
@@ -49,6 +38,17 @@ def remap(dd, mm):
         for k, v in item.items():
             newdict.append((k, dd[v]))
     return OrderedDict(newdict)
+
+def loadyaml (file, key=None, **kwargs):
+    """Load yaml file and return the contents of selected key."""
+    doc = yaml.load(open(file))
+    if key is not None:
+        try: 
+            data = doc[key]
+            return data
+        except KeyError:
+            return None
+    return doc
 
 def get_file_data(data, file=None, logger=None, **kwargs):
     """Update the input dictionary with items from file.
@@ -86,9 +86,11 @@ def get_file_data(data, file=None, logger=None, **kwargs):
         return data
     try:
         _file = data['file']
+        # instruction in the 'file' override caller instructions
         _loader_args = kwargs.get('loader_args', {})
-        # caller gives specific instructions how to load the file
+        _loader_args.update(data.get('loader_args', {}))
         try:
+            # caller gives specific instructions how to load the file
             _loader = kwargs['loader']
         except KeyError:
             # try to guess appropriate loader by extension
@@ -122,11 +124,7 @@ def get_all_data (data, file=None):
     if isinstance(data, dict):
         data = get_file_data(data, file)
         for key, _data in data.items():
-            if key == 'meff':
-                pprint.pprint (data)
             _data = get_all_data(_data)
-            if key == 'meff':
-                pprint.pprint (data)
     if isinstance(data, list):
         for _data in data:
             _data = get_all_data(_data)
@@ -154,22 +152,29 @@ class System (object):
     arguments supplied at runtime. Default method is skipSystemUpdate (pass).
     Additional attributes can be supplied as keyword arguments.
     """
-    def __init__(self, logger=None, **kwargs):
-        self.name    = kwargs['name']
-        self.workdir = kwargs.get('dir', self.name)
-        self.refdata = kwargs.get('refdata', OrderedDict({}))
-        self.weight  = kwargs.get('weight', 1.0)
-        self.refweights = kwargs.get('refweights', OrderedDict({}))
-        self.tasks   = kwargs.get('tasks', [])
-        self.update  = kwargs.get('update', lambda: None)
-        self.modeldata = kwargs.get('modeldata', {})
+    def __init__(self, ini_data, logger=None):
+        """
+        Args:
+            ini_data (dict): input data
+            logger (logging.logger): logger for message reporting
+        Returns:
+            system (object): instance of a System, initialised
+        """
+        self.name       = ini_data['name']
+        self.workdir    = ini_data.get('dir', self.name)
+        self.weight     = ini_data.get('weight', 1.0)
+        self.refdata    = ini_data.get('refdata', None)
+        self.refweights = ini_data.get('refweights', None)
+        self.tasks      = ini_data.get('tasks', [])
+        self.update     = ini_data.get('update', lambda: None)
+        self.modeldata  = ini_data.get('modeldata', {})
                             # because different analysers will
                             # put data in unpredictable order
         if logger is None:
             self.logger  = logging.getLogger('__name__')
 
         # set any optional attributes that don't need a default value
-        for key, val in kwargs.items():
+        for key, val in ini_data.items():
             if key not in self.__dict__:
                 setattr(self, key, val)
     
@@ -201,7 +206,7 @@ class RefData (object):
                      'weight': 1.0,
                      'doc': ''}
     def __init__(self, ini_data, logger=None, **kwargs):
-        """Initialise reference data structure and from user input"""
+        """Initialise reference data structure from user input"""
         if logger is None:
            logger = logging.getLogger('__name__')
         # if not data but a file is given, load it in          
@@ -226,11 +231,17 @@ class RefData (object):
 class RefYaml (RefData):
     """Reference data initialised from Yaml data files.
     """
-    def __init__(self, ref, cue):
-        dflts = {'dflt_loader': 'yaml',
-                 'dflt_loader_args': {'cue': cue},
+    def __init__(self, ini_data, logger=None, **kwargs):
+        if logger is None:
+            logger = logging.getLogger('__name__')
+        dflts = {'loader': loadyaml,
+                 'loader_args': {},
                  }
-        RefData.__init__(self, ref, cue=cue, **dflts)
+        # allow kwargs to overwrite dflts
+        dflts.update(kwargs)
+        kwargs = dflts.update(kwargs)
+        # get all key-value pairs of ini_data
+        RefData.__init__(self, ini_data, logger=logger, **kwargs)
         # translate keys() to the convention of SKOPT
         self.map = self.ref.get('map', None)
         if self.map is not None:
@@ -277,6 +288,14 @@ class RefBands (RefData):
         dflts = {'loader': np.loadtxt,
                  'loader_args': {'unpack':True},
                  }
+        # allow kwargs to overwrite dflts
+        logger.debug("RefBands kwargs: {}".format(kwargs))
+        # update defaults from input data
+        for key in dflts.keys():
+            if key in ini_data.keys():
+                dflts[key] = ini_data[key]
+        # overwrite defaults with caller directives
+        dflts.update(kwargs)
         RefData.__init__(self, ini_data, logger=logger, **dflts)
         if self.ini_data.get('enumerate', True):
             # if k-points are enumerated in the datafile, then at this
@@ -306,7 +325,9 @@ class RefBands (RefData):
         if bandgap is not None and self.nvb > 0:
             ehomo = max(self.data[self.nvb-1])
             elumo = min(self.data[self.nvb  ])
-            deltaEgap = (elumo-ehomo) - bandgap
+            deltaEgap = bandgap - (elumo-ehomo)
+            logger.debug('Eg {}, Ecb {}, Evb {}, deltaEgap {}'.
+                    format(bandgap, elumo, ehomo, deltaEgap))
             self.data[self.nvb: , ] += deltaEgap
         # make sure we re-initialise subweights, since bands.shape 
         # may have change after the initialisation in RefData.__init__()
@@ -367,3 +388,67 @@ refdatahandler = {
     'meff':  RefData,
     'volume_energy': RefData,
     }
+
+def get_systems(data, logger=None, **kwargs):
+    """
+    """
+    _select = kwargs.get('keys', data.keys())
+    if logger is None:
+        logger = logging.getLogger('__name__')
+    systems = []
+    for key, val in data.items():
+        if key in _select:
+            logger.info('Defining system {}'.format(key))
+            # assume default filename for the system.yaml
+            _file = 'system_{}.yaml'.format(key)
+            # get system.data
+            _data = get_file_data(val, _file, logger)
+            # create an instance with default attributes
+            ss = System(_data, logger)
+            # reference data and corresponding weights may need to be 
+            # initialised now, if not available in _data
+            if ss.refdata is None:
+                ss.refdata, ss.refweights = \
+                    get_refdata(_data.get('refdata', {}), logger)
+    #        # tasks may need to be reinitialised too
+    #        ss.tasks = get_tasks(_data.get('tasks', {}), logger)
+            systems.append(ss)
+    return systems   
+
+def get_refdata(data, logger=None, **kwargs):
+    """
+    """
+    ref_data = []
+    ref_weights = []
+    for key, val in data.items():
+        logger.info ("Parsing reference item {}".format(key))
+        kwargs.update({'key': key})
+        _ref = refdatahandler.get(key, RefData)(val, logger=logger, **kwargs)
+        # Currently the _ref object does not have a .data and .weights
+        # fields, but different reference groups, each with a 
+        # relative weight and sub-weights for individual reference items
+        # within the group. This need to be serialised somehow!
+        ref_data.append(_ref.data)
+        ref_weights.append(_ref.weights)
+    return ref_data, ref_weights
+
+def get_tasks(data, logger=None, **kwargs):
+    """
+    """
+    return None
+    
+def get_executables(data, logger=None, **kwargs):
+    """
+    """
+    return None
+
+def get_skopt_in(file, logger=None, **kwargs):
+    """
+    """
+    if logger is None:
+        logger = logging.getLogger('__name__')
+    skopt_in_data = loadyaml(file)
+    systems     = get_systems(skopt_in_data['systems'], logger)
+#    refdata     = get_refdata(skopt_in_data, logger)
+#    tasks       = get_tasks(skopt_in_data, logger)
+#    executables = get_executables(skopt_in_data, logger)
