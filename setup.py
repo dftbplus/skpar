@@ -21,7 +21,7 @@ short_description = ('Optimisation of Slater-Koster files (.skf) '+
 long_description  = open('README.txt').read()
 name         = 'skopt'
 # todo: try to regenerate ./skopt/__init__.py to include the version stated here
-version      = '0.1.0'
+version      = '0.2.0'
 package_dir  = {'': 'src',}
 packages     = ['skopt']
 for dirname, dirnames, filenames in os.walk('skopt'):
@@ -29,12 +29,12 @@ for dirname, dirnames, filenames in os.walk('skopt'):
             packages.append(dirname.replace('/', '.'))
 package_data = {}
 
-# todo: skeval is redundant; --eval-only should be an option to skopt
-scripts=['bin/skopt', 'bin/skeval']
+scripts=['bin/skopt']
 
 ## try to cater for windows
 if 'sdist' in sys.argv or os.name in ['ce', 'nt']:
     for s in scripts[:]:
+        print ("Making .bat files for Windows")
         scripts.append(s + '.bat')
 
 # data_files needs (directory, files-in-this-directory) tuples
