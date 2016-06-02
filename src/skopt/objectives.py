@@ -16,37 +16,36 @@ def parse_weights_keyval(spec, data):
             It is in the example format::
                 { 'dflt': 0., 'key1': w1, 'key3': w3}
             with w1, w3, etc. being float values.
-        data (list of two numpy arrays): Data to be weighted:
-            `data[0]` -- an array of byte strings (i.e. b'string') as keys;
-            `data[1]` -- corresponding values for each item in data[0].
+        data (structured numpy array): Data to be weighted.
 
             Typical way of obtaining `data` in this format is to use::
-                loader_args = {'unpack': True, 
-                                'dtype': {'names':['keys', 'data'], 
-                                        'formats': ['|S15', 'float']}}
+
+                loader_args = {'dtype': [('keys', '|S15'), ('values', 'float')]}
                 data = numpy.loadtxt(file, **loader_args)
+
     Returns:
-        numpy.array: weights corresponding to each key in 
-            `data[0]`, same length therefore.
+        numpy.array: weights corresponding to each key in `data`, 
+            with the same length as `data`.
     TODO:
         Log warning if a key in `spec` (other than 'dflt') is not found
-        in `data[0]`.
+        in `data`.
     """
     if isinstance(spec, list) or type(spec).__module__ == np.__name__:
         # if spec enumerates weights as a list or array, nothing to do
-        assert len(spec)==len(data[0]) 
+        assert len(spec)==len(data) 
         return spec
     else:
         # otherwise parse specification to write out the weights
         # initialise default values
         dflt = spec.get('dflt', 0)
-        # Key assumption: data[0] is array, where the keys are already 
-        # encoded as b'string', hence the use of .encode() below.
-        n = len(data[0])
+        # Key assumption: data is a structured array, where the keys 
+        # are already encoded as b'string', hence the use of .encode() below.
+        n = len(data)
         ww = np.ones(n)*dflt
+        _keys, _values = data.dtype.names
         for key, val in spec.items():
             # notabene: the encode() makes a 'string' in b'string'
-            ww[data[0]==key.encode()] = val
+            ww[data[_keys]==key.encode()] = val
         return ww
 
 def parse_weights(spec, refdata=None, n=1, shape=None, i0=0, 
@@ -121,7 +120,7 @@ def parse_weights(spec, refdata=None, n=1, shape=None, i0=0,
                 shape = (n,)
         assert shape is not None
         ww = np.ones(shape)*dflt
-        # parse alterations for points from weights
+        # parse alterations for explicit data indexes
         for k in ikeys:
             for i,w in spec.get(k, []):
                 try:
@@ -134,19 +133,20 @@ def parse_weights(spec, refdata=None, n=1, shape=None, i0=0,
                     # but is somewhat restrictive in the more general context
                     j = (i0+i[0], i[1])
                     ww[j] = w
-        # parse alterations for interger ranges in weights
+        # parse alterations for integer ranges of indexes
         for k in rikeys:
             for rng, w in spec.get(k, []):
-                # permit overapping weights, larger value overrides:
-                mask = np.where(ww[i0+rng[0]: i0+rng[1]+1] < w)                 
-                ww[i0+rng[0]: i0+rng[1]+1][mask] = w
+                # treat the spec range as **inclusive**, hence the +1 on ihi.
+                ilo, ihi = i0+rng[0], i0+rng[1]+1
+                # permit overlapping ranges, larger weight overrides:
+                ww[ilo:ihi][ww[ilo:ihi] < w] = w
         # parse alterations for ranges in the reference data itself
         for k in rfkeys:
             assert refdata.shape == ww.shape
             for rng, w in spec.get(k, []):
                 ww[(rng[0] <= refdata) & 
                    (refdata <= rng[1]) &
-                   # permit overapping weights, larger value overrides:
+                   # permit overlapping weights, larger value overrides:
                    (ww < w)] = w
         return ww
 
@@ -185,6 +185,8 @@ class Query(object):
     The class has a database of models (dict objects, resolved by name).
     The database is built by calculators who fill the dictionaries
     with relevant data, and call Query.add_modeldb('model_name', dict).
+    Note that the calculators will continually update their 
+    corresponding model data.
 
     A query is registered upon instance creation, by stating a model_name
     (or a list thereof) and a key to be queried from the corresponding
@@ -207,7 +209,7 @@ class Query(object):
         [2, 4]
 
     TODO:
-        It is conceivable to benefit of multi-key query (be it over a
+        It is conceivable to benefit from a multi-key query (be it over a
         single or multiple models), but this is still in the future.
     """
     modeldb = None
@@ -467,3 +469,111 @@ class ObjBands(Objective):
         self.model_data = bands - self.mod_e0
         assert self.model_data == self.ref_data
         super().get()
+
+
+objectives_mapper = {
+        'values': ObjValues,
+        'band_gap': ObjValues,
+        'energy_volume': ObjValues,
+        'weighted_sum': ObjWeightedSum,
+        'reaction_energy': ObjWeightedSum,
+        'effective_mass': ObjKeysValues,
+        'bands': ObjBands,
+        }
+
+def f2prange(rng):
+    """Convert fortran range definition to a python one.
+    
+    Args:
+        rng (2-sequence): [low, high] index range boundaries, 
+            inclusive, counting starts from 1.
+            
+    Returns:
+        2-tuple: (low-1, high)
+    """
+    lo, hi = rng
+    msg = "Invalid range specification {}, {}".format(lo, hi)\
+        + "Range should be of two integers, both being >= 1."
+    assert lo >= 1 and hi>=lo, msg
+    return lo-1, hi
+
+def getranges(data):
+    """Return list of tuples ready to use as python ranges.
+
+    Args:
+        data (int, list of int, list of lists of int):
+            A single index, a list of indexes, or a list of
+            2-tuple range of indexes in Fortran convention,
+            i.e. from low to high, counting from 1, and inclusive
+    
+    Return:
+        list of lists of 2-tuple ranges, in Python convention -
+        from 0, exclusive.
+    """
+    try:
+        rngs = []
+        for rng in data:
+            try:
+                lo, hi = rng
+            except TypeError:
+                lo, hi = rng, rng
+            rngs.append(f2prange((lo, hi)))
+        return rngs
+
+    except TypeError:
+        # data not iterable -> single index, convert to list of lists
+        return [f2prange((data,data))]
+
+def get_objective_refdata(data):
+    """Parse the input data and return a corresponding array.
+
+    Return the data array, subject to all loading and postprocessing
+    of a data file or pass `usr_input` directly if it is numpy.array.
+    """
+    try:
+        file = data['file']
+        # actual data in file -> load it
+        # set default loader_args, assuming 'column'-organised data
+        loader_args = {'unpack': True}
+        # overwrite defaults and add new loader_args
+        loader_args.update(data.get('loader_args', {}))
+        # read file
+        array_data = np.loadtxt(file, **loader_args)
+        # do some filtering on columns and/or rows if requested
+        # note that file to 2D-array mapping depends on 'unpack' from
+        # loader_args, which transposes the loaded array.
+        postprocess = data.get('process', {})
+        if postprocess:
+            if 'unpack' in loader_args.keys() and loader_args['unpack']:
+                key1, key2 = ['rm_columns', 'rm_rows']
+            else:
+                key1, key2 = ['rm_rows', 'rm_columns']
+            for axis, key in enumerate([key1, key2]):
+                rm_rngs = postprocess.get(key, [])
+                if rm_rngs:
+                    indexes=[]
+                    # flatten, combine and sort, then delete data axis,
+                    for rng in getranges(rm_rngs):
+                        indexes.extend(list(range(*rng)))
+                    indexes = list(set(indexes))
+                    indexes.sort()
+                    #print ('indexes {}: {}'.format(key, indexes))
+                array_data = np.delete(array_data, obj=indexes, axis=axis)
+            scale = postprocess.get('scale', 1)
+            array_data = array_data * scale
+        return array_data
+
+    except KeyError:
+        # dict of key-value data -> transform to structured array
+        dtype = [('keys','|S15'), ('values','float')]
+        return np.array([(key,val) for key,val in data.items()], dtype=dtype)
+
+    except TypeError:
+        # value or a list  -> return array
+        return np.array(data)
+
+    except IndexError:
+        # already an array  -> return return as is
+        # unlikely scenario, since yaml cannot encode numpy array
+        return data
+
