@@ -2,6 +2,7 @@ import unittest
 import yaml
 from skopt import objectives as oo
 import numpy as np
+from pprint import pprint, pformat
 
 
 class ParseWeightsKeyValueTest(unittest.TestCase):
@@ -81,12 +82,12 @@ class ParseWeightsTest(unittest.TestCase):
         """
         dflt = self.wspec.get('dflt', 1.)
         # test weights for a 1D-type of data
-        n=5
-        expected = np.ones(n)*dflt
+        nn=5
+        expected = np.ones(nn)*dflt
         expected[0] = 1.
         expected[4] = 4.
         expected[2] = 2.
-        ww = oo.parse_weights(self.wspec, n=n, ikeys=['indexes'])
+        ww = oo.parse_weights(self.wspec, nn=nn, ikeys=['indexes'])
         self.check(ww, expected)
 
         # test weights for a 2D-type of data
@@ -140,6 +141,13 @@ class ParseWeightsTest(unittest.TestCase):
         ww = oo.parse_weights(self.wspec, refdata=data, rfkeys=['eV'])
         self.check(ww, expected)
         
+    def test_parse_weights_list_of_weights(self):
+        altdata = """subweights: [1., 1., 2., 3., 5., 3., 2., 1., 1.]
+            """
+        wspec = yaml.load(altdata)['subweights']
+        expected = yaml.load(altdata)['subweights']
+        ww = oo.parse_weights(wspec, nn=len(wspec))
+        self.check(ww, expected)
 
 class GetModelsTest(unittest.TestCase):
     """Check if model names and weights are parsed correctly.
@@ -179,6 +187,12 @@ class QueryTest(unittest.TestCase):
     db1 = {}
     db2 = {}
 
+    def check(self, result, expected):
+        """The actual check"""
+        compare = np.all(result == expected)
+        self.assertTrue(compare, 
+                msg="\nresult:\n{}\nexpected:\n{}".format(result, expected))
+
     def test_query_add_modeldb(self):
         """Can we add empty dictionaries to model data-base?
         """
@@ -211,7 +225,7 @@ class QueryTest(unittest.TestCase):
         oo.Query.modeldb['d1'] = {'a':1, 'b':2}
         oo.Query.modeldb['d2'] = {'a':3, 'b':4, 'c':7}
         q2 = oo.Query(['d1', 'd2'], 'b')
-        self.assertEqual(q2(), [2, 4])
+        self.check(q2(), [2,4])
 
 
 class ObjectiveRefDataTest(unittest.TestCase):
@@ -227,7 +241,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
         """Can we handle a single value and return an array?"""
         ref_input = 42
         expected = np.array(ref_input)
-        result = oo.get_objective_refdata(ref_input)
+        result = oo.get_refdata(ref_input)
         self.check(result, expected)
 
     def test_array(self):
@@ -235,17 +249,17 @@ class ObjectiveRefDataTest(unittest.TestCase):
         # try list
         ref_input = [1, 11, 42, 54]
         expected = np.array(ref_input)
-        result = oo.get_objective_refdata(ref_input)
+        result = oo.get_refdata(ref_input)
         self.check(result, expected)
         # try 1D array
         ref_input = np.array([1, 11, 42, 54])
         expected = np.array(ref_input)
-        result = oo.get_objective_refdata(ref_input)
+        result = oo.get_refdata(ref_input)
         self.check(result, expected)
         # try 2D array
         ref_input = np.array([1, 11, 42, 54, 3, 33]).reshape((2,3))
         expected = ref_input
-        result = oo.get_objective_refdata(ref_input)
+        result = oo.get_refdata(ref_input)
         self.check(result, expected)
 
     def test_keyvalue_pairs(self):
@@ -254,7 +268,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
         expected = np.array
         dtype = [('keys','|S15'), ('values','float')]
         exp = np.array([(k,v) for k,v in ref_input.items()], dtype=dtype)
-        res = oo.get_objective_refdata(ref_input)
+        res = oo.get_refdata(ref_input)
         self.check(res, exp)
 
     def test_file(self):
@@ -263,12 +277,12 @@ class ObjectiveRefDataTest(unittest.TestCase):
                 'loader_args': {'unpack':False} }
         shape = (7,10)
         exp = np.array(list(range(shape[1]))*shape[0]).reshape(*shape)
-        res = oo.get_objective_refdata(ref_input)
+        res = oo.get_refdata(ref_input)
         self.assertTrue(np.all(res==exp))
         # check default unpack works
         exp = np.transpose(exp)
         ref_input = {'file': 'refdata_example.dat',}
-        res = oo.get_objective_refdata(ref_input)
+        res = oo.get_refdata(ref_input)
         self.assertTrue(np.all(res==exp), 
                 msg='\nexp: {}\nres:{}'.format(exp, res))
         
@@ -284,7 +298,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
         exp = np.delete(exp, obj=[0, 2, 4, 5, 6], axis=0)
         exp = np.delete(exp, obj=[0, 1, 2, 3], axis=1)
         exp = exp * 2.
-        res = oo.get_objective_refdata(ref_input)
+        res = oo.get_refdata(ref_input)
         self.check(res, exp)
         
 
@@ -334,8 +348,100 @@ class GetRangesTest(unittest.TestCase):
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
 
-class ObjectivesTest(unittest.TestCase):
-    """Check base class"""
+class ObjectiveTypesTest(unittest.TestCase):
+    """Can we create objectives of different types?"""
+    
+    def check(self, result, expected):
+        """The actual check"""
+        compare = np.all(result == expected)
+        self.assertTrue(compare, 
+                msg="\nresult:\n{}\nexpected:\n{}".format(result, expected))
+
+    def test_objtype_values_single_model(self):
+        """Can we create value-type objective for a single model"""
+        yamldata = """objectives:
+            - band_gap:
+                models: Si/bs
+                ref: 1.12
+                weight: 3.0
+        """
+        dat = 1.2
+        ow  = 1.
+        spec = yaml.load(yamldata)['objectives']
+        ref = spec[0]['band_gap']['ref']
+        www = spec[0]['band_gap']['weight']
+        mnm = spec[0]['band_gap']['models']
+        # set data base
+        db = {}
+        oo.Query.add_modeldb('Si/bs', db)
+        # check declaration
+        objv = oo.set_objectives(spec)[0]
+        self.assertEqual(objv.model_names, mnm)
+        self.assertEqual(objv.model_weights, ow)
+        self.assertEqual(objv.weight, www)
+        self.assertEqual(objv.ref_data, ref)
+        self.assertEqual(objv.subweights, ow)
+        self.assertEqual(objv.query_key, 'band_gap')
+        # check __call__()
+        db['band_gap'] = dat
+        mdat, rdat, weights = objv()
+        self.assertEqual(mdat, dat)
+        self.assertEqual(rdat, ref)
+        self.assertEqual(weights, ow)
+        
+
+    def test_objtype_values_multiple_models(self):
+        """Can we create a value-type objective from several models"""
+        yamldata = """objectives:
+            - Etot:
+                models: [Si/scc-1, Si/scc, Si/scc+1,]
+                ref: [23., 10, 15.]
+                options:
+                        subweights: [1., 3., 1.,]
+        """
+        spec = yaml.load(yamldata)['objectives']
+        ref = spec[0]['Etot']['ref']
+        mnm = spec[0]['Etot']['models']
+        subw = [1., 3., 1.]
+        # check declaration
+        objv = oo.set_objectives(spec)[0]
+        self.assertEqual(objv.model_names, mnm)
+        self.assertEqual(objv.weight, 1)
+        self.check(objv.model_weights, [1]*3)
+        self.check(objv.ref_data, ref)
+        self.check(objv.subweights, subw)
+        self.assertEqual(objv.query_key, 'Etot')
+        # set data base: 
+        # could be done either before or after declaration
+        db1, db2, db3 = {}, {}, {}
+        oo.Query.add_modeldb('Si/scc-1', db1)
+        oo.Query.add_modeldb('Si/scc', db2)
+        oo.Query.add_modeldb('Si/scc+1', db3)
+        dat = [20, 12, 16]
+        db1['Etot'] = dat[0]
+        db2['Etot'] = dat[1]
+        db3['Etot'] = dat[2]
+        # check __call__()
+        mdat, rdat, weights = objv()
+        self.check(mdat, dat)
+        self.check(rdat, ref)
+        self.check(weights, subw)
+        
+
+    def test_objtype_keyvaluepairs(self):
+        """Can we create objective from given key-value pairs"""
+
+    def test_objtype_weightedsum(self):
+        """Can we create objective from pairs of value-weight"""
+        pass
+
+    def test_objtype_bands(self):
+        """Can we create objective from spec for bands"""
+        pass
+
+#class SetObjectivesTest(unittest.TestCase):
+#    """Check if we can create objectives from yaml definition"""
+
 
 if __name__ == '__main__':
     unittest.main()
