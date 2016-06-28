@@ -322,8 +322,10 @@ class Objective(object):
         if not hasattr(self, 'model_data'):
             self.model_data = self.query()
         #
-        assert self.model_data.shape == self.ref_data.shape
-        assert self.model_data.shape == self.subweights.shape
+        assert self.model_data.shape == self.ref_data.shape,\
+                    "{} {}".format(self.model_data.shape, self.ref_data.shape)
+        assert self.model_data.shape == self.subweights.shape,\
+                    "{} {}".format(self.model_data.shape, self.subweights.shape)
         #
         return self.model_data, self.ref_data, self.subweights
         
@@ -374,7 +376,8 @@ class ObjValues(Objective):
         """
         self.model_data = self.query()
         if len(self.model_names) > 1:
-            assert self.model_data.shape == self.subweights.shape
+            assert self.model_data.shape == self.subweights.shape,\
+                    "{} {}".format(self.model_data.shape, self.subweights.shape)
         return super().get()
 
 
@@ -414,9 +417,9 @@ class ObjWeightedSum(Objective):
     def __init__(self, spec, logger=None, **kwargs):
         """
         """
-        super__().__init__(spec, logger, **kwargs)
-        self.query = Query(self.model_names, self.query)
-        self.subweights = 1.
+        super().__init__(spec, logger, **kwargs)
+        self.query = Query(self.model_names, self.query_key)
+        self.subweights = np.array(1.)
         
     def get(self):
         """

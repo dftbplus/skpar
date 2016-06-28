@@ -433,7 +433,49 @@ class ObjectiveTypesTest(unittest.TestCase):
 
     def test_objtype_weightedsum(self):
         """Can we create objective from pairs of value-weight"""
-        pass
+        yamldata = """objectives:
+            - weighted_sum:
+                doc: "heat of formation, SiO2"
+                models: 
+                    - [SiO2-quartz/scc, 1.]
+                    - [Si/scc, -0.5] 
+                    - [O2/scc, -1]
+                query: Etot 
+                ref: 1.8 
+                weight: 1.2
+        """
+        spec = yaml.load(yamldata)['objectives']
+        ref = spec[0]['weighted_sum']['ref']
+        doc = spec[0]['weighted_sum']['doc']
+        oww = spec[0]['weighted_sum']['weight']
+        mnm = [m[0] for m in spec[0]['weighted_sum']['models']]
+        mww = np.array([m[1] for m in spec[0]['weighted_sum']['models']])
+        subw = 1.
+        print (doc, ref, oww, mnm, mww)
+        # check declaration
+        objv = oo.set_objectives(spec)[0]
+#        self.assertEqual(objv.doc, doc)
+        self.assertEqual(objv.weight, oww)
+        self.assertEqual(objv.model_names, mnm)
+        self.check(objv.model_weights, mww)
+        self.assertEqual(objv.ref_data, ref)
+        self.assertEqual(objv.subweights, subw)
+        self.assertEqual(objv.query_key, 'Etot')
+        # set data base: 
+        # could be done either before or after declaration
+        db1, db2, db3 = {}, {}, {}
+        oo.Query.add_modeldb('SiO2-quartz/scc', db1)
+        oo.Query.add_modeldb('Si/scc', db2)
+        oo.Query.add_modeldb('O2/scc', db3)
+        dat = [20, 12, 16]
+        db1['Etot'] = dat[0]
+        db2['Etot'] = dat[1]
+        db3['Etot'] = dat[2]
+        # check __call__()
+        mdat, rdat, weights = objv()
+        self.check(mdat, np.dot(np.asarray(dat), np.asarray(mww)))
+        self.check(rdat, ref)
+        self.check(weights, subw)
 
     def test_objtype_bands(self):
         """Can we create objective from spec for bands"""
