@@ -19,7 +19,7 @@ class ParseWeightsKeyValueTest(unittest.TestCase):
             'mh_GK_4': -0.23400000000000001,
             'mh_GL_4': -0.23400000000000001,
             'me_GX_0': 0.91600000000000004,}
-    dtype = [('keys','|S15'), ('values','float')]
+    dtype = [('keys','S15'), ('values','float')]
     data = np.array([(k,v) for k,v in filedata.items()], dtype=dtype)
 
     def test_parse_weights_keyval_array(self):
@@ -266,7 +266,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
         """Can we handle a dictionary with key-value pairs of data and return structured array?"""
         ref_input = { 'ab': 7, 'cd': 8 }
         expected = np.array
-        dtype = [('keys','|S15'), ('values','float')]
+        dtype = [('keys','S15'), ('values','float')]
         exp = np.array([(k,v) for k,v in ref_input.items()], dtype=dtype)
         res = oo.get_refdata(ref_input)
         self.check(res, exp)
@@ -346,6 +346,65 @@ class GetRangesTest(unittest.TestCase):
         exp = [(6, 7), (41,42), (2,33), (0,50), (4,5)]
         res = oo.getranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
+
+
+class GetObjTypeTest(unittest.TestCase):
+    """Can we guess the type of objective from its spec?"""
+
+    def test_getobjtype_default(self):
+        """Can we try to guess, fail, and return default?"""
+        nmod = 1
+        ref = np.random.rand((1))
+        objtype = oo.get_type(nmod, ref, dflt_type='unknown')
+        self.assertEqual(objtype, 'unknown')
+        nmod = 1
+        ref = np.random.rand((1))
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'values')
+        nmod = 3
+        ref = np.random.rand((3))
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'values')
+
+    def test_getobjtype_values(self):
+        """Can we guess objective is of type 'values'?"""
+        # one model, one value
+        nmod = 1
+        ref = np.random.rand(1)
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'values')
+        # many models, as many values
+        nmod = 3
+        ref = np.random.rand(3)
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'values')
+
+    def test_getobjtype_keyvaluepairs(self):
+        """Can we guess objective is of type 'keyvalpairs'?"""
+        nmod = 1
+        filedata = {
+            'mh_GX_0': -0.27600000000000002,
+            'mh_GK_0': -0.57899999999999996,
+            'mh_GL_0': -0.73799999999999999,
+           'me_GX_0': 0.91600000000000004,}
+        dtype = [('keys','S15'), ('values','float')]
+        ref = np.array([(k,v) for k,v in filedata.items()], dtype=dtype)
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'keyval_pairs')
+
+    def test_getobjtype_weightedsum(self):
+        """Can we guess objective is of type 'weighted_sum'?"""
+        nmod = 5
+        ref = np.random.rand(1)
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'weighted_sum')
+
+    def test_getobjtype_bands(self):
+        """Can we guess objective is of type 'bands'?"""
+        nmod = 1
+        ref = np.random.rand(3, 9)
+        objtype = oo.get_type(nmod, ref)
+        self.assertEqual(objtype, 'bands')
 
 
 class ObjectiveTypesTest(unittest.TestCase):

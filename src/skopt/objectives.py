@@ -22,7 +22,7 @@ def parse_weights_keyval(spec, data):
 
             Typical way of obtaining `data` in this format is to use::
 
-                loader_args = {'dtype': [('keys', '|S15'), ('values', 'float')]}
+                loader_args = {'dtype': [('keys', 'S15'), ('values', 'float')]}
                 data = numpy.loadtxt(file, **loader_args)
 
     Returns:
@@ -183,6 +183,25 @@ def get_models(models):
         m_weights = 1.
     return m_names, m_weights
 
+def get_type(n_models, ref, dflt_type='values'):
+    """Establish the type of objective from attributes of reference and models.
+    """
+    obj_type = dflt_type
+    # If we have more than one model but just one scalar as reference
+    # obviously we need scalarization (reduction) routine. We assume
+    # the simplest -- weighted sum type; other types must be explicitly 
+    # stated
+    if n_models > 1 and ref.shape == (1,):
+        obj_type = 'weighted_sum' # other types of scalarization must be explicit
+    # if we have key-value pairs, then we have key-value type
+    if n_models == 1 and ref.ndim == 1 and \
+        ref.dtype == [('keys','S15'), ('values','float')]:
+        obj_type = 'keyval_pairs'
+    # if we have 2D-array ref-data, then we have Bands type
+    if n_models == 1 and ref.ndim == 2 and ref.dtype == 'float':
+        obj_type = 'bands'
+    return obj_type
+
 def plot(data, weights=None, figsize=(6, 7), outfile=None, 
         Erange=None, krange=None):
     """Visual representation of the band-structure and weights.
@@ -272,7 +291,7 @@ class Objective(object):
     Objectives are declared by human input data that defines:
         * reference data,
         * models - from which to obtain model data, and possibly model weights,
-        * query - the way to obaining data
+        * query - the way to obtaining data
         * model weights - relative contribution factor of each model,
         * options, e.g. to specify sub-weights of individual reference items,
         * relative weight of the objective, in the context of multi-objective
@@ -303,13 +322,15 @@ class Objective(object):
         self.model_names = m_names
         self.model_weights = m_weights
         self.ref_data = get_refdata(spec['ref'])
+        nmod = len(self.model_names)
+        self.objtype = spec.get('type', get_type(nmod, self.ref_data))
+        self.query_key = spec.get('query', '')
         # optional fields
         self.weight = spec.get('weight', 1)
         self.options = spec.get('options', None)
         self.doc = kwargs.get('doc', '')
         self.logger = get_logger(logger)
         # this may be set here or in a child, if more specific
-        self.query_key = spec.get('query', '')
         self.query = Query(self.model_names, self.query_key)
         self.subweights = np.asarray(1)
               
@@ -358,8 +379,9 @@ class Objective(object):
 class ObjValues(Objective):
     """
     """
-    def __init__(self, spec, logger=None, **kwargs):
-        super().__init__(spec, logger, **kwargs)
+#    def __init__(self, spec, logger=None, **kwargs):
+#        super().__init__(spec, logger, **kwargs)
+    def set(self, spec, logger=None, **kwargs):
         self.query = Query(self.model_names, spec.get('query', 'Etot'))
         nn = len(self.model_names)
         if nn > 1 and self.options is not None:
@@ -650,7 +672,7 @@ def get_refdata(data):
 
     except KeyError:
         # `data` is a dict of key-value data -> transform to structured array
-        dtype = [('keys','|S15'), ('values','float')]
+        dtype = [('keys','S15'), ('values','float')]
         return np.array([(key,val) for key,val in data.items()], dtype=dtype)
 
     except TypeError:
