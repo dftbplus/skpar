@@ -273,7 +273,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
 
     def test_file(self):
         """Can we handle dictionary spec with 'file:' item and read from file?"""
-        ref_input = {'file': 'refdata_example.dat',
+        ref_input = {'file': './reference_data/refdata_example.dat',
                 'loader_args': {'unpack':False} }
         shape = (7,10)
         exp = np.array(list(range(shape[1]))*shape[0]).reshape(*shape)
@@ -281,14 +281,14 @@ class ObjectiveRefDataTest(unittest.TestCase):
         self.assertTrue(np.all(res==exp))
         # check default unpack works
         exp = np.transpose(exp)
-        ref_input = {'file': 'refdata_example.dat',}
+        ref_input = {'file': './reference_data/refdata_example.dat',}
         res = oo.get_refdata(ref_input)
         self.assertTrue(np.all(res==exp), 
                 msg='\nexp: {}\nres:{}'.format(exp, res))
         
     def test_process(self):
         """Can we handle file data and post-process it?"""
-        ref_input = {'file': 'refdata_example.dat',
+        ref_input = {'file': './reference_data/refdata_example.dat',
                      'loader_args': {'unpack':False} ,
                      'process': {'scale': 2.,
                                  'rm_columns': [1, [2, 4],],
@@ -323,28 +323,28 @@ class GetRangesTest(unittest.TestCase):
         """Can we translate single index to python range spec?"""
         data = 42
         exp = [(41,42)]
-        res = oo.getranges(data)
+        res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
     def test_getranges_listofindexes(self):
         """Can we translate list of indexes to python range spec?"""
         data = [42, 33, 1, 50]
         exp = [(41,42), (32,33), (0,1), (49,50)]
-        res = oo.getranges(data)
+        res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
     def test_getranges_listofranges(self):
         """Can we translate list of ranges to python range spec?"""
         data = [[3, 33], [1, 50]]
         exp = [(2,33), (0,50)]
-        res = oo.getranges(data)
+        res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
-    def test_getranges_mix_indexesandranges(self):
+    def test_get_ranges_mix_indexesandranges(self):
         """Can we translate list of ranges to python range spec?"""
         data = [7, 42, [3, 33], [1, 50], 5]
         exp = [(6, 7), (41,42), (2,33), (0,50), (4,5)]
-        res = oo.getranges(data)
+        res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
 
@@ -420,27 +420,31 @@ class ObjectiveTypesTest(unittest.TestCase):
         """Can we create value-type objective for a single model"""
         yamldata = """objectives:
             - band_gap:
+                query: band_gap
+                type: value
                 models: Si/bs
                 ref: 1.12
                 weight: 3.0
         """
         dat = 1.2
         ow  = 1.
-        spec = yaml.load(yamldata)['objectives']
-        ref = spec[0]['band_gap']['ref']
-        www = spec[0]['band_gap']['weight']
-        mnm = spec[0]['band_gap']['models']
+        spec = yaml.load(yamldata)['objectives'][0]
+        que = 'band_gap'
+        ref = spec[que]['ref']
+        www = spec[que]['weight']
+        mnm = spec[que]['models']
         # set data base
         db = {}
         oo.Query.add_modeldb('Si/bs', db)
         # check declaration
-        objv = oo.set_objectives(spec)[0]
+        objv = oo.get_objective(spec)
         self.assertEqual(objv.model_names, mnm)
         self.assertEqual(objv.model_weights, ow)
         self.assertEqual(objv.weight, www)
         self.assertEqual(objv.ref_data, ref)
         self.assertEqual(objv.subweights, ow)
         self.assertEqual(objv.query_key, 'band_gap')
+        self.assertEqual(objv.objtype, 'value')
         # check __call__()
         db['band_gap'] = dat
         mdat, rdat, weights = objv()
@@ -448,22 +452,24 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(rdat, ref)
         self.assertEqual(weights, ow)
         
-
     def test_objtype_values_multiple_models(self):
         """Can we create a value-type objective from several models"""
         yamldata = """objectives:
             - Etot:
+                query: Etot
+                type: values
                 models: [Si/scc-1, Si/scc, Si/scc+1,]
                 ref: [23., 10, 15.]
                 options:
                         subweights: [1., 3., 1.,]
         """
-        spec = yaml.load(yamldata)['objectives']
-        ref = spec[0]['Etot']['ref']
-        mnm = spec[0]['Etot']['models']
+        spec = yaml.load(yamldata)['objectives'][0]
+        que = 'Etot'
+        ref = spec[que]['ref']
+        mnm = spec[que]['models']
         subw = [1., 3., 1.]
         # check declaration
-        objv = oo.set_objectives(spec)[0]
+        objv = oo.get_objective(spec)
         self.assertEqual(objv.model_names, mnm)
         self.assertEqual(objv.weight, 1)
         self.check(objv.model_weights, [1]*3)
@@ -486,40 +492,95 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.check(rdat, ref)
         self.check(weights, subw)
         
-
     def test_objtype_keyvaluepairs(self):
         """Can we create objective from given key-value pairs"""
+        yamldata = """objectives:
+            - meff:
+                doc: "Effective masses, Si"
+                query: 'meff'
+                type: keyval_pairs
+                models: Si/bs
+                ref: 
+                    file: ./reference_data/meff-Si.dat
+                    loader_args: 
+                        dtype:
+                        # NOTABENE: yaml cannot read in tuples, so we must
+                        #           use the dictionary formulation of dtype
+                            names: ['keys', 'values']
+                            formats: ['S15', 'float']
+                options:
+                    subweights: 
+                        # consider only a couple of entries from available data
+                        dflt: 0.
+                        me_GX_0: 2.
+                        mh_GX_0: 1.
+                weight: 1.5
+        """
+        spec = yaml.load(yamldata)['objectives'][0]
+        que = 'meff'
+        # NOTABENE: order here must coincide with order in ref:file
+        ref = np.array([('mh_GX_0', -0.276), ('me_GX_0', 0.916)],
+                       dtype=[('keys', 'S15'), ('values', 'float')])
+        ref = ref['values']
+        subw = np.array([1., 2.])
+        doc = spec[que]['doc']
+        oww = spec[que]['weight']
+        mnm = spec[que]['models']
+        # check declaration
+        objv = oo.get_objective(spec)
+        self.assertEqual(objv.doc, doc)
+        self.assertEqual(objv.weight, oww)
+        self.assertEqual(objv.model_names, mnm)
+        self.assertEqual(objv.model_weights, 1.)
+        self.check(objv.ref_data, ref)
+        self.check(objv.subweights, subw)
+        self.assertEqual(objv.query_key, ['mh_GX_0', 'me_GX_0'])
+        self.assertEqual(objv.objtype, 'keyval_pairs')
+        # set data base: 
+        # could be done either before or after declaration
+        db1 = {}
+        dat = [-0.5, 0.9, 1.2]
+        db1.update({'me_GX_0': dat[1], 'mh_GX_0': dat[0], 'me_GL_2':dat[2]})
+        oo.Query.add_modeldb('Si/bs', db1)
+        # check __call__()
+        mdat, rdat, weights = objv()
+        # NOTABENE: order depends on the order in the reference file!!!
+        self.check(mdat, np.asarray(dat[0:2]))
+        self.check(rdat, ref)
+        self.check(weights, subw)
 
     def test_objtype_weightedsum(self):
         """Can we create objective from pairs of value-weight"""
         yamldata = """objectives:
-            - weighted_sum:
+            - Etot:
                 doc: "heat of formation, SiO2"
                 models: 
                     - [SiO2-quartz/scc, 1.]
                     - [Si/scc, -0.5] 
                     - [O2/scc, -1]
                 query: Etot 
+                type: weighted_sum
                 ref: 1.8 
                 weight: 1.2
         """
-        spec = yaml.load(yamldata)['objectives']
-        ref = spec[0]['weighted_sum']['ref']
-        doc = spec[0]['weighted_sum']['doc']
-        oww = spec[0]['weighted_sum']['weight']
-        mnm = [m[0] for m in spec[0]['weighted_sum']['models']]
-        mww = np.array([m[1] for m in spec[0]['weighted_sum']['models']])
+        spec = yaml.load(yamldata)['objectives'][0]
+        que = 'Etot'
+        ref = spec[que]['ref']
+        doc = spec[que]['doc']
+        oww = spec[que]['weight']
+        mnm = [m[0] for m in spec[que]['models']]
+        mww = np.asarray([m[1] for m in spec[que]['models']])
         subw = 1.
-        print (doc, ref, oww, mnm, mww)
         # check declaration
-        objv = oo.set_objectives(spec)[0]
-#        self.assertEqual(objv.doc, doc)
+        objv = oo.get_objective(spec)
+        self.assertEqual(objv.doc, doc)
         self.assertEqual(objv.weight, oww)
         self.assertEqual(objv.model_names, mnm)
         self.check(objv.model_weights, mww)
         self.assertEqual(objv.ref_data, ref)
         self.assertEqual(objv.subweights, subw)
         self.assertEqual(objv.query_key, 'Etot')
+        self.assertEqual(objv.objtype, 'weighted_sum')
         # set data base: 
         # could be done either before or after declaration
         db1, db2, db3 = {}, {}, {}

@@ -317,22 +317,21 @@ class Objective(object):
 
         Returns: None
         """
-        # mandatory fields; may be we should check and inform if not present
-        m_names, m_weights = get_models(spec['models'])
-        self.model_names = m_names
-        self.model_weights = m_weights
-        self.ref_data = get_refdata(spec['ref'])
-        nmod = len(self.model_names)
-        self.objtype = spec.get('type', get_type(nmod, self.ref_data))
-        self.query_key = spec.get('query', '')
+        # mandatory fields
+        self.objtype = spec['type']
+        self.query_key = spec['query']
+        self.model_names = spec['model_names']
+        self.model_weights = spec['model_weights']
+        self.ref_data = spec['ref_data']
         # optional fields
         self.weight = spec.get('weight', 1)
         self.options = spec.get('options', None)
-        self.doc = kwargs.get('doc', '')
+        self.doc = spec.get('doc', '')
         self.logger = get_logger(logger)
+        # further definitions of set/get depend on type of objective
         # this may be set here or in a child, if more specific
         self.query = Query(self.model_names, self.query_key)
-        self.subweights = np.asarray(1)
+        self.subweights = np.ones(self.ref_data.shape)
               
     def get(self):
         """
@@ -340,8 +339,8 @@ class Objective(object):
         This method must be overloaded in a child-class if a more
         specific way to yield the model data in required.
         """
-        if not hasattr(self, 'model_data'):
-            self.model_data = self.query()
+#        if not hasattr(self, 'model_data'):
+#            self.model_data = np.asarray(self.query())
         #
         assert self.model_data.shape == self.ref_data.shape,\
                     "{} {}".format(self.model_data.shape, self.ref_data.shape)
@@ -379,19 +378,19 @@ class Objective(object):
 class ObjValues(Objective):
     """
     """
-#    def __init__(self, spec, logger=None, **kwargs):
-#        super().__init__(spec, logger, **kwargs)
-    def set(self, spec, logger=None, **kwargs):
-        self.query = Query(self.model_names, spec.get('query', 'Etot'))
-        nn = len(self.model_names)
-        if nn > 1 and self.options is not None:
-            subw = self.options.get('subweights', np.ones(nn))
-            self.subweights = parse_weights(subw, nn=nn, 
+    def __init__(self, spec, logger=None, **kwargs):
+        super().__init__(spec, logger, **kwargs)
+        #self.query = Query(self.model_names, self.query_key)
+        nmod = len(self.model_names)
+        shape = self.ref_data.shape
+        if self.options is not None and 'subweights' in self.options.keys():
+            self.subweights = parse_weights(self.options['subweights'], 
+                    nn=nmod,
                     # these are optional, and generic enough
-                    ikeys=["indexes",], rikeys=['ranges'])
-            assert self.subweights.shape == self.ref_data.shape
+                    ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
+            assert self.subweights.shape == shape
         else:
-            self.subweight = 1.
+            self.subweight = np.ones(shape)
         
     def get(self):
         """
@@ -413,36 +412,28 @@ class ObjKeyValuePairs(Objective):
         # NOTABENE: we will replace self.ref_data, trimming the 
         #           items with null weight
         nn = len(self.ref_data)
-        ww = parse_weights_keyval(options.get('subweights', np.ones(nn)),
-                                            data=self.ref_data)
+        ww = parse_weights_keyval(options['subweights'], data=self.ref_data)
+        # eliminate ref_data items with zero subweights
         mask = np.where(ww != 0)
-        self.keys = [k.decode() for k in self.ref_data[0][mask]]
-        self.ref_data = self.ref_data[1][mask]
+        self.query_key = [k.decode() for k in self.ref_data['keys'][mask]]
+        self.ref_data = self.ref_data['values'][mask]
         self.subweights = ww[mask]
         assert self.subweights.shape == self.ref_data.shape
-        assert len(self.keys) == len(self.ref_data)
+        assert len(self.query_key) == len(self.ref_data)
         self.queries = []
-        for key in self.keys:
+        for key in self.query_key:
             self.queries.append(Query(self.model_names, key))
             
     def get(self):
-        model_data = []
-        for query in self.queries:
-            model_data.append(query())
-        self.model_data = np.array(model_data).reshape(self.ref_data.shape)
-        super().get()
+        self.model_data = np.empty(self.ref_data.shape)
+        for ix, query in enumerate(self.queries):
+            self.model_data[ix] = (query())
+        return super().get()
 
 
 class ObjWeightedSum(Objective):
     """
     """
-    def __init__(self, spec, logger=None, **kwargs):
-        """
-        """
-        super().__init__(spec, logger, **kwargs)
-        self.query = Query(self.model_names, self.query_key)
-        self.subweights = np.array(1.)
-        
     def get(self):
         """
         """
@@ -559,13 +550,11 @@ class ObjBands(Objective):
 
 
 objectives_mapper = {
-        'values': ObjValues,
-        'band_gap': ObjValues,
-        'energy_volume': ObjValues,
+        'value'       : ObjValues,
+        'values'      : ObjValues,
         'weighted_sum': ObjWeightedSum,
-        'reaction_energy': ObjWeightedSum,
-        'effective_mass': ObjKeyValuePairs,
-        'bands': ObjBands,
+        'keyval_pairs': ObjKeyValuePairs,
+        'bands'       : ObjBands,
         }
 
 def f2prange(rng):
@@ -584,7 +573,7 @@ def f2prange(rng):
     assert lo >= 1 and hi>=lo, msg
     return lo-1, hi
 
-def getranges(data):
+def get_ranges(data):
     """Return list of tuples ready to use as python ranges.
 
     Args:
@@ -644,6 +633,10 @@ def get_refdata(data):
         loader_args = {'unpack': True}
         # overwrite defaults and add new loader_args
         loader_args.update(data.get('loader_args', {}))
+        # make sure we don't try to unpack a key-value data
+        if 'dtype' in loader_args.keys() and\
+            'names' in loader_args['dtype']:
+                loader_args['unpack'] = False
         # read file
         array_data = np.loadtxt(file, **loader_args)
         # do some filtering on columns and/or rows if requested
@@ -660,7 +653,7 @@ def get_refdata(data):
                 if rm_rngs:
                     indexes=[]
                     # flatten, combine and sort, then delete data axis,
-                    for rng in getranges(rm_rngs):
+                    for rng in get_ranges(rm_rngs):
                         indexes.extend(list(range(*rng)))
                     indexes = list(set(indexes))
                     indexes.sort()
@@ -671,13 +664,19 @@ def get_refdata(data):
         return array_data
 
     except KeyError:
+        # `data` is a dict, but 'file' is not in its keys; assume that
         # `data` is a dict of key-value data -> transform to structured array
         dtype = [('keys','S15'), ('values','float')]
         return np.array([(key,val) for key,val in data.items()], dtype=dtype)
 
     except TypeError:
         # `data` is a value or a list  -> return array
-        return np.array(data)
+        if not isinstance(data, dict):
+            return np.array(data)
+        else:
+            print ('np.loadtxt cannot understand the contents of {}'\
+                    .format(file))
+            raise
 
     except IndexError:
         # `data` is already an array  -> return as is
@@ -709,4 +708,18 @@ def set_objectives(spec, logger=None):
                 objectives_mapper.get(key, ObjValues)(val, logger=logger))
     return objectives
 
-
+def get_objective(spec, logger=None):
+    """Return an instance of an objective, as defined in the input spec.
+    """
+    (key, spec), = spec.items()
+    # mandatory fields
+    spec['query'] = spec.get('query', key)
+    m_names, m_weights = get_models(spec['models'])
+    spec['model_names'] = m_names
+    spec['model_weights'] = np.asarray(m_weights)
+    spec['ref_data'] = get_refdata(spec['ref'])
+    nmod = len(m_names)
+    spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
+    # spec['options'] = spec.get('options', None)
+    objv = objectives_mapper.get(spec['type'], ObjValues)(spec, logger=logger)
+    return objv
