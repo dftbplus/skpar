@@ -70,21 +70,21 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
         spec (array-like or dict): values or specification of the subweights, 
             for example::
             spec = """ """
-            dflt: 0 # default value of subweights
-            indexes: # explicit indexes of 1d-array
+            dflt: 1.0 # default value of subweights
+            indexes: # explicit [index, weight] for 1d-array data
                 - [0, 1]
                 - [4, 4]
                 - [2, 1]
-            ranges: # ranges in 1d-array
+            ranges: # ranges for 1d-array
                 - [[1,3], 2]
                 - [[3,4], 5]
-            nb: # ranges of bands (indexes) in bands (refdata)
+            bands: # ranges of bands (indexes) in bands (refdata)
                 - [[-3, 0], 1.0] # all valence bands
                 - [[0, 1], 2.0]   # top VB and bottom CB with higher weight
-            eV: # ranges of energies (values) in bands (refdata)
+            values: # ranges of energies (values) in bands (refdata)
                 - [[-0.1, 0.], 4.0]
                 - [[0.2, 0.5], 6.0]
-            Ek: # explicit (band, k-point) pair (indexes) in bands (refdata)
+            indexes: # explicit (band, k-point) pair (indexes) for bands (refdata)
                 - [[3, 4], 2.5]
                 - [[1, 2], 3.5]
             """ """
@@ -97,9 +97,9 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
         ikeys (list of strings): list of keys to be parsed for explicit 
             index specification, e.g. ['indexes', 'Ek']
         rikeys (list of strings): list of keys to be parsed for range of
-            indexes specification, e.g. ['ranges', 'nb']
+            indexes specification, e.g. ['ranges', 'bands']
         rfkeys (list of strings): list of keys to be parsed for range of
-            values specification, e.g. ['eV']
+            values specification, e.g. ['values', 'eV']
 
     Returns:
         numpy.array: the weight to be associated with each data item.
@@ -113,11 +113,11 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
     if isinstance(spec, list) and len(spec)==nn or\
         type(spec).__module__ == np.__name__:
         # Assume spec enumerates weights as a list or array
-        return np.asarray(spec)
+        return np.atleast_1d(spec)
     else:
         # Parse specification to write out the weights
         # initialise default values
-        dflt = spec.get('dflt', 0)
+        dflt = spec.get('dflt', 1)
         if shape is None:
             if refdata is not None:
                 shape = refdata.shape
@@ -126,25 +126,26 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
         assert shape is not None
         ww = np.ones(shape)*dflt
         # parse alterations for explicit data indexes
+        # convert from FORTRAN to PYTHON, hence the -1 below
         for k in ikeys:
-            for i,w in spec.get(k, []):
+            for i, w in spec.get(k, []):
                 try:
                     # assume i0 and i are int
-                    ww[i0+i] = w
+                    ww[i0+i-1] = w
                 except TypeError:
-                    # if it turns out i is a tuple, then 
-                    # apply the shift only to i[0].
+                    # if it turns out i is a tuple (i.e. an E-k point), 
+                    # then apply the shift only to i[0].
                     # this works if we specify E-k point (band, k-point)
                     # but is somewhat restrictive in the more general context
-                    j = (i0+i[0], i[1])
+                    j = (i0+i[0]-1, i[1]-1)
                     ww[j] = w
         # parse alterations for integer ranges of indexes
         for k in rikeys:
-            for rng, w in spec.get(k, []):
-                # treat the spec range as **inclusive**, hence the +1 on ihi.
-                ilo, ihi = i0+rng[0], i0+rng[1]+1
-                # permit overlapping ranges, larger weight overrides:
-                ww[ilo:ihi][ww[ilo:ihi] < w] = w
+            for rngs, w in spec.get(k, []):
+                rngs = get_ranges([rngs,])
+                for ilo, ihi in rngs:
+                    # permit overlapping ranges, larger weight overrides:
+                    ww[ilo:ihi][ww[ilo:ihi] < w] = w
         # parse alterations for ranges in the reference data itself
         for k in rfkeys:
             assert refdata.shape == ww.shape
@@ -282,7 +283,7 @@ class Query(object):
                 result.append(Query.modeldb[m][self.key])
         else:
             result = Query.modeldb[self.model_names][self.key]
-        return np.asarray(result)
+        return np.atleast_1d(result)
 
 
 class Objective(object):
@@ -339,8 +340,6 @@ class Objective(object):
         This method must be overloaded in a child-class if a more
         specific way to yield the model data in required.
         """
-#        if not hasattr(self, 'model_data'):
-#            self.model_data = np.asarray(self.query())
         #
         assert self.model_data.shape == self.ref_data.shape,\
                     "{} {}".format(self.model_data.shape, self.ref_data.shape)
@@ -380,7 +379,6 @@ class ObjValues(Objective):
     """
     def __init__(self, spec, logger=None, **kwargs):
         super().__init__(spec, logger, **kwargs)
-        #self.query = Query(self.model_names, self.query_key)
         nmod = len(self.model_names)
         shape = self.ref_data.shape
         if self.options is not None and 'subweights' in self.options.keys():
@@ -439,8 +437,39 @@ class ObjWeightedSum(Objective):
         """
         summands = self.query()
         assert len(summands) == len(self.model_weights)
-        self.model_data = np.dot(summands, self.model_weights)
+        self.model_data = np.atleast_1d(np.dot(summands, self.model_weights))
         return super().get()
+
+
+def get_subset_ind(rangespec):
+    """Return an index array based on a spec -- a list of ranges.
+    """
+    pyrangespec = get_ranges(rangespec)
+    subset = []
+    for rr in pyrangespec:
+        subset.extend(range(*rr))
+    return np.array(subset)
+
+def get_refval(bands, refpt, ff={'min': np.min, 'max': np.max}):
+    """Return a reference (alignment) value selected from a 2D array.
+    
+    Args:
+        bands (2D numpy array): data from which to obtain a reference value.
+        refpt: specifier that could be (band-index, k-point), or
+                (band-index, function), e.g. (3, 'min'), or ('7, 'max')
+        ff (dict): Dictionary mapping strings names to functions that can
+                operate on an 1D array.
+
+    Returns:
+        value (float): the selected value
+    """
+    iband = refpt[0] - 1  
+    try:
+        ik = refpt[1] - 1
+        value = bands[iband,ik]
+    except TypeError:
+        value = ff[refpt[1]](bands[iband])
+    return value
 
 
 class ObjBands(Objective):
@@ -448,105 +477,79 @@ class ObjBands(Objective):
     """
     def __init__(self, spec, logger=None, **kwargs):
         super().__init__(spec, logger, **kwargs)
-        #
-        # Register relevant queries -- here we have more than one.
-        self.queries = []
-        self.queries.append(Query(self.model_names, 'bands'))
-        self.queries.append(Query(self.model_names, 'num_electrons'))
-        self.queries.append(Query(self.model_names, 'spin_degeneracy'))
-        assert len(model_names) == 1, "Bands-type objective is limited to one model only"
-        assert len(self.ref_data.ndim) == 2
-        #
-        # Parse ref_options 
-        options = spec.get('options', None)
-        #
-        if 'ref_band' in options and 'ref_energy' in options:
-            # Set band-index reference as needed.
-            # Reference band-index should be an int or a 2-tuple, not 'vbtop' or 'cbbot'!
-            self.ib0 = options.get('ref_band', [1, 1])
-            if not isinstance(self.ib0, list):
-                self.ib0 = [self.ib0]*2
-            # note that user input counts from 1, but in python we do from 0:
-            self.ib0[0] -= 1
-            self.ib0[1] -= 1
-            # Set reference energy accordingly
-            _e0 = options.get('ref_energy', 0) 
-            self.e0_key = None
-            self.e0 = _e0
-            if _e0 in ['vbtop', 'homo']:
-                assert self.ib0 > 0
-                self.e0_key = _ref_e0
-                self.e0 = max(self.ref_data[self.ib0])
-            if _e0 in ['cbbot', 'lumo']:
-                assert self.ib0 > 0
-                self.e0_key = _e0
-                self.e0 = min(self.ref_data[self.ib0])
-            if isinstance(_e0, dict) and 'fermi' in _e0.keys():
-                self.e0_key = _e0
-                self.e0 = _e0['fermi']
-        if 'ref_Ek' in options:
-            # assume it is list of two two-tupples, for ref_data and for model
-            ib0_r, e0_r = options['ref_Ek'][0]
-            ib0_m, e0_m = options['ref_Ek'][1]
-            self.ib0   = [ib0_r-1, ib0_m-1]
-            self.e0    = [e0_r, e0_mj]
+        assert isinstance(self.model_names, str),\
+            'ObjBands accepts only one model, but models is not a string'
 
-        self.ref_data = self.ref_data - self.e0
-        #
-        # Fix fundamental BG if needed
-        ref_egap = options.get('set_bandgap', False)
-        if ref_egap:
-            # NOTABENE: here we **assume** ref_ib0 to be i_HOMO
-            assert hasattr(self, e0_key) and self.e0_key in ['vbtop' or 'homo']
-            ihomo = self.ib0
-            ilumo = ihomo + 1
-            ehomo = max(self.ref_data[ihomo])
-            elumo = min(self.ref_data[ilumo])
-            deltaEgap = ref_egap - (elumo-ehomo)
-            self.ref_data[ilumo: , ] += deltaEgap
-        #
-        # Parse subweights for E-k points
+        # Procss .options:
+        # if options is not defined, NameError will result
+        # if options is None (default, actually), TypeError will result
+        # if options is missing a key we try, KeyError will result
+        # Start with 'use_*' clauses
+        try:
+            rangespec = self.options.get('use_ref')
+            subset_ind = get_subset_ind(rangespec)
+            # This returns a new array, and the old ref_data
+            # is lost from here on. Do we care?
+            self.ref_data = self.ref_data[subset_ind]
+            # since we re-shape self.ref_data, we must reshape 
+            # the corresponding subweights too.
+            self.subweights = np.ones(self.ref_data.shape)
+        except (TypeError, KeyError):
+            pass
+        # once the ref_data is trimmed, its reference value may be changed
+        try:
+            align_pnt = self.options.get('align_ref')
+            shift = get_refval(self.ref_data, align_pnt)
+            self.ref_data -= shift
+        except (TypeError, KeyError):
+            pass
+        # Make up a mask to trim model_data 
+        # Note that the mask is only for dim_0, i.e. to
+        # be applied on the bands, over all k-pts, so it
+        # is only one one-dimensional array.
+        try:
+            rangespec = self.options.get('use_model')
+            self.subset_ind = get_subset_ind(rangespec)
+        except (TypeError, KeyError):
+            self.subset_ind = None
+        # Prepare to shift the model_data values if required
+        # The actual shift is applied in the self.get() method
+        try:
+            self.align_model = self.options.get('align_model')
+        except (TypeError, KeyError):
+            pass
+
         shape = self.ref_data.shape
-        self.subweights = parse_weights(
-            options.get('subweights', np.ones(*shape)),\
-            ref_data=self.ref_data, i0=self.ib0,\
-            ikeys=['Ek'], rikeys=['nb'], rfkeys=['eV'])
-        assert self.subweights.shape == self.ref_data.shape
-        #
-        # Hack reference data, reducing its shape by eliminating
-        # entries with 0 weights
-        mask = np.where(self.subweights != 0)
-        self.ref_data == self.ref_data[mask]
-        self.subweights == self.subweights[mask]
-        #
-        # Plot reference data and subweights if requested
-        plotfile = options.get('plot', None)
-        if plotfile is not None:
-            plotargs = options.get('plotargs', {})
-            plot(self.ref_data, self.subweights, outfile=plotfile, **plotargs)
-            
-    def get():
+        try:
+            subw = self.options.get('subweights')
+            self.subweights = parse_weights(subw, refdata=self.ref_data, 
+                    # the following are optional, and generic enough
+                    # "indexes" is for a point in a 2D array
+                    # "bands" is for range of bands (rows), etc.
+                    # "values" is for a range of values
+                    # "krange" may be provided in the future (for column selection),
+                    # but is not supported yet
+                    ikeys=['indexes','Ekpts'], rikeys=['bands', 'iband'], rfkeys=['values'])
+            assert self.subweights.shape == shape
+        except (TypeError, KeyError):
+            # KeyError if there is no 'use_ref'
+            # TypeError if options == None (default)
+            raise
+            self.subweight = np.ones(shape)
+        
+    def get(self):
         """
         """
-        bands  = next([q for q in self.queries if q.key == 'bands'])()
-        n_elec = next([q for q in self.queries if q.key == 'num_electrons'])()
-        g_spin = next([q for q in self.queries if q.key == 'spin_degeneracy'])()
-        i_homo = int(n_elec / g_spin) - 1
-        i_lumo = i_homo + 1
-        if self.e0_key in ['vbtop', 'homo']:
-            # this entails model data should also be referenced at vbtop
-            self.ib0[1] == i_homo
-            self.e0[0] == max(bands[i_homo])
-        if self.e0_key in ['cbbot', 'lumo']:
-            # this entails model data should also be referenced at cbbot
-            self.ib0[1] == i_lumo
-            self.e0[1] == min(bands[i_lumo])
-        if self.e0_key == 'fermi':
-            e_fermi = next([q for q in self.queries if q.key == 'fermi_energy'])()
-            self.e0[1] == e_fermi
-        self.model_data = bands - self.e0[1]
-        assert self.model_data == self.ref_data
-        super().get()
+        # query data base
+        self.model_data = self.query()
+        # apply mask
+        if self.subset_ind is not None:
+            self.model_data = self.model_data[self.subset_ind]
+        # apply shift
+        if self.align_model is not None:
+            shift = get_refval(self.model_data, self.align_model)
+            self.model_data -= shift
+        return super().get()
 
 
 objectives_mapper = {
@@ -568,8 +571,8 @@ def f2prange(rng):
         2-tuple: (low-1, high)
     """
     lo, hi = rng
-    msg = "Invalid range specification {}, {}".format(lo, hi)\
-        + "Range should be of two integers, both being >= 1."
+    msg = "Invalid range specification {}, {}.".format(lo, hi)\
+        + " Range should be of two integers, both being >= 1."
     assert lo >= 1 and hi>=lo, msg
     return lo-1, hi
 
@@ -594,11 +597,10 @@ def get_ranges(data):
             except TypeError:
                 lo, hi = rng, rng
             rngs.append(f2prange((lo, hi)))
-        return rngs
-
     except TypeError:
         # data not iterable -> single index, convert to list of lists
-        return [f2prange((data,data))]
+        rngs = [f2prange((data,data))]
+    return rngs
 
 def get_refdata(data):
     """Parse the input data and return a corresponding array.
@@ -630,7 +632,7 @@ def get_refdata(data):
         file = data['file']
         # actual data in file -> load it
         # set default loader_args, assuming 'column'-organised data
-        loader_args = {'unpack': True}
+        loader_args = {} #{'unpack': False}
         # overwrite defaults and add new loader_args
         loader_args.update(data.get('loader_args', {}))
         # make sure we don't try to unpack a key-value data
@@ -645,6 +647,9 @@ def get_refdata(data):
         postprocess = data.get('process', {})
         if postprocess:
             if 'unpack' in loader_args.keys() and loader_args['unpack']:
+                # since 'unpack' transposes the array, now row index
+                # in the original file is along axis 1, while column index
+                # in the original file is along axis 0.
                 key1, key2 = ['rm_columns', 'rm_rows']
             else:
                 key1, key2 = ['rm_rows', 'rm_columns']
@@ -652,13 +657,12 @@ def get_refdata(data):
                 rm_rngs = postprocess.get(key, [])
                 if rm_rngs:
                     indexes=[]
-                    # flatten, combine and sort, then delete data axis,
+                    # flatten, combine and sort, then delete corresp. object
                     for rng in get_ranges(rm_rngs):
                         indexes.extend(list(range(*rng)))
                     indexes = list(set(indexes))
                     indexes.sort()
-                    #print ('indexes {}: {}'.format(key, indexes))
-                array_data = np.delete(array_data, obj=indexes, axis=axis)
+                    array_data = np.delete(array_data, obj=indexes, axis=axis)
             scale = postprocess.get('scale', 1)
             array_data = array_data * scale
         return array_data
@@ -670,10 +674,11 @@ def get_refdata(data):
         return np.array([(key,val) for key,val in data.items()], dtype=dtype)
 
     except TypeError:
-        # `data` is a value or a list  -> return array
         if not isinstance(data, dict):
-            return np.array(data)
+        # `data` is a value or a list  -> return array
+            return np.atleast_1d(data)
         else:
+        # `file` was not understood
             print ('np.loadtxt cannot understand the contents of {}'\
                     .format(file))
             raise
@@ -716,9 +721,12 @@ def get_objective(spec, logger=None):
     spec['query'] = spec.get('query', key)
     m_names, m_weights = get_models(spec['models'])
     spec['model_names'] = m_names
-    spec['model_weights'] = np.asarray(m_weights)
+    spec['model_weights'] = np.atleast_1d(m_weights)
     spec['ref_data'] = get_refdata(spec['ref'])
-    nmod = len(m_names)
+    if isinstance(m_names, str):
+        nmod = 1
+    else:
+        nmod = len(m_names)
     spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
     # spec['options'] = spec.get('options', None)
     objv = objectives_mapper.get(spec['type'], ObjValues)(spec, logger=logger)
