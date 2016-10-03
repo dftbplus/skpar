@@ -285,7 +285,6 @@ class ObjectiveRefDataTest(unittest.TestCase):
         exp = np.delete(exp, obj=[0, 1, 2, 3], axis=1)
         exp = exp * 2.
         res = oo.get_refdata(ref_input)
-#        pprint (res.shape)
         nptest.assert_array_equal(res, exp, verbose=True)
         
 
@@ -663,8 +662,22 @@ class ObjectiveTypesTest(unittest.TestCase):
         nptest.assert_array_equal(weights, subw, verbose=True)
         
 
-#class SetObjectivesTest(unittest.TestCase):
-#    """Check if we can create objectives from yaml definition"""
+class SetObjectivesTest(unittest.TestCase):
+    """Check if we can create objectives from skopt_in.yaml"""
+
+    def test_setobjectives(self):
+        """Can we create a number of objectives from input spec?"""
+        with open("skopt_in.yaml", 'r') as ff:
+            try:
+                spec = yaml.load(ff)['objectives']
+            except yaml.YAMLError as exc:
+                print (exc)
+        objectives = oo.set_objectives(spec)
+#        for objv in objectives:
+#            print ()
+#            print (objv)
+        pass
+
 
 
 if __name__ == '__main__':

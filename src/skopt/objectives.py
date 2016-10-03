@@ -110,6 +110,7 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
         rikeys = []
     if rfkeys is None:
         rfkeys = []
+    print ("subweights spec is list:", isinstance(spec, list), len(spec), nn)
     if isinstance(spec, list) and len(spec)==nn or\
         type(spec).__module__ == np.__name__:
         # Assume spec enumerates weights as a list or array
@@ -355,22 +356,19 @@ class Objective(object):
     
     def __repr__(self):
         s = []
-        if hasattr(self, 'doc'):
-            pprint(self.doc)
-        s.append("Model names:\n{}".format(pformat(self.model_names)))
+        s.append("\n")
+        s.append("{:<15s}: {}".format("Objective:", pformat(self.doc)))
+        s.append("{:<15s}: {}".format("Query", pformat(self.query_key)))
+        s.append("{:<15s}: {}".format("Models", pformat(self.model_names)))
         if hasattr(self, 'model_weights'):
-            s.append("Model weights:\n{}".format(pformat(self.model_weights)))
-        s.append ("Options:\n{}".format(pformat(self.options)))
+            s.append("{:<15s}: {}".format("Model weights", pformat(self.model_weights)))
+        s.append ("{:<15s}:\n{}".format("Reference data", pformat(self.ref_data)))
+        if hasattr(self, 'subweights'):
+            s.append("{:<15s}:\n{}".format("Sub-weights", pformat(self.subweights)))
+        #s.append ("Options:\n{}".format(pformat(self.options)))
         if hasattr(self, 'model_data'):
             s.append ("Model data:\n{}".format(pformat(self.model_data)))
-        else:
-            s.append ("Model data not available yet")
-        s.append ("Reference data:\n{}".format(pformat(self.ref_data)))
-        if hasattr(self, 'subweights'):
-            s.append ("Sub-weights:\n{}".format(pformat(self.subweights)))
-        else:
-            s.append ("Sub-weights not available yet")
-        s.append ("Weight: {}".format(self.weight))
+        s.append("{:<15s}: {}".format("Weight", pformat(self.weight)))
         return "\n".join(s)
 
 
@@ -380,13 +378,16 @@ class ObjValues(Objective):
     def __init__(self, spec, logger=None, **kwargs):
         super().__init__(spec, logger, **kwargs)
         nmod = len(self.model_names)
+        # coerce ref-data to 1D array if it is extracted from a 2D array
+        if self.ref_data.ndim == 2 and self.ref_data.shape == (1,nmod):
+            self.ref_data = self.ref_data.reshape((nmod,))
         shape = self.ref_data.shape
         if self.options is not None and 'subweights' in self.options.keys():
             self.subweights = parse_weights(self.options['subweights'], 
                     nn=nmod,
                     # these are optional, and generic enough
                     ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
-            assert self.subweights.shape == shape
+            assert self.subweights.shape == shape, (self.subweights.shape, shape)
         else:
             self.subweight = np.ones(shape)
         
@@ -688,33 +689,16 @@ def get_refdata(data):
         # unlikely scenario, since yaml cannot encode numpy array
         return data
 
-def set_objectives(spec, logger=None):
-    """Parse user specification of Objectives, and return a list of Objectives for evaluation.
-
-    Args:
-        spec (list): List of dictionaries, each dictionary being a,
-            specification of an objective of a recognised type.
-
-    Returns:
-        list: a List of instances of the Objective sub-class, each 
-            corresponding to a recognised objective type.
-    """
-    objectives = []
-    # the spec list has definitions of different objectives
-    for objtv in spec:
-        # each item in the list is a dictionary (of one key-value pair)
-        for key, val in objtv.items():
-            # By default, we also pass key as a query, if query is
-            # not explicitly defined
-            if 'query' not in val.keys():
-                val['query'] = key
-            objectives.append(
-                # We must select the right handler as per spec type
-                objectives_mapper.get(key, ObjValues)(val, logger=logger))
-    return objectives
-
 def get_objective(spec, logger=None):
     """Return an instance of an objective, as defined in the input spec.
+
+    Args:
+        spec (dict): a dictionary with a single entry, being
+            query: {dict with the spec of the objective}
+
+    Returns:
+        list: an instance of the Objective sub-class, corresponding
+            an appropriate objective type.
     """
     (key, spec), = spec.items()
     # mandatory fields
@@ -728,6 +712,26 @@ def get_objective(spec, logger=None):
     else:
         nmod = len(m_names)
     spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
+    #   print (spec['type'], spec['query'])
     # spec['options'] = spec.get('options', None)
     objv = objectives_mapper.get(spec['type'], ObjValues)(spec, logger=logger)
+    print (objv)
     return objv
+
+def set_objectives(spec, logger=None):
+    """Parse user specification of Objectives, and return a list of Objectives for evaluation.
+
+    Args:
+        spec (list): List of dictionaries, each dictionary being a,
+            specification of an objective of a recognised type.
+
+    Returns:
+        list: a List of instances of the Objective sub-class, each 
+            corresponding to a recognised objective type.
+    """
+    objectives = []
+    # the spec list has definitions of different objectives
+    for item in spec:
+        objectives.append(get_objective(item))
+    return objectives
+

@@ -1,0 +1,185 @@
+---
+# Models that depend on parameter space
+models:
+    - name: Si
+    - name: SiO2-quartz
+    - name: SiO2-cristobalite
+    - name: O2
+
+# What to do when evaluating a point in parameter space
+tasks:
+    - update_models:
+        # This may be different for different goal
+        # For example, if we do repulsive optimisation on top of 
+        # given electronic skf, then the executable will likely be
+        # a script that takes an existing skf and patches the spline
+        # on top of it
+        # If electronic parameterisation is the goal, then skgen is run.
+        # It is not clear how optimiser conveys the new parameter point
+        # to the executable here.
+        - run:
+            exe: skgen
+            dir: skf
+            args: {}
+
+    - execute_models:
+        # Run the tasks associated with a given model
+        # Either enumerate models: [Si, SiO2-cristobalite],
+        # or select all of them
+        all
+    #    - check_objectives:
+
+# Individual objectives
+objectives:
+
+    - bands: 
+        doc: Valence Band, Si
+        models: Si/bs
+        ref: 
+            file: ./reference_data/fakebands.dat # 
+            process:       # eliminate unused columns, like k-pt enumeration
+                # indexes and ranges below refer to file, not array, 
+                # i.e. independent of 'unpack' loader argument
+                rm_columns: 1                # filter k-point enumeration, and bands, potentially
+                # rm_rows   : [[18,36], [1,4]] # filter k-points if needed for some reason
+                # scale     : 1                # for unit conversion, e.g. Hartree to eV, if needed
+        options:
+            use_ref: [[1, 4]]                # fortran-style index-bounds of bands to use
+            use_model: [[1, 4]]
+            align_ref: [4, max]              # fortran-style index of band and k-point,
+            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
+            subweights: 
+                # NOTABENE:
+                # --------------------------------------------------
+                # Energy values are with respect to the ALIGNEMENT.
+                # If we want to have the reference  band index as zero,
+                # we would have to do tricks with the range specification 
+                # behind the curtain, to allow both positive and negative 
+                # band indexes, e.g. [-3, 0], INCLUSIVE of either boundary.
+                # Currently this is not done, so only standard Fortran
+                # range spec is supported. Therefore, band 1 is always
+                # the lowest lying, and e.g. band 4 is the third above it.
+                # --------------------------------------------------
+                dflt: 1
+                values: # [[range], subweight] for E-k points in the given range of energy
+                # notabene: the range below is with respect to the alignment value
+                    - [[-0.3, 0.], 3.0]
+                bands: # [[range], subweight] of bands indexes; fortran-style
+                    - [[2, 3], 1.5]   # two valence bands below the top VB
+                    - [4 , 3.5]       # emphasize the reference band
+                # not supported yet     ipoint:
+        weight: 1.0
+
+    - bands: 
+        doc: Conduction Band, Si
+        models: Si/bs
+        ref: 
+            file: ./reference_data/fakebands.dat # 
+            process:       
+                rm_columns: 1              # filter k-point enumeration, and bands, potentially
+        options:
+            use_ref: [5, 6]                # fortran-style index enumeration: NOTABENE: not a range here!
+            use_model: [5, 6]              # using [[5,6]] would be a range with the same effect
+            align_ref: [1, 9]              # fortran-style index of band and k-point, (happens to be the minimum
+            align_model: [1, min]          # or a function (e.g. min, max) instead of k-point
+            subweights: 
+                values:                    # [[range], subweight] for E-k points in the given range of energy
+                    - [[0.0, 0.2], 3.0]    # bottom of CB and 200meV above
+                bands:                     # [[range], subweight] of bands indexes; fortran-style
+                    - [1, 2.0]             # the LUMO only increased in weight; note the indexing
+                                           # reflects the 'use_' clauses above
+        weight: 2.0
+
+    - band_gap:
+        doc: Band-gap of Si (diamond)
+        models: Si/bs
+        ref: 1.12
+        weight: 4.0
+
+    - effective_mass:
+        doc: Effective masses, Si
+        models: Si/bs
+        ref: 
+            file: ./reference_data/meff-Si.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt: 0.                    # changing the default (from 1.) to 0. allows us to consider 
+                me_GX_0: 2.                 # only select entries
+                mh_GX_0: 1.
+        weight: 1.5
+
+    - Etot:
+        doc: Energy vs volume, Si
+        models: [Si/scc-5, Si/scc-4, Si/scc-3, Si/scc-2, Si/scc-1,
+                 Si,
+                 Si/scc+1, Si/scc+2, Si/scc+3, Si/scc+4, Si/scc+5]
+        ref: 
+            file: reference_data/volen-Si.dat
+            loader_args: {unpack: True}
+            process:       
+                rm_columns: 1               # remove the column with volume data
+        options:
+            subweights: [1., 1., 1., 2., 3., 5., 3., 2., 1., 1., 1.]
+            ## alternative specification for subweights:
+            # subweights:
+            #   dflt: 0.
+            #   indexes: 
+            #     -[ix, value]
+            #   ranges: 
+            #     -[[start, stop], value]
+            #     -[[start, stop], value]
+        weight: 1.0
+
+    - Etot:
+        doc: "heat of formation, SiO2"
+        models: 
+            - [SiO2-quartz/scc, 1.]
+            - [Si/scc, -0.5] 
+            - [O2/scc, -1]
+        ref: 1.8 
+        weight: 1.2
+
+    - Etot:
+        doc: "energy difference between phases of SiO2"
+        models: 
+            - [SiO2-quartz/geopt, 1.]
+            - [SiO2-cristobalite/geopt, -1.]
+        ref: 0.5
+            
+       
+# How to define a global criterion of success/fitness
+# This may fold into the definition of objectives,
+# i.e. each objective may have its own scalarisation
+# procedure, while this field remains for the global
+# objective function.
+criterion:
+    # details of the objective function
+    objfun: WES # weighted exponential sum
+    objfunpar:
+        p: 2    # exponent
+
+
+# How to explore the parameter space
+# E.g. if support for algorithms other than PSO is provided
+optimisation:
+     
+    algo: PSO   # particle swarm optimisation
+    algopt:
+        npar: 10
+        ngen: 50
+
+executables:
+    atom: ~/.local/bin/slateratom
+    twocnt: ~/.local/bin/twocnt
+    skgen: ~/.local/bin/skgen
+    dftb: ~/.local/bin/dftb+
+    bands: ~/.local/bin/dp_bands
+    dos: ~/.local/bin/dp_dos
+    skgen: ./skf/skgen.sh
+    copy: /bin/cp
+...
