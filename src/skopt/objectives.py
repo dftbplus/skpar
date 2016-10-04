@@ -8,9 +8,9 @@ Classes and functions related to the:
 import numpy as np
 import yaml
 from pprint import pprint, pformat
-from skopt.utils import get_logger
+from skopt.utils import get_logger, normalise
 
-def parse_weights_keyval(spec, data):
+def parse_weights_keyval(spec, data, normalised=True):
     """Parse the weights corresponding to key-value type of data.
 
     Args:
@@ -35,7 +35,7 @@ def parse_weights_keyval(spec, data):
     if isinstance(spec, list) or type(spec).__module__ == np.__name__:
         # if spec enumerates weights as a list or array, nothing to do
         assert len(spec)==len(data) 
-        return spec
+        ww = spec
     else:
         # otherwise parse specification to write out the weights
         # initialise default values
@@ -48,9 +48,12 @@ def parse_weights_keyval(spec, data):
         for key, val in spec.items():
             # notabene: the encode() makes a 'string' in b'string'
             ww[data[_keys]==key.encode()] = val
-        return ww
+    # normalisation
+    if normalised:
+        ww = normalise(ww)
+    return ww
 
-def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0, 
+def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0, normalised=True, 
                   ikeys=None, rikeys=None, rfkeys=None):
     """Parse the specification defining weights corresponding to some data.
 
@@ -110,11 +113,10 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
         rikeys = []
     if rfkeys is None:
         rfkeys = []
-    print ("subweights spec is list:", isinstance(spec, list), len(spec), nn)
     if isinstance(spec, list) and len(spec)==nn or\
         type(spec).__module__ == np.__name__:
         # Assume spec enumerates weights as a list or array
-        return np.atleast_1d(spec)
+        ww = np.atleast_1d(spec)
     else:
         # Parse specification to write out the weights
         # initialise default values
@@ -155,7 +157,10 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0,
                    (refdata <= rng[1]) &
                    # permit overlapping weights, larger value overrides:
                    (ww < w)] = w
-        return ww
+    # normalisation
+    if normalised:
+        ww = normalise(ww)
+    return ww
 
 def get_models(models):
     """Return the models (names) and corresponding weights if any.
@@ -383,8 +388,9 @@ class ObjValues(Objective):
             self.ref_data = self.ref_data.reshape((nmod,))
         shape = self.ref_data.shape
         if self.options is not None and 'subweights' in self.options.keys():
+            self.normalised = self.options.get('normalise', True)
             self.subweights = parse_weights(self.options['subweights'], 
-                    nn=nmod,
+                    nn=nmod, normalised=self.normalised,
                     # these are optional, and generic enough
                     ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
             assert self.subweights.shape == shape, (self.subweights.shape, shape)
@@ -407,11 +413,13 @@ class ObjKeyValuePairs(Objective):
     def __init__(self, spec, logger=None, **kwargs):
         super().__init__(spec, logger, **kwargs)
         # parse reference data options
-        options = spec.get('options', None)
+        self.options = spec.get('options', None)
         # NOTABENE: we will replace self.ref_data, trimming the 
         #           items with null weight
         nn = len(self.ref_data)
-        ww = parse_weights_keyval(options['subweights'], data=self.ref_data)
+        normalised = self.options.get('normalise', True)
+        ww = parse_weights_keyval(self.options['subweights'], data=self.ref_data,
+                                    normalised=normalised)
         # eliminate ref_data items with zero subweights
         mask = np.where(ww != 0)
         self.query_key = [k.decode() for k in self.ref_data['keys'][mask]]
@@ -523,7 +531,9 @@ class ObjBands(Objective):
         shape = self.ref_data.shape
         try:
             subw = self.options.get('subweights')
+            self.normalised = self.options.get('normalise', True)
             self.subweights = parse_weights(subw, refdata=self.ref_data, 
+                    normalised=self.normalised, 
                     # the following are optional, and generic enough
                     # "indexes" is for a point in a 2D array
                     # "bands" is for range of bands (rows), etc.

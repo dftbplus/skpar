@@ -28,7 +28,7 @@ class ParseWeightsKeyValueTest(unittest.TestCase):
         """
         spec = [ 4.,  1.,  1.,  4.,  1.,  1.,  1.,  1.,  1.,  1.]
         expected = np.array(spec)
-        ww = oo.parse_weights_keyval(spec, self.data)
+        ww = oo.parse_weights_keyval(spec, self.data, normalised=False)
         compare = np.all(ww == expected)
         self.assertTrue(compare) 
         
@@ -42,7 +42,7 @@ class ParseWeightsKeyValueTest(unittest.TestCase):
         for k,v in spec.items():
             if k != 'dflt':
                 expected[self.data['keys']==k.encode()]=v
-        ww = oo.parse_weights_keyval(spec, self.data)
+        ww = oo.parse_weights_keyval(spec, self.data, normalised=False)
         compare = np.all(ww == expected)
         self.assertTrue(compare)
 
@@ -83,7 +83,7 @@ class ParseWeightsTest(unittest.TestCase):
         expected[0] = 2.
         expected[3] = 4.
         expected[1] = 2.
-        ww = oo.parse_weights(self.wspec, nn=nn, ikeys=['indexes'])
+        ww = oo.parse_weights(self.wspec, nn=nn, ikeys=['indexes'], normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
 
         # test weights for a 2D-type of data
@@ -91,7 +91,7 @@ class ParseWeightsTest(unittest.TestCase):
         expected = np.ones(shape)*dflt
         expected[3, 9] = 2.5
         expected[1, 4] = 3.5
-        ww = oo.parse_weights(self.wspec, shape=shape, ikeys=['Ek'])
+        ww = oo.parse_weights(self.wspec, shape=shape, ikeys=['Ek'], normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
         
     def test_parse_weights_range_of_indexes(self):
@@ -109,13 +109,15 @@ class ParseWeightsTest(unittest.TestCase):
         # note here that the lower value is ignored for bands assigned with
         # a higher weight already
         expected[3:5] = 3.5
-        ww = oo.parse_weights(self.wspec, shape=shape, i0=i0, rikeys=['nb'])
+        ww = oo.parse_weights(self.wspec, shape=shape, i0=i0, rikeys=['nb'], 
+                                normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
         # alternative key for range specification
         expected = np.ones(shape)*dflt
         expected[0:3] = 2
         expected[2:4] = 5
-        ww = oo.parse_weights(self.wspec, shape=shape, rikeys=['ranges'])
+        ww = oo.parse_weights(self.wspec, shape=shape, rikeys=['ranges'],
+                                normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
 
     def test_parse_weights_range_of_values(self):
@@ -134,7 +136,8 @@ class ParseWeightsTest(unittest.TestCase):
                 [ 6., 6., 0., 0., 0.],
                 [ 6., 6., 6., 6., 4.],
                 [ 0., 4., 0., 0., 6.]])
-        ww = oo.parse_weights(self.wspec, refdata=data, rfkeys=['eV'])
+        ww = oo.parse_weights(self.wspec, refdata=data, rfkeys=['eV'],
+                                normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
         
     def test_parse_weights_list_of_weights(self):
@@ -142,9 +145,8 @@ class ParseWeightsTest(unittest.TestCase):
             """
         wspec = yaml.load(altdata)['subweights']
         expected = yaml.load(altdata)['subweights']
-        ww = oo.parse_weights(wspec, nn=len(wspec))
+        ww = oo.parse_weights(wspec, nn=len(wspec), normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
-
 
 class GetModelsTest(unittest.TestCase):
     """Check if model names and weights are parsed correctly.
@@ -450,6 +452,7 @@ class ObjectiveTypesTest(unittest.TestCase):
                 models: [Si/scc-1, Si/scc, Si/scc+1,]
                 ref: [23., 10, 15.]
                 options:
+                    normalise: false
                     subweights: [1., 3., 1.,]
         """
         spec = yaml.load(yamldata)['objectives'][0]
@@ -496,6 +499,7 @@ class ObjectiveTypesTest(unittest.TestCase):
                             names: ['keys', 'values']
                             formats: ['S15', 'float']
                 options:
+                    normalise: false
                     subweights: 
                         # consider only a couple of entries from available data
                         dflt: 0.
@@ -601,6 +605,7 @@ class ObjectiveTypesTest(unittest.TestCase):
                     use_model: [[1, 4]]
                     align_ref: [4, max]              # fortran-style index of band and k-point,
                     align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
+                    normalise: false
                     subweights: 
                         # NOTABENE:
                         # --------------------------------------------------
