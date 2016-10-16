@@ -4,7 +4,60 @@ import logging
 import numpy as np
 from skopt.utils import flatten, flatten_two
 
+def abserr(ref, model):
+    """Return the per-element difference model and reference.
+    """
+    rr = np.asarray(ref)
+    mm = np.asarray(model)
+    assert rr.shape == mm.shape, (rr.shape, mm.shape)
+    return mm - ref
 
+def relerr(ref, model):
+    """Return the per-element relative difference between model and reference.
+
+    To handle cases where `ref` vanish, and possibly `model` vanish
+    at the same time, we:
+
+        * translate directly a vanishing absolute error into vanishing
+          relative error (where both `ref` and `model` vanish.
+
+        * take the model as a denominator, thus yielding 1, where
+          `ref` vanishes but `model` is non zero
+    """
+    rr = np.asarray(ref)
+    mm = np.asarray(model)
+    # get deviations
+    err = abserr(rr, mm)
+    # fix the denominator
+    denom = rr
+    denom[rr == 0.] = mm[rr == 0.]
+    # assert 0 absolute error even for 0 denominator
+    rele = np.zeros(err.shape)
+    rele[err != 0] = err[err != 0] / denom[err != 0]
+    return rele
+
+def cost_RMS(ref, model, weights, errf=abserr):
+    """Return the weighted-RMS deviation"""
+    assert np.asarray(ref).shape == np.asarray(model).shape
+    assert np.asarray(ref).shape == np.asarray(weights).shape
+    err2 = errf(ref, model) ** 2
+    rms = np.sqrt(np.sum(weights*err2))
+    return rms
+
+# ----------------------------------------------------------------------
+# Function mappers
+# ----------------------------------------------------------------------
+# use small letters for the function names; make sure
+# the input parser coerces any capitalisation in advance
+
+# cost functions
+costf = {"rms": cost_RMS, }
+
+# error types
+errf = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 def calcErrors(ref, calc):
         """
         Takes calc, and ref, which are lists or 1D numpy arrays of the same length,

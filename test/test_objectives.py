@@ -439,7 +439,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.objtype, 'values')
         # check __call__()
         db['band_gap'] = dat
-        mdat, rdat, weights = objv()
+        mdat, rdat, weights = objv.get()
         self.assertEqual(mdat, dat)
         self.assertEqual(rdat, ref)
         self.assertEqual(weights, ow)
@@ -479,7 +479,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         db2['Etot'] = dat[1]
         db3['Etot'] = dat[2]
         # check __call__()
-        mdat, rdat, weights = objv()
+        mdat, rdat, weights = objv.get()
         nptest.assert_array_equal(mdat, dat, verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
@@ -534,7 +534,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         db1.update({'me_GX_0': dat[1], 'mh_GX_0': dat[0], 'me_GL_2':dat[2]})
         oo.Query.add_modeldb('Si/bs', db1)
         # check __call__()
-        mdat, rdat, weights = objv()
+        mdat, rdat, weights = objv.get()
         # NOTABENE: order depends on the order in the reference file!!!
         nptest.assert_array_equal(mdat, np.asarray(dat[0:2]), verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
@@ -581,7 +581,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         db2['Etot'] = dat[1]
         db3['Etot'] = dat[2]
         # check __call__()
-        mdat, rdat, weights = objv()
+        mdat, rdat, weights = objv.get()
         nptest.assert_array_equal(mdat, np.dot(np.asarray(dat), np.asarray(mww)), verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
@@ -661,7 +661,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         # check the __call__()
         data = np.loadtxt("reference_data/fakebands.dat")
         db1['bands'] = data[:, 1:]
-        mdat, rdat, weights = objv()
+        mdat, rdat, weights = objv.get()
         nptest.assert_array_equal(mdat, ref, verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
@@ -683,6 +683,72 @@ class SetObjectivesTest(unittest.TestCase):
 #            print (objv)
         pass
 
+
+class EvaluateObjectivesTest(unittest.TestCase):
+    """Check if we can evaluate the fitness of each objective"""
+
+    def test_evaluate_singleitem(self):
+        """Can we evaluate value-type objective for a single model"""
+        yamldata = """objectives:
+            - item:
+                models: A
+                ref: 1.0
+        """
+        # set data base
+        db = {}
+        oo.Query.add_modeldb('A', db)
+        # declaration of objective
+        spec = yaml.load(yamldata)['objectives'][0]
+        objv = oo.get_objective(spec)
+        # evaluate
+        db['item'] = 1.2
+        self.assertAlmostEqual(0.2, objv())
+
+    def test_evaluate_multipleitems(self):
+        """Can we evaluate value-type objective for a multiple models"""
+        yamldata = """objectives:
+            - item:
+                models: [A, B, C]
+                ref: [2.0, 2., 3.]
+                options:
+                    # normalise: True
+                    subweights: [2, 1, 1.5]
+        """
+        # set model data
+        db1 = {'item': 1.0}
+        db2 = {'item': 1.0}
+        db3 = {'item': 1.0}
+        oo.Query.add_modeldb('A', db1)
+        oo.Query.add_modeldb('B', db2)
+        oo.Query.add_modeldb('C', db3)
+        # declaration of objective
+        spec = yaml.load(yamldata)['objectives'][0]
+        objv = oo.get_objective(spec)
+        # evaluate
+        self.assertAlmostEqual(1.4142135623730951, objv())
+
+    def test_evaluate_bands(self):
+        """Can we evaluate value-type objective of type bands (2D array)"""
+        yamldata = """objectives:
+            - bands: 
+                models: A
+                ref: 
+                    file: ./reference_data/fakebands.dat
+                    process:
+                        rm_columns: 1
+                options:
+                    errf:  relerr
+                    costf: RMS
+        """
+        # set model data
+        db1 = {}
+        oo.Query.add_modeldb('A', db1)
+        # declaration of objective
+        spec = yaml.load(yamldata)['objectives'][0]
+        objv = oo.get_objective(spec)
+        db1['bands'] = objv.ref_data * 1.1
+        # evaluate
+        self.assertAlmostEqual(0.932737905309, objv())
 
 
 if __name__ == '__main__':

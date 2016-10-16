@@ -10,6 +10,10 @@ import yaml
 from pprint import pprint, pformat
 from skopt.utils import get_logger, normalise
 
+from skopt.evaluate import costf, errf
+DEFAULT_COST_FUNC = "rms"
+DEFAULT_ERROR_FUNC = "abs"
+
 def parse_weights_keyval(spec, data, normalised=True):
     """Parse the weights corresponding to key-value type of data.
 
@@ -330,10 +334,22 @@ class Objective(object):
         self.model_names = spec['model_names']
         self.model_weights = spec['model_weights']
         self.ref_data = spec['ref_data']
+        self.costf = costf[DEFAULT_COST_FUNC]
+        self.errf = errf[DEFAULT_ERROR_FUNC]
         # optional fields
         self.weight = spec.get('weight', 1)
         self.options = spec.get('options', None)
-        self.doc = spec.get('doc', '')
+        if self.options is not None:
+            try:
+                self.costf = costf[self.options['costf'].lower()]
+            except KeyError:
+                pass
+            try:
+                self.errf = errf[self.options['errf'].lower()]
+            except KeyError:
+                pass
+        dfltdoc = "{}: {}".format(self.query_key, pformat(self.model_names))
+        self.doc = spec.get('doc', dfltdoc)
         self.logger = get_logger(logger)
         # further definitions of set/get depend on type of objective
         # this may be set here or in a child, if more specific
@@ -353,13 +369,21 @@ class Objective(object):
                     "{} {}".format(self.model_data.shape, self.subweights.shape)
         #
         return self.model_data, self.ref_data, self.subweights
+
+    def evaluate(self):
+        """Evaluate objective, i.e. fitness of the current model against the reference."""
+        model, ref, weights = self.get()
+        fitness = self.costf(ref, model, weights, self.errf)
+        return fitness
         
     def __call__(self):
-        """Executes self.get().
+        """Executes self.evaluate().
         """
-        return self.get()
+        return self.evaluate()
     
     def __repr__(self):
+        """Yield a summary of the objective.
+        """
         s = []
         s.append("\n")
         s.append("{:<15s}: {}".format("Objective:", pformat(self.doc)))
@@ -367,12 +391,14 @@ class Objective(object):
         s.append("{:<15s}: {}".format("Models", pformat(self.model_names)))
         if hasattr(self, 'model_weights'):
             s.append("{:<15s}: {}".format("Model weights", pformat(self.model_weights)))
-        s.append ("{:<15s}:\n{}".format("Reference data", pformat(self.ref_data)))
+        s.append ("{:<15s}: {}".format("Reference data", pformat(self.ref_data)))
         if hasattr(self, 'subweights'):
-            s.append("{:<15s}:\n{}".format("Sub-weights", pformat(self.subweights)))
+            s.append("{:<15s}: {}".format("Sub-weights", pformat(self.subweights)))
         #s.append ("Options:\n{}".format(pformat(self.options)))
         if hasattr(self, 'model_data'):
-            s.append ("Model data:\n{}".format(pformat(self.model_data)))
+            s.append ("Model data: {}".format(pformat(self.model_data)))
+        s.append("{:<15s}: {:s} / {:s}".
+                format("Cost/Err. func.", self.costf.__name__, self.errf.__name__))
         s.append("{:<15s}: {}".format("Weight", pformat(self.weight)))
         return "\n".join(s)
 
@@ -529,10 +555,10 @@ class ObjBands(Objective):
             pass
 
         shape = self.ref_data.shape
-        try:
-            subw = self.options.get('subweights')
+        if self.options is not None and 'subweights' in self.options.keys():
+            subwspec = self.options.get('subweights')
             self.normalised = self.options.get('normalise', True)
-            self.subweights = parse_weights(subw, refdata=self.ref_data, 
+            self.subweights = parse_weights(subwspec, refdata=self.ref_data, 
                     normalised=self.normalised, 
                     # the following are optional, and generic enough
                     # "indexes" is for a point in a 2D array
@@ -542,10 +568,9 @@ class ObjBands(Objective):
                     # but is not supported yet
                     ikeys=['indexes','Ekpts'], rikeys=['bands', 'iband'], rfkeys=['values'])
             assert self.subweights.shape == shape
-        except (TypeError, KeyError):
+        else:
             # KeyError if there is no 'use_ref'
             # TypeError if options == None (default)
-            raise
             self.subweight = np.ones(shape)
         
     def get(self):
@@ -723,7 +748,6 @@ def get_objective(spec, logger=None):
         nmod = len(m_names)
     spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
     #   print (spec['type'], spec['query'])
-    # spec['options'] = spec.get('options', None)
     objv = objectives_mapper.get(spec['type'], ObjValues)(spec, logger=logger)
     print (objv)
     return objv
