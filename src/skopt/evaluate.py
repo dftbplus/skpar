@@ -2,7 +2,10 @@
 """
 import logging
 import numpy as np
+from skopt.utils import get_logger, normalise
 from skopt.utils import flatten, flatten_two
+
+DEFAULT_GLOBAL_COST_FUNC = "rms"
 
 def abserr(ref, model):
     """Return the per-element difference model and reference.
@@ -57,6 +60,71 @@ costf = {"rms": cost_RMS, }
 errf = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 # ----------------------------------------------------------------------
 
+
+class Evaluator (object):
+    """
+    __Evaluator__
+
+    The evaluator is the only thing visible to the optimiser.  
+    It has several things to do:  
+
+    1. Accept a list (or dict?) of parameter values (or key-value pairs),
+       and an iteration number (or a tuple: (generation,particle_index)).
+    2. Update tasks (and underlying models) with new parameter values.
+    3. Execute the tasks to obtain model data with the new parameters.
+    5. Evaluate fitness for individual objectives.
+    6. Evaluate global fitness (cost) and return the value. It may be 
+       good to also return the max error, to be used as a stopping criterion.
+    """   
+    def __init__(self, objectives, tasks, costf=costf[DEFAULT_GLOBAL_COST_FUNC],
+                 utopia = None,
+                 verbose=False, logger=logging.getLogger(__name__), **kwargs):
+        self.objectives = objectives
+        self.weights = normalise([oo.weight for oo in objectives])
+        self.tasks = tasks
+        self.costf = costf
+        if utopia is None:
+            self.utopia = np.zeros(len(self.objectives))
+        else:
+            assert len(utopia) == len(objectives), (len(utopia), len(objectives))
+            self.utopia = utopia
+        self.verbose = verbose
+        self.logger = logger
+    
+    def evaluate(self, parameters, iteration=None):
+        """Evaluate the global fitness of a given point in parameter space.
+
+        This is the only object accessible to the optimiser.
+
+        Args:
+            parameters (list or dict): current point in design/parameter space
+            iteration: (int or tupple): current iteration or current 
+                generation and individual index within generation
+
+        Return:
+            fitness (float): global fitness of the current design point
+        """
+        # Update models with new parameters and get model data.
+        # Updating the models should be the first task in the tasks list.
+        for ii, task in enumerate(self.tasks):
+            try:
+                task(parameters=parameters, iteration=iteration)
+            except:
+                self.logger.critical('\nEvaluation FAILED at task {}: {}'.format(ii+1, task))
+                raise
+        # Evaluate individual fitness for each objective
+        fitness = [objv() for objv in self.objectives]
+        ref = self.utopia
+        # evaluate global fitness
+        cost = self.costf(ref, fitness, self.weights)
+        return cost
+
+    def __call__(self,parameters,iteration=None):
+        return self.evaluate(parameters,iteration)
+
+
+# ----------------------------------------------------------------------
+# OLD SKOPT... soon to be removed
 # ----------------------------------------------------------------------
 def calcErrors(ref, calc):
         """
@@ -250,7 +318,7 @@ class EvaluateCost (object):
         return self.cost
 
 
-class Evaluator (object):
+class Evaluator_OLD (object):
     """
     ### Evaluator
 
