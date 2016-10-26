@@ -104,13 +104,29 @@ class Evaluator (object):
         Return:
             fitness (float): global fitness of the current design point
         """
-        # Update models with new parameters and get model data.
-        # Updating the models should be the first task in the tasks list.
-        for ii, task in enumerate(self.tasks):
+        # Update models with new parameters.
+        # Updating the models should be the first task in the tasks list,
+        # but user may decide to omit it in some situations (e.g. if only
+        # interested in evaluating the set of models, not optimising).
+        jj = 0
+        task = self.tasks[0]
+        try:
+            task(parameters, iteration)
+            jj = 1
+        except TypeError:
+            # assume we don't have parameter update for some reason
+            # and TypeError is due to task not accepting arguments
+            pass
+        except:
+            self.logger.critical('\nEvaluation FAILED at task {}: {}'.format(jj, task))
+            raise
+        # Get new model data
+        for ii, task in enumerate(self.tasks[jj:]):
+            kk = ii + jj
             try:
-                task(parameters=parameters, iteration=iteration)
+                task()
             except:
-                self.logger.critical('\nEvaluation FAILED at task {}: {}'.format(ii+1, task))
+                self.logger.critical('\nEvaluation FAILED at task {}: {}'.format(kk+1, task))
                 raise
         # Evaluate individual fitness for each objective
         fitness = [objv() for objv in self.objectives]

@@ -28,18 +28,50 @@ class RunTask (object):
         # We must make every effort to return here even if task
         # fails for some reason!
         topdir = os.getcwd()
-        # Go to taks working directory
+        # Go to task working directory
         os.chdir(os.path.abspath(self.wd))
         # Try to execute the task
         try:
-            self.logger.debug("Running {0} in {1}...".format(self.cmd,self.wd))
+            self.logger.debug("Running {} in {}...".format(self.cmd, self.wd))
             # capture the output/error if any, for eventual checks
             self.out = subprocess.check_output(self.cmd, 
                                           universal_newlines=True, 
                                           stderr=self.err)
             with open(self.outfile, 'w') as fp:
                 fp.write(self.out)
-            self.logger.debug("Complete: output is in {0}".format(self.out))
+            self.logger.debug("Complete: output is in {}".format(self.out))
+            # return to caller's directory
+            os.chdir(topdir)
+        except subprocess.CalledProcessError as exc:
+            # report the issue and exit
+            self.logger.critical('{} failed with exit status {}\n'.
+                            format(self.cmd, exc.returncode))
+            self.out = exc.output
+            with open(self.outfile, 'w') as fp:
+                fp.write(self.out)
+            # go back to top dir
+            os.chdir(topdir)
+            raise
+
+class SetTask (RunTask):
+    
+    def __call__(self, parameters, iteration):
+        # Remember top level directory where skopt is invoked
+        # We must make every effort to return here even if task
+        # fails for some reason!
+        topdir = os.getcwd()
+        # Go to task working directory
+        os.chdir(os.path.abspath(self.wd))
+        # Try to execute the task
+        try:
+            self.logger.debug("Running {} in {}...".format(self.cmd, self.wd))
+            # capture the output/error if any, for eventual checks
+            self.out = subprocess.check_output(self.cmd, 
+                                          universal_newlines=True, 
+                                          stderr=self.err)
+            with open(self.outfile, 'w') as fp:
+                fp.write(self.out)
+            self.logger.debug("Complete: output is in {}".format(self.out))
             # return to caller's directory
             os.chdir(topdir)
         except subprocess.CalledProcessError as exc:
