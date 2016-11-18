@@ -3,6 +3,7 @@ import numpy as np
 import numpy.testing as nptest
 import yaml
 from skopt import objectives as oo
+from skopt.query import Query
 from pprint import pprint, pformat
 
 
@@ -178,47 +179,6 @@ class GetModelsTest(unittest.TestCase):
         expected = (mm_names, mm_weights)
         models = oo.get_models(mm)
         self.assertSequenceEqual(models, expected)
-
-
-class QueryTest(unittest.TestCase):
-    """Test Query class and methods"""
-
-    db1 = {}
-    db2 = {}
-
-    def test_query_add_modeldb(self):
-        """Can we add empty dictionaries to model data-base?
-        """
-        oo.Query.add_modeldb('d1', self.db1)
-        oo.Query.add_modeldb('d2', self.db2)
-
-        self.assertTrue(len(oo.Query.modeldb['d1'].items()) == 0)
-        self.assertTrue(len(oo.Query.modeldb['d2'].items()) == 0)
-
-    def test_query_update_modeldb(self):
-        """Can we update model data-base and see update through instances?
-        """
-        oo.Query.modeldb['d1'] = {'a':1, 'b':2}
-        oo.Query.modeldb['d2'] = {'a':3, 'b':4, 'c':7}
-        q1 = oo.Query('d1', 'a')
-        q2 = oo.Query(['d1', 'd2'], 'b')
-        self.assertEqual(q1.modeldb['d1'], {'a':1, 'b':2}) 
-        self.assertEqual(q2.modeldb['d2'], {'a':3, 'b':4, 'c':7})
-
-    def test_query_single_model(self):
-        """Can we get data from the query of single models?
-        """
-        oo.Query.modeldb['d1'] = {'a':1, 'b':2}
-        q1 = oo.Query('d1', 'a')
-        self.assertEqual(q1(), 1)
-
-    def test_query_multiple_models(self):
-        """Can we get data from the query of multiple models?
-        """
-        oo.Query.modeldb['d1'] = {'a':1, 'b':2}
-        oo.Query.modeldb['d2'] = {'a':3, 'b':4, 'c':7}
-        q2 = oo.Query(['d1', 'd2'], 'b')
-        nptest.assert_array_equal(q2(), [2,4], verbose=True)
 
 
 class ObjectiveRefDataTest(unittest.TestCase):
@@ -427,7 +387,8 @@ class ObjectiveTypesTest(unittest.TestCase):
         mnm = spec[que]['models']
         # set data base
         db = {}
-        oo.Query.add_modeldb('Si/bs', db)
+        Query.flush_modelsdb()
+        Query.add_modelsdb('Si/bs', db)
         # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.model_names, mnm)
@@ -471,9 +432,10 @@ class ObjectiveTypesTest(unittest.TestCase):
         # set data base: 
         # could be done either before or after declaration
         db1, db2, db3 = {}, {}, {}
-        oo.Query.add_modeldb('Si/scc-1', db1)
-        oo.Query.add_modeldb('Si/scc', db2)
-        oo.Query.add_modeldb('Si/scc+1', db3)
+        Query.flush_modelsdb()
+        Query.add_modelsdb('Si/scc-1', db1)
+        Query.add_modelsdb('Si/scc', db2)
+        Query.add_modelsdb('Si/scc+1', db3)
         dat = [20, 12, 16]
         db1['Etot'] = dat[0]
         db2['Etot'] = dat[1]
@@ -532,7 +494,8 @@ class ObjectiveTypesTest(unittest.TestCase):
         db1 = {}
         dat = [-0.5, 0.9, 1.2]
         db1.update({'me_GX_0': dat[1], 'mh_GX_0': dat[0], 'me_GL_2':dat[2]})
-        oo.Query.add_modeldb('Si/bs', db1)
+        Query.flush_modelsdb()
+        Query.add_modelsdb('Si/bs', db1)
         # check __call__()
         mdat, rdat, weights = objv.get()
         # NOTABENE: order depends on the order in the reference file!!!
@@ -563,9 +526,10 @@ class ObjectiveTypesTest(unittest.TestCase):
         # set data base: 
         # could be done either before or after declaration
         db1, db2, db3 = {}, {}, {}
-        oo.Query.add_modeldb('SiO2-quartz/scc', db1)
-        oo.Query.add_modeldb('Si/scc', db2)
-        oo.Query.add_modeldb('O2/scc', db3)
+        Query.flush_modelsdb()
+        Query.add_modelsdb('SiO2-quartz/scc', db1)
+        Query.add_modelsdb('Si/scc', db2)
+        Query.add_modelsdb('O2/scc', db3)
         # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.doc, doc)
@@ -647,7 +611,8 @@ class ObjectiveTypesTest(unittest.TestCase):
         subw[ref > -0.3] = 3.
         subw[3] = 3.5
         db1 = {}
-        oo.Query.add_modeldb('Si/bs', db1)
+        Query.flush_modelsdb()
+        Query.add_modelsdb('Si/bs', db1)
 #        # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.doc, doc)
@@ -695,8 +660,8 @@ class EvaluateObjectivesTest(unittest.TestCase):
                 ref: 1.0
         """
         # set data base
-        db = {}
-        oo.Query.add_modeldb('A', db)
+        Query.flush_modelsdb()
+        db = Query.add_modelsdb('A')
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
@@ -704,8 +669,8 @@ class EvaluateObjectivesTest(unittest.TestCase):
         db['item'] = 1.2
         self.assertAlmostEqual(0.2, objv())
 
-    def test_evaluate_multipleitems(self):
-        """Can we evaluate value-type objective for a multiple models"""
+    def test_evaluate_multiplemodels_singleitem(self):
+        """Can we evaluate value-type objective for multiple models"""
         yamldata = """objectives:
             - item:
                 models: [A, B, C]
@@ -718,9 +683,11 @@ class EvaluateObjectivesTest(unittest.TestCase):
         db1 = {'item': 1.0}
         db2 = {'item': 1.0}
         db3 = {'item': 1.0}
-        oo.Query.add_modeldb('A', db1)
-        oo.Query.add_modeldb('B', db2)
-        oo.Query.add_modeldb('C', db3)
+        Query.flush_modelsdb()
+        _db = Query.add_modelsdb('A', db1)
+        self.assertDictEqual(_db, db1)
+        Query.add_modelsdb('B', db2)
+        Query.add_modelsdb('C', db3)
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
@@ -742,7 +709,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
         """
         # set model data
         db1 = {}
-        oo.Query.add_modeldb('A', db1)
+        Query.add_modelsdb('A', db1)
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)

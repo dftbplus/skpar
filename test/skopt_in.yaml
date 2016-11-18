@@ -1,33 +1,17 @@
 ---
-# Models that depend on parameter space
-models:
-    - name: Si
-    - name: SiO2-quartz
-    - name: SiO2-cristobalite
-    - name: O2
-
 # What to do when evaluating a point in parameter space
 tasks:
-    - update_models:
-        # This may be different for different goal
-        # For example, if we do repulsive optimisation on top of 
-        # given electronic skf, then the executable will likely be
-        # a script that takes an existing skf and patches the spline
-        # on top of it
-        # If electronic parameterisation is the goal, then skgen is run.
-        # It is not clear how optimiser conveys the new parameter point
-        # to the executable here.
-        - run:
-            exe: skgen
-            dir: skf
-            args: {}
+    #- set: [parfile, workdir, optional_arguments]
+    #- run: [exe, workdir, arguments] 
+    #- get: [what, source, destination, optional_arguments]
+    - set: [current.par, skf, ]
+    - run: [skgen, skf, ]
+    - run: [bs_dftb, Si, ]
+    - run: [bs_dftb, SiO2, ]
+    - get: [get_dftb, Si, Si]
+    - get: [get_dftb, SiO2, SiO2]
+    - get: [get_meff, Si/bs, Si/bs, me_2, mh_0]
 
-    - execute_models:
-        # Run the tasks associated with a given model
-        # Either enumerate models: [Si, SiO2-cristobalite],
-        # or select all of them
-        all
-    #    - check_objectives:
 
 # Individual objectives
 objectives:
@@ -113,6 +97,12 @@ objectives:
                 mh_GX_0: 1.
         weight: 1.5
 
+    - me_GX_0:
+        doc: Single query for effective mass
+        models: Si/bs
+        ref: 0.92
+        weigh: 0.4
+
     - Etot:
         doc: Energy vs volume, Si
         models: [Si/scc-5, Si/scc-4, Si/scc-3, Si/scc-2, Si/scc-1,
@@ -145,6 +135,13 @@ objectives:
         weight: 1.2
 
     - Etot:
+        doc: "energy difference between "
+        models: 
+            - [SiO2-quartz/0.0, -1.]
+            - [SiO2-quartz/+0.01, 1.]
+        ref: 0.5
+            
+    - Etot:
         doc: "energy difference between phases of SiO2"
         models: 
             - [SiO2-quartz/geopt, 1.]
@@ -153,33 +150,47 @@ objectives:
             
        
 # How to define a global criterion of success/fitness
-# This may fold into the definition of objectives,
-# i.e. each objective may have its own scalarisation
-# procedure, while this field remains for the global
-# objective function.
-criterion:
-    # details of the objective function
-    objfun: WES # weighted exponential sum
-    objfunpar:
-        p: 2    # exponent
+# Note that the definition of individual objectives 
+# decalres its own scalarisation procedure,
+# while this field remains for the global objective function.
+# CURRENTLY NOT SUPPORTED. Defaults are below
+# criterion:
+#     # details of the objective function
+#     objfun: WES # weighted exponential sum
+#     objfunpar:
+#         exp: 2    # exponent
 
 
 # How to explore the parameter space
 # E.g. if support for algorithms other than PSO is provided
+# in the future; Currently this part is ignored
 optimisation:
      
     algo: PSO   # particle swarm optimisation
-    algopt:
-        npar: 10
-        ngen: 50
+    options:
+        npar: 10   # number of particles
+        ngen: 50   # number of generations
+    parameters:
+        # either file: filename, or
+        # list parameter_name: init min max
 
 executables:
-    atom: ~/.local/bin/slateratom
+    # Allows for comfortable names in the `tasks` key above,
+    # independent of the actual executable (or its version, path, etc.)
+    # Note that if path is not explicit here, then the first one along $PATH
+    # will be tried.
+    # E.g. suppose we want to experiment with gridatom as opposed to slateratom
+    atom: gridatom
+    # specific version of my device
     twocnt: ~/.local/bin/twocnt
     skgen: ~/.local/bin/skgen
+    # suppose we need alternative to the stock distro
     dftb: ~/.local/bin/dftb+
-    bands: ~/.local/bin/dp_bands
-    dos: ~/.local/bin/dp_dos
+    # there may be other 
+    bands: dp_bands
+    dos: dp_dos
+    # local thingy
     skgen: ./skf/skgen.sh
+    # avoiding any traps from -i flags
     copy: /bin/cp
 ...

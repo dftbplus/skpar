@@ -1,6 +1,8 @@
 import logging
 import os, sys, subprocess
 from subprocess import STDOUT
+from pprint import pprint, pformat
+from skopt.query import Query
 
 DEFAULT_PARAMETER_FILE='current.par'
 parameterfile = DEFAULT_PARAMETER_FILE
@@ -55,6 +57,16 @@ class RunTask (object):
             os.chdir(topdir)
             raise
 
+    def __repr__(self):
+        """Yield a summary of the task.
+        """
+        s = []
+        s.append("\n")
+        s.append("{:<15s}: {}".format("RunTask in", pformat(self.wd)))
+        s.append("{:<15s}: {}".format("command", pformat(' '.join(self.cmd))))
+        s.append("{:<15s}: {}".format("out/err", pformat(self.outfile)))
+        return "\n".join(s)
+
 
 class SetTask (object):
     
@@ -70,14 +82,27 @@ class SetTask (object):
             fp.writeline('{}\n'.format(iteration))
             fp.writeline('{}\n'.format(parameters))
 
+    def __repr__(self):
+        """Yield a summary of the task.
+        """
+        s = []
+        s.append("\n")
+        s.append("{:<15s}: {}".format("SetTask in", pformat(self.wd)))
+        s.append("{:<15s}: {}".format("param. file", pformat(' '.join(self.cmd))))
+        return "\n".join(s)
+
 
 class GetTask (object):
     """Wrapper class to declare tasks w/ arguments but calls w/o args"""
 
     def __init__(self, func, source, destination, *args, **kwargs):
         self.func   = func
-        self.src    = source
-        self.dst    = destination
+        # lets make it possible to handle both strings and dictionaries 
+        # as source/dest.
+        self.src_name = source
+        self.src = Query.add_modelsdb(source)
+        self.dst_name = destination
+        self.dst = Query.add_modelsdb(destination)
         self.args   = args
         self.kwargs = kwargs
 
@@ -87,4 +112,58 @@ class GetTask (object):
         self.kwargs.update(**kwargs)
         self.func(self.src, self.dst, *self.args, **self.kwargs)
         
+    def __repr__(self):
+        """Yield a summary of the task.
+        """
+        s = []
+        s.append("\n")
+        s.append("{:<10s}: {} ".format("GetTask", self.func.__name__))
+        # line below cannot work as intended, as we try to print the content of self.src or self.dst
+        # moreover, if not that, it is not clear what we should be printing of a dictionary
+        # we may try to derive the variable name, holding the dictionary... but it's laboursome.
+#        s.append("{:<10s}: {:<15s} {:<10s} {:<15s}".format("from", self.src, "to", self.dst))
+        s.append("{:<10s}: {}".format("args", pformat(self.args)))
+        s.append("{:<10s}: {}".format("kwargs", pformat(self.kwargs)))
+        return "\n".join(s)
 
+
+taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
+
+def get_task(spec, logger=None):
+    """Return an instance of a task, as defined in the input spec.
+
+    Args:
+        spec (dict): a dictionary with a single entry, being
+            tasktype: {dict with the arguments of the task}
+
+    Returns:
+        list: an instance of the corresponding task-types class.
+    """
+    (_t, _args), = spec.items()
+    try:
+        a0 = _args.pop(0)
+        a1 = _args.pop(0)
+        task = taskmapper[_t](a0, a1, *_args)
+    except TypeError:
+        # end up here if unknown task type, which is mapped to None
+        print ('Cannot handle the following task specification:')
+        print (spec)
+        raise
+    return task
+
+def set_tasks(spec, logger=None):
+    """Parse user specification of Tasks, and return a list of Tasks for execution.
+
+    Args:
+        spec (list): List of dictionaries, each dictionary being a,
+            specification of a task of a recognised type.
+
+    Returns:
+        list: a List of instances of task classes, each 
+            corresponding to a recognised task type.
+    """
+    tasks = []
+    # the spec list has definitions of different tasks
+    for item in spec:
+        tasks.append(....get_objective(item))
+    return tasks

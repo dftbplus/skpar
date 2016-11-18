@@ -3,6 +3,7 @@ import logging
 import yaml
 from pprint import pprint, pformat
 from skopt import tasks
+from skopt.query import Query
 from subprocess import CalledProcessError
 
 
@@ -46,7 +47,7 @@ class TasksParsingTest(unittest.TestCase):
             - run: [bs_dftb, SiO2, ]
             - get: [get_dftb, Si, Si]
             - get: [get_dftb, SiO2, SiO2]
-            - get: [get_meff, Si/bs, Si/bs]
+            - get: [get_meff, Si/bs, Si]
         """
     taskmapper = {'run': tasks.RunTask, 'set': tasks.SetTask, 'get': tasks.GetTask}
 
@@ -74,10 +75,11 @@ class TasksParsingTest(unittest.TestCase):
             self.assertEqual(tt.wd, wd[ii])
         fun = ['get_dftb', 'get_dftb', 'get_meff']
         src = ['Si', 'SiO2', 'Si/bs']
+        dst = ['Si', 'SiO2', 'Si']
         for ii, tt in enumerate(tasklist[4:]):
             self.assertTrue(isinstance(tt, tasks.GetTask))
-            self.assertEqual(tt.src, src[ii])
-            self.assertEqual(tt.dst, src[ii])
+            self.assertEqual(src[ii], tt.src_name)
+            self.assertEqual(src[ii], tt.src_name)
 
 
 class GetTaskTest(unittest.TestCase):
@@ -98,37 +100,45 @@ class GetTaskTest(unittest.TestCase):
     def func_3(self, src, dst, *args, **kwargs):
         assert(isinstance(src,dict))
         assert(isinstance(dst,dict))
-        key = kwargs['query']
-        assert key=='key'
-        dst[key] = src[key] 
+        keys = kwargs['query']
+        if isinstance(keys, list):
+          for key in keys:
+              dst[key] = src[key]
+        else:
+            assert keys=='key'
+            dst[keys] = src[keys] 
 
     def test_gettasks_noargs(self):
         """Can we declare and execute a GetTask?"""
-        src = {}
-        dst = {}
-        # declare: pass empty dictionaries
-        tt = tasks.GetTask(self.func_1, src, dst)
+        # declare: create empty model dictionaries d1 and d2
+        Query.flush_modelsdb()
+        tt = tasks.GetTask(self.func_1, 'd1', 'd2')
         self.assertEqual(tt.func, self.func_1)
-        self.assertEqual(tt.src, src)
-        self.assertEqual(tt.dst, dst)
+        self.assertEqual(tt.src_name, 'd1')
+        self.assertEqual(tt.dst_name, 'd2')
         # update source dictionary
+        src = Query.get_modeldb('d1')
+        dst = Query.get_modeldb('d2')
         src['key'] = True
         src['other'] = False
         # call
         tt()
         # check destination
         self.assertTrue(dst['key'])
+        #other is not queried for... self.assertFalse(dst['other'])
 
     def test_gettasks_posargs(self):
         """Can we declare a GetTask with positional args and execute it?"""
-        src = {}
-        dst = {}
-        # declare: pass empty dictionaries
-        tt = tasks.GetTask(self.func_2, src, dst, 'key')
+        Query.flush_modelsdb()
+        # declare: create empty model dictionaries d1 and d2
+        tt = tasks.GetTask(self.func_2, 'd1', 'd1', 'key')
         self.assertEqual(tt.func, self.func_2)
-        self.assertEqual(tt.src, src)
-        self.assertEqual(tt.dst, dst)
+        self.assertEqual(tt.src_name, 'd1')
+        self.assertEqual(tt.dst_name, 'd1')
+        print (tt)
         # update source dictionary
+        src = Query.get_modeldb('d1')
+        dst = Query.get_modeldb('d1')
         src['key'] = True
         src['other'] = False
         # call
@@ -138,20 +148,24 @@ class GetTaskTest(unittest.TestCase):
 
     def test_gettasks_kwargs(self):
         """Can we declare a GetTask with keyword args and execute it?"""
-        src = {}
-        dst = {}
-        # declare: pass empty dictionaries
-        tt = tasks.GetTask(self.func_3, src, dst, query='key')
+        Query.flush_modelsdb()
+        # declare: create empty model dictionaries d1 and d2
+        tt = tasks.GetTask(self.func_3, 'd1', 'd1', query=['key', 'other'])
         self.assertEqual(tt.func, self.func_3)
-        self.assertEqual(tt.src, src)
-        self.assertEqual(tt.dst, dst)
+        self.assertEqual(tt.src_name, 'd1')
+        self.assertEqual(tt.dst_name, 'd1')
+        print (tt)
         # update source dictionary
+        src = Query.get_modeldb('d1')
+        dst = Query.get_modeldb('d1')
         src['key'] = True
         src['other'] = False
         # call
         tt()
         # check destination
         self.assertTrue(dst['key'])
+        self.assertFalse(dst['other'])
+
 
 if __name__ == '__main__':
     unittest.main()

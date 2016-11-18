@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 from pprint import pprint, pformat
 from skopt.utils import get_logger, normalise
+from skopt.query import Query
 
 from skopt.evaluate import costf, errf
 DEFAULT_COST_FUNC = "rms"
@@ -239,61 +240,6 @@ def plot(data, weights=None, figsize=(6, 7), outfile=None,
     if plotfile is not None:
         fig.savefig(outfile)
     return fig, ax
-
-
-class Query(object):
-    """Decouple the intent of making a query from actually making it.
-
-    The class has a database of models (dict objects, resolved by name).
-    The database is built by calculators who fill the dictionaries
-    with relevant data, and call Query.add_modeldb('model_name', dict).
-    Note that the calculators will continually update their 
-    corresponding model data.
-
-    A query is registered upon instance creation, by stating a model_name
-    (or a list thereof) and a key to be queried from the corresponding
-    dict(s).
-
-    A query is executed by calling the instance, which returns
-    the corresponding data.
-
-    Examples::
-
-        >>> db1 = {'a':1, 'b':2}
-        >>> db2 = {'a':3, 'b':4, 'c':7}
-        >>> Query.add_modeldb('d1', db1)
-        >>> Query.add_modeldb('d2', db2)
-        >>> q1 = Query('d1', 'a')
-        >>> q2 = Query(['d1', 'd2'], 'b')
-        >>> pprint (q1())
-        >>> pprint (q2())
-        1
-        [2, 4]
-
-    TODO:
-        It is conceivable to benefit from a multi-key query (be it over a
-        single or multiple models), but this is still in the future.
-    """
-    modeldb = None
-    
-    @classmethod
-    def add_modeldb(cls, name, ref):
-        if cls.modeldb is None:
-            cls.modeldb = {}
-        cls.modeldb[name] = ref
-        
-    def __init__(self, model_names, key):
-        self.model_names = model_names
-        self.key = key
-            
-    def __call__(self):
-        if isinstance(self.model_names, list):
-            result = []
-            for m in self.model_names:
-                result.append(Query.modeldb[m][self.key])
-        else:
-            result = Query.modeldb[self.model_names][self.key]
-        return np.atleast_1d(result)
 
 
 class Objective(object):
