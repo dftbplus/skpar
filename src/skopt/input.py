@@ -13,7 +13,26 @@ from collections import OrderedDict
 import logging
 import os
 import sys
-from skopt.utils import normalise
+from skopt.utils      import normalise
+from skopt.objectives import set_objectives
+from skopt.query      import Query
+from skopt.tasks      import set_tasks
+from skopt import tasks
+
+def get_input_yaml(filename):
+    """
+    """
+    with open(filename, 'r') as fp:
+        try:
+            spec = yaml.load(fp)
+        except yaml.YAMLError as exc:
+            # this should go to a logger...?
+            print (exc)
+    return spec
+
+def parse_input(spec):
+    objectives = set_objectives(spec['objectives'])
+    tasks      = set_tasks(spec['tasks'])
 
 def remap(dd, mm):
     """Get a subdicitonary of the input data, with translated keys.

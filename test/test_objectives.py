@@ -646,7 +646,6 @@ class SetObjectivesTest(unittest.TestCase):
 #        for objv in objectives:
 #            print ()
 #            print (objv)
-        pass
 
 
 class EvaluateObjectivesTest(unittest.TestCase):

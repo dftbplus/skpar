@@ -167,6 +167,22 @@ class GetTaskTest(unittest.TestCase):
         self.assertFalse(dst['other'])
 
 
+class SetTasksTest(unittest.TestCase):
+    """Check if we can create objectives from skopt_in.yaml"""
+
+    def test_settasks(self):
+        """Can we create a number of tasks from input spec?"""
+        with open("skopt_in.yaml", 'r') as ff:
+            try:
+                spec = yaml.load(ff)
+            except yaml.YAMLError as exc:
+                print (exc)
+        tasklist = tasks.set_tasks(spec['tasks'])
+        for task in tasklist:
+            print ()
+            print (task)
+
+
 if __name__ == '__main__':
     unittest.main()
 

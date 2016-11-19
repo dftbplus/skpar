@@ -3,6 +3,7 @@ import os, sys, subprocess
 from subprocess import STDOUT
 from pprint import pprint, pformat
 from skopt.query import Query
+from skopt.taskdict import taskdict
 
 DEFAULT_PARAMETER_FILE='current.par'
 parameterfile = DEFAULT_PARAMETER_FILE
@@ -88,7 +89,7 @@ class SetTask (object):
         s = []
         s.append("\n")
         s.append("{:<15s}: {}".format("SetTask in", pformat(self.wd)))
-        s.append("{:<15s}: {}".format("param. file", pformat(' '.join(self.cmd))))
+        s.append("{:<15s}: {}".format("param. file", pformat(self.parfile)))
         return "\n".join(s)
 
 
@@ -96,7 +97,10 @@ class GetTask (object):
     """Wrapper class to declare tasks w/ arguments but calls w/o args"""
 
     def __init__(self, func, source, destination, *args, **kwargs):
-        self.func   = func
+        if isinstance(func, str):
+            self.func = taskdict[func]
+        else:
+            self.func   = func
         # lets make it possible to handle both strings and dictionaries 
         # as source/dest.
         self.src_name = source
@@ -118,10 +122,8 @@ class GetTask (object):
         s = []
         s.append("\n")
         s.append("{:<10s}: {} ".format("GetTask", self.func.__name__))
-        # line below cannot work as intended, as we try to print the content of self.src or self.dst
-        # moreover, if not that, it is not clear what we should be printing of a dictionary
-        # we may try to derive the variable name, holding the dictionary... but it's laboursome.
-#        s.append("{:<10s}: {:<15s} {:<10s} {:<15s}".format("from", self.src, "to", self.dst))
+        s.append("{:<10s}: {:<15s} {:<10s} {:<15s}".format("from", 
+            self.src_name, "to", self.dst_name))
         s.append("{:<10s}: {}".format("args", pformat(self.args)))
         s.append("{:<10s}: {}".format("kwargs", pformat(self.kwargs)))
         return "\n".join(s)
@@ -162,8 +164,9 @@ def set_tasks(spec, logger=None):
         list: a List of instances of task classes, each 
             corresponding to a recognised task type.
     """
-    tasks = []
+    tasklist = []
     # the spec list has definitions of different tasks
     for item in spec:
-        tasks.append(....get_objective(item))
-    return tasks
+        tasklist.append(get_task(item))
+        print(tasklist[-1])
+    return tasklist
