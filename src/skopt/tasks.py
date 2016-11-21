@@ -168,5 +168,5 @@ def set_tasks(spec, logger=None):
     # the spec list has definitions of different tasks
     for item in spec:
         tasklist.append(get_task(item))
-        print(tasklist[-1])
+        #print(tasklist[-1])
     return tasklist

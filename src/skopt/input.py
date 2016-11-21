@@ -20,7 +20,8 @@ from skopt.tasks      import set_tasks
 from skopt import tasks
 
 def get_input_yaml(filename):
-    """
+    """Read yaml input; report exception for non-existent file.
+    
     """
     with open(filename, 'r') as fp:
         try:
@@ -30,9 +31,18 @@ def get_input_yaml(filename):
             print (exc)
     return spec
 
-def parse_input(spec):
-    objectives = set_objectives(spec['objectives'])
+def parse_input(filename):
+    """Parse input filename.
+
+    Currently only yaml input is supported.
+    """
+    spec = get_input_yaml(filename)
+    _input = []
     tasks      = set_tasks(spec['tasks'])
+    objectives = set_objectives(spec['objectives'])
+    _input.append(tasks)
+    _input.append(objectives)
+    return _input
 
 def remap(dd, mm):
     """Get a subdicitonary of the input data, with translated keys.

@@ -695,7 +695,7 @@ def get_objective(spec, logger=None):
     spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
     #   print (spec['type'], spec['query'])
     objv = objectives_mapper.get(spec['type'], ObjValues)(spec, logger=logger)
-    print (objv)
+    #print (objv)
     return objv
 
 def set_objectives(spec, logger=None):
