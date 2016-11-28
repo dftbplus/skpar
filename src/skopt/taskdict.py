@@ -11,7 +11,7 @@ def get_meff(src, dest, *args, **kwargs):
     pass
 
 
-taskdict = {
+gettaskdict = {
         'get_dftb': get_dftb, 
         'get_meff': get_meff
         }

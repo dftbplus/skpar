@@ -2,7 +2,9 @@
 # What to do when evaluating a point in parameter space
 tasks:
     #- set: [parfile, workdir, optional_arguments]
-    #- run: [exe, workdir, arguments] 
+    ## for run-tasks, command includes command-line arguments
+    ## while workdir is optional; default being current (top level)
+    #- run: [command, workdir]
     #- get: [what, source, destination, optional_arguments]
     - set: [current.par, skf, ]
     - run: [skgen, skf, ]

@@ -3,24 +3,35 @@ import os, sys, subprocess
 from subprocess import STDOUT
 from pprint import pprint, pformat
 from skopt.query import Query
-from skopt.taskdict import taskdict
+from skopt.taskdict import gettaskdict
 
 DEFAULT_PARAMETER_FILE='current.par'
 parameterfile = DEFAULT_PARAMETER_FILE
 
+# this is going to be filled outside, after parsing the input
+exedict = {}
+
 class RunTask (object):
     
-    def __init__(self, exe, wd='.', inp=None, out='out.log', err=STDOUT, logger=None):
+    def __init__(self, cmd, wd='.', inp=None, out='out.log', err=STDOUT, logger=None):
         self.wd = wd
-        if isinstance(exe, list):
-            self.cmd = exe
-        else:
-            self.cmd = [exe,]
-        if isinstance(inp, list):
-            self.cmd.extend(inp)
-        else:
-            if inp is not None:
-                self.cmd.append(inp)
+        try:
+            _cmd = cmd.split()
+        except AttributeError:
+            # if cmd is a list of strings
+            _cmd = cmd
+        exe  = _cmd[0]
+        # args will be empty list if there are no arguments
+        args = _cmd[1:]
+        # remap the executable; accept even a command with args
+        self.cmd = exedict.get(exe, exe).split()
+        self.cmd.extend(args)
+        if inp is not None:
+            try:
+                _inp = inp.split()
+            except AttributeError:
+                _inp = inp
+            self.cmd.extend(_inp)
         self.outfile = out
         self.err = err
         if logger is None:
@@ -98,7 +109,7 @@ class GetTask (object):
 
     def __init__(self, func, source, destination, *args, **kwargs):
         if isinstance(func, str):
-            self.func = taskdict[func]
+            self.func = gettaskdict[func]
         else:
             self.func   = func
         # lets make it possible to handle both strings and dictionaries 
