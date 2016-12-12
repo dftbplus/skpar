@@ -599,76 +599,83 @@ def get_refdata(data):
             and post-processing of a data file, or pass `data` itself,
             transforming it to an array as necessary.
     """
-    try:
-        # assume `data` contains an instruction where/how to obtain values
-        # ----------------------------------------------------------------------
-        # NOTABENE:
-        # The line below leads to "DeprecationWarning: using a # non-integer 
-        # number instead of an integer will result in an error in the future"
-        # if `data` happens to be a numpy array already.
-        # Some explicit type-checking may be necessary as a rework, since
-        # currently we rely on IndexError exception to catch if `data` is 
-        # actually an array, but it is not clear if the same exception will be
-        # raised in the future.
-        # ----------------------------------------------------------------------
-        file = data['file']
-        # actual data in file -> load it
-        # set default loader_args, assuming 'column'-organised data
-        loader_args = {} #{'unpack': False}
-        # overwrite defaults and add new loader_args
-        loader_args.update(data.get('loader_args', {}))
-        # make sure we don't try to unpack a key-value data
-        if 'dtype' in loader_args.keys() and\
-            'names' in loader_args['dtype']:
-                loader_args['unpack'] = False
-        # read file
-        array_data = np.loadtxt(file, **loader_args)
-        # do some filtering on columns and/or rows if requested
-        # note that file to 2D-array mapping depends on 'unpack' from
-        # loader_args, which transposes the loaded array.
-        postprocess = data.get('process', {})
-        if postprocess:
-            if 'unpack' in loader_args.keys() and loader_args['unpack']:
-                # since 'unpack' transposes the array, now row index
-                # in the original file is along axis 1, while column index
-                # in the original file is along axis 0.
-                key1, key2 = ['rm_columns', 'rm_rows']
-            else:
-                key1, key2 = ['rm_rows', 'rm_columns']
-            for axis, key in enumerate([key1, key2]):
-                rm_rngs = postprocess.get(key, [])
-                if rm_rngs:
-                    indexes=[]
-                    # flatten, combine and sort, then delete corresp. object
-                    for rng in get_ranges(rm_rngs):
-                        indexes.extend(list(range(*rng)))
-                    indexes = list(set(indexes))
-                    indexes.sort()
-                    array_data = np.delete(array_data, obj=indexes, axis=axis)
-            scale = postprocess.get('scale', 1)
-            array_data = array_data * scale
-        return array_data
-
-    except KeyError:
-        # `data` is a dict, but 'file' is not in its keys; assume that
-        # `data` is a dict of key-value data -> transform to structured array
-        dtype = [('keys','S15'), ('values','float')]
-        return np.array([(key,val) for key,val in data.items()], dtype=dtype)
-
-    except TypeError:
-        if not isinstance(data, dict):
-        # `data` is a value or a list  -> return array
-            return np.atleast_1d(data)
+    if isinstance(data, dict):
+        if 'file' in data.keys():
+            # `data` contains an instruction where/how to obtain values
+            file = data['file']
+            # actual data in file -> load it
+            # set default loader_args, assuming 'column'-organised data
+            loader_args = {} #{'unpack': False}
+            # overwrite defaults and add new loader_args
+            loader_args.update(data.get('loader_args', {}))
+            # make sure we don't try to unpack a key-value data
+            if 'dtype' in loader_args.keys() and\
+                'names' in loader_args['dtype']:
+                    loader_args['unpack'] = False
+            # read file
+            try:
+                array_data = np.loadtxt(file, **loader_args)
+            except ValueError:
+                # `file` was not understood
+                print ('np.loadtxt cannot understand the contents of {}'\
+                        .format(file))
+                print ('with the given loader arguments: {}'\
+                        .format(**loader_args))
+                raise
+            except (IOError, FileNotFoundError):
+                # `file` was not understood
+                print ('Reference data file {} cannot be found'\
+                        .format(file))
+                raise
+            # do some filtering on columns and/or rows if requested
+            # note that file to 2D-array mapping depends on 'unpack' from
+            # loader_args, which transposes the loaded array.
+            postprocess = data.get('process', {})
+            if postprocess:
+                if 'unpack' in loader_args.keys() and loader_args['unpack']:
+                    # since 'unpack' transposes the array, now row index
+                    # in the original file is along axis 1, while column index
+                    # in the original file is along axis 0.
+                    key1, key2 = ['rm_columns', 'rm_rows']
+                else:
+                    key1, key2 = ['rm_rows', 'rm_columns']
+                for axis, key in enumerate([key1, key2]):
+                    rm_rngs = postprocess.get(key, [])
+                    if rm_rngs:
+                        indexes=[]
+                        # flatten, combine and sort, then delete corresp. object
+                        for rng in get_ranges(rm_rngs):
+                            indexes.extend(list(range(*rng)))
+                        indexes = list(set(indexes))
+                        indexes.sort()
+                        array_data = np.delete(array_data, obj=indexes, axis=axis)
+                scale = postprocess.get('scale', 1)
+                array_data = array_data * scale
+            return array_data
         else:
-        # `file` was not understood
-            print ('np.loadtxt cannot understand the contents of {}'\
-                    .format(file))
-            raise
-
-    except IndexError:
-        # `data` is already an array  -> return as is
-        # unlikely scenario, since yaml cannot encode numpy array
-        return data
+            try:
+                # `data` is a dict of key-value data -> transform to structured array
+                dtype = [('keys','S15'), ('values','float')]
+                return np.array([(key,val) for key,val in data.items()], dtype=dtype)
+            except TypeError:
+                print ('get_refdata cannot understand the contents of data dictionary')
+                print ("`data` should contain [string_key: float_value, ] pairs,")
+                print ("or has a 'file' key, pointing to a file with data'.")
+                print ("Instead get_refdata got", data)
+                raise
+    else:
+        if isinstance(data, np.ndarray):
+            # `data` is already an array  -> return as is
+            # unlikely scenario, since yaml cannot encode numpy array
+            return data
+        else:
+            # suppose `data` is a value or a list  -> return array
+            try:
+                return np.atleast_1d(data)
+            except TypeError:
+                print ('get_refdata cannot understand the contents of data')
+                print ('`data` should be np.array, list, value, or dict, but it is not.')
+                raise
 
 def get_objective(spec, logger=None):
     """Return an instance of an objective, as defined in the input spec.

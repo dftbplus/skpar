@@ -32,8 +32,8 @@ class EvaluatorTest(unittest.TestCase):
         evaluator = ev.Evaluator(objvs, tasks)
         nptest.assert_array_equal(evaluator.weights,np.array([.5, .5]))
         self.assertFalse(evaluator.verbose)
-        par, ii = 2., 1
-        fitness = evaluator(par, ii)
+        params, iteration = 2., 1
+        fitness = evaluator(params, iteration)
         self.assertEqual(fitness, 2)
 
     def test_evaluator_utopia(self):

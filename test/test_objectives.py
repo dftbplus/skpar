@@ -643,9 +643,9 @@ class SetObjectivesTest(unittest.TestCase):
             except yaml.YAMLError as exc:
                 print (exc)
         objectives = oo.set_objectives(spec)
-#        for objv in objectives:
-#            print ()
-#            print (objv)
+        for objv in objectives:
+            print ()
+            print (objv)
 
 
 class EvaluateObjectivesTest(unittest.TestCase):
