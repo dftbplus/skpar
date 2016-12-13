@@ -10,11 +10,51 @@ from collections import OrderedDict
 from skopt.runtasksDFTB import RunSKgen_sh
 from skopt.system import System
 from skopt.evaluate import Evaluator
-from skopt.pso import PSO, pso_args, report_stats
+from skopt.pso import PSO, pso_dflts, pso_args, report_stats
 from skopt.parameters import read_parameters, write_parameters, report_parameters, update_pardict
 from deap.base import Toolbox
 
+optengines = {'pso': PSO}
 
+
+def get_optargs(spec):
+    """
+    """
+    algo = spec.get('algo', 'pso')
+    options = spec.get('options', {}))
+    try:
+        parameters = get_parameters(spec['parameters'])
+    except KeyError:
+        print ('Parameters must be defined under "optimisation" in the input yaml.')
+        sys.exit(2)
+    return algo, options, parameters
+
+
+class Optimiser(object):
+    """Wrapper for different optimization engines.
+    """
+    def __init__(self, algo, parameters, evaluate, *args, **kwargs):
+        try:
+            self.optengine = optengines[algo]
+        except KeyError:
+            print("Unsupported optimisation algorithm {}".format(algo))
+            sys.exit(2)
+        self.evaluate = evaluate
+        self.parameters = parameters
+        try:
+            self.optimise = optengines[algo](self.evaluate, self.parameters, **kwargs)
+        except KeyError:
+            print("Unsupported optimisation algorithm {}".format(algo))
+            sys.exit(2)
+
+    def __call__(self, **kwargs):
+        output = self.optimise(**kwargs)
+        return output
+
+
+# ----------------------------------------------------------------------
+# OLD stuff
+# ----------------------------------------------------------------------
 class SKopt(object):
     """
     """
