@@ -135,8 +135,8 @@ class Evaluator (object):
         cost = self.costf(ref, fitness, self.weights)
         return cost
 
-    def __call__(self,parameters,iteration=None):
-        return self.evaluate(parameters,iteration)
+    def __call__(self, parameters, iteration=None):
+        return self.evaluate(parameters, iteration)
 
 
 # ----------------------------------------------------------------------

@@ -29,7 +29,7 @@ class PSOTest(unittest.TestCase):
 
         # Define an evaluator function for the fitness e.g. RMS error.
         # NOTABENE:
-        # 1. Fitness must be a tupple-like, hence the atleast_1d below.
+        # 1. Fitness must be a tuple-like, hence the atleast_1d below.
         # 2. The PSO requires errors to be returned, to allow for an 
         #    alternative stopping critera. This may become optional.
         # 3. If the evaluate functions supports 'iteration' argument the PSO 
@@ -64,11 +64,13 @@ class PSOTest(unittest.TestCase):
         # evaluated value), used as a stopping criterium
         ErrTol = 0.001   
         # make an instance of the pso
-        pso = PSO(npart, objectives, prange, evaluate)
+        #pso = PSO(prange, evaluate, objectives=objectives, npart=npart)
+        pso = PSO(prange, evaluate, npart=npart, objective_weights=objectives,
+                ngen = ngen, ErrTol=ErrTol)
 
         # buzz the particle swarm for ngen generations or until percentage 
         # deviations are no greater than ErrTol
-        swarm, stats = pso(ngen, ErrTol=ErrTol)
+        swarm, stats = pso()
 
         print ("gbest iteration: {0}".format(swarm.gbest_iteration))
         print ("gbest fitness: {:.5f}, and worstErr {:.3f} %".

@@ -198,16 +198,15 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
 
 # init arguments: 
 pso_init_args = ["npart", "objectives", "parrange", "evaluate"]
-pso_optinit_args   = ["logger", ] 
-
-#pso_dflts = {'npart': 10,      # number of particles
-#            'ngen': 30,        # number of generation to evolve the particles
-#            'ErrTol': 0.01     # exit tolerance for the maximum relative error, i.e. 1%
-#            }
+pso_optinit_args   = ["logger", 'ngen', 'ErrTol'] 
 
 # call arguments
-pso_call_args      = ["ngen", ]
-pso_optcall_args   = ["ErrTol", ] 
+pso_call_args      = []
+pso_optcall_args   = ['ngen', "ErrTol", ] 
+
+pso_dflts = {'npart': 10, 'ngen': 200, 'ErrTol': 0.001, 
+                'objective_weights': (-1,)}
+
 
 def pso_args(**kwargs):
     """
@@ -217,7 +216,6 @@ def pso_args(**kwargs):
     optargs = {}
     for arg in pso_obligatory_args:
         try: 
-            #args[arg] = kwargs.get(arg, pso_dflts[arg])
             args[arg] = kwargs[arg]
         except KeyError:
             errormsg = "PSO missing obligatory argument {0}\n".format(arg)+\
@@ -228,7 +226,7 @@ def pso_args(**kwargs):
             except KeyError:
                 print (errormsg)
             sys.exit(1)
-    for arg in pso_optinit_args + pso_optcall_args:
+    for arg in list(set(pso_optinit_args + pso_optcall_args)):
         try: 
             optargs[arg] = kwargs[arg]
         except KeyError:
@@ -287,18 +285,28 @@ class PSO(object):
     pInertia = 0.7298
     pAcceleration = 2.9922
 
-    def __init__(self, npart, objective_weights, pRange, pEval, **pEvalKwdArgs):
+    def __init__(self, parameters, evaluate, npart=10, ngen=100, objective_weights=(-1,), ErrTol=0.001):
         """
         Create a particle swarm
         """
+        try:
+            parrange = [(p.minv, p.maxv) for p in parameters]
+        except AttributeError:
+            assert isinstance(parameters, list) and len(parameters[0]) == 2,\
+                ("NOTABENE: `parameters` argument PSO.__init__() should be a list,\n"
+                "every element of which is either a tuple (min_value, max_value)\n"
+                "or a class with attributes minv and maxv!")
+            parrange = parameters
         # define the particle and the methods associated with its creation, evolution and fitness evaluation
         declareTypes(objective_weights)
-        self.toolbox.register("create", createParticle, prange=pRange)
+        self.toolbox.register("create", createParticle, prange=parrange)
         self.toolbox.register("evolve", evolveParticle, inertia=self.pInertia, acceleration=self.pAcceleration)
-        self.toolbox.register("evaluate", pEval, **pEvalKwdArgs) # pEvalArgs will be implicitly passed upon call
+        self.toolbox.register("evaluate", evaluate)
         # create a swarm from particles with the above defined properties
         self.toolbox.register("swarm", tools.initRepeat, creator.Swarm, self.toolbox.create)
         self.swarm = self.toolbox.swarm(npart)
+        self.ngen = ngen
+        self.ErrTol = ErrTol
         # Provide with statistics collector and evolution logger
         #  - fitness statistics
         fit_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
@@ -314,10 +322,16 @@ class PSO(object):
         self.stats_record = []
 
 
-    def optimise(self, ngen, ErrTol=None):
+    def optimise(self, ngen=None, ErrTol=None):
         """
-        Let the swarm evolve for ngen generations.
+        Let the swarm evolve for ngen (or self.ngen) generations.
         """
+        # ngen and ErrTol would typically be set during initialization
+        if ngen is None:
+            ngen = self.ngen
+        if ErrTol is None:
+            ErrTol = self.ErrTol
+        #
         self.stats_record = []
         for g in range(ngen):
             for i, part in enumerate(self.swarm):
