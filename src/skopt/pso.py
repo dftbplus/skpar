@@ -1,5 +1,61 @@
 """
-Particle swarm optimizer based on the DEAP library.
+Particle Swarm Optimizer (PSO)
+
+
+## Particles
+
+In PSO, a particle represents a set of parameters to be optimised. 
+Each parameter is therefore a degree of freedom of the particle.  
+Each particle is represented by its coordinate value. Additionally it needs several attributes:
+    
+    * fitness (the quality of the set of parameters) -- e.g. RMS deviation
+    * speed -- how much the position of the particle changes from one generation to the next
+    * smin/smax -- speed limits
+    * best -- particles own best position (i.e. with highest fitness)
+
+
+## Particle normalisaton/re-normalisation
+
+Additionally to the above generic PSO-related attributes, we need to introduce position normalisation as follows.  
+The parameters giving the particle coordinates are with different meaning, magnitudes and units.
+However, to keep the PSO generic, it is best to impose identical scale in each dimension,
+so that particle range is the same in each direction.  
+This is achieved by normalising the parameters so that the particle position in each dimension is between -1 and +1.  
+However, when evaluating the fitness of the particle, we need the renormalised values 
+(i.e. the true values of the parameters).  
+
+Hence we introduce three additional attributes:
+    
+* norm -- a list with the scaling factors for each dimension ($\eta$),
+* shift -- offset of the parameter range from 0 ($\sigma$),
+* renormalized -- the true value of the parameters ($\lambda$) represented by the particle.
+
+The user must supply only the true range of the particle in the form of a tuple, 
+per dimension ($\lambda_{min}$,$\lambda_{max}$).  
+Then $(\lambda_{max}-\lambda_{min})\eta = 2.0$, or, 
+$\eta = 2.0/(\lambda_2-\lambda_1)$, and 
+$\sigma = 0.5*(\lambda_{max}+\lambda_{min})$.
+
+So, the true particle position (for evaluations) is 
+$\lambda = P/\eta + \sigma$, 
+where $P$ is the normalised position of the particle.
+
+
+## Using particles
+
+Below, we have the declaration of the particle class and a couple of methods for creation and evolution of the particle based on the PSO algorithm.   
+
+__Note that the evaluation of the fitness of the particle is problem specific and the user must supply its own evaluation function and register it under the name ``'evaluate' `` with the toolbox.__
+
+
+## Particle Swarm
+
+The swarm is a a list of particles, with a couple of additional attributes:
+    
+    * ``gbest `` -- globally the best particle (position) ever (i.e. accross any generation so far)
+    * ``gbestfit `` -- globally the best fitness (i.e. the quality value of gbest)   
+
+The swarm is declared, created and let to evolve with the help of the ``PSO`` class.
 """
 import random
 import operator
@@ -10,7 +66,6 @@ import numpy as np
 from deap import base
 from deap import creator
 from deap import tools
-
 
 def declareTypes(weights):
     """
@@ -143,10 +198,15 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
 
 # init arguments: 
 pso_init_args = ["npart", "objectives", "parrange", "evaluate"]
-pso_optinit_args   = ["log", ] 
+pso_optinit_args   = ["logger", ] 
+
+#pso_dflts = {'npart': 10,      # number of particles
+#            'ngen': 30,        # number of generation to evolve the particles
+#            'ErrTol': 0.01     # exit tolerance for the maximum relative error, i.e. 1%
+#            }
 
 # call arguments
-pso_call_args = ["ngen", ]
+pso_call_args      = ["ngen", ]
 pso_optcall_args   = ["ErrTol", ] 
 
 def pso_args(**kwargs):
@@ -157,13 +217,14 @@ def pso_args(**kwargs):
     optargs = {}
     for arg in pso_obligatory_args:
         try: 
+            #args[arg] = kwargs.get(arg, pso_dflts[arg])
             args[arg] = kwargs[arg]
         except KeyError:
             errormsg = "PSO missing obligatory argument {0}\n".format(arg)+\
                 "Please define at least:\n{0}\n".format(pso_obligatory_args)+\
                 "PSO supports also:\n{0}\n".format(pso_optional_args)
             try:
-                kwargs['log'].critical(errormsg)
+                kwargs['logger'].critical(errormsg)
             except KeyError:
                 print (errormsg)
             sys.exit(1)
@@ -181,7 +242,7 @@ def pso_args(**kwargs):
     return init_args, call_args, init_optional_args, call_optional_args
 
 
-def report_stats(stats, log=logging.getLogger(__name__)):
+def report_stats(stats, logger=logging.getLogger(__name__)):
     """
     """
     statsHeader = "".join([
@@ -192,14 +253,14 @@ def report_stats(stats, log=logging.getLogger(__name__)):
     '{0:>10s}'.format('Std.'),
     '{0:>12s}'.format('WorstErr(%)'),
     ])
-    log.info('')
-    log.info("PSO statistics follow:")
-    log.info(statsHeader)
-    log.info('============================================================')
+    logger.info('')
+    logger.info("PSO statistics follow:")
+    logger.info(statsHeader)
+    logger.info('============================================================')
     ngen = len(stats)
     for gen in range(ngen):
         s = stats[gen]
-        log.info("".join([
+        logger.info("".join([
         '{0:>5d}'.format(gen),
         '{0:>10.4f}'.format(s['Fitness']['Min']),
         '{0:>10.4f}'.format(s['Fitness']['Max']),
@@ -207,7 +268,7 @@ def report_stats(stats, log=logging.getLogger(__name__)):
         '{0:>10.4f}'.format(s['Fitness']['Std']),
         '{0:>12.2f}'.format(s['WRE']['Min']*100),
             ]))
-    log.info('============================================================')
+    logger.info('============================================================')
 
 
 #def minabs(swarm):
