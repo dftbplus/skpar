@@ -115,7 +115,12 @@ class GetTask (object):
         # lets make it possible to handle both strings and dictionaries 
         # as source/dest.
         self.src_name = source
-        self.src = Query.add_modelsdb(source)
+        try:
+            # see if a database exists
+            self.src = Query.get_modeldb(source)
+        except KeyError:
+            # assume it is a directory or file, and `func` will handle it
+            self.src = source
         self.dst_name = destination
         self.dst = Query.add_modelsdb(destination)
         self.args   = args

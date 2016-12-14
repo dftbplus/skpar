@@ -60,6 +60,7 @@ class TasksParsingTest(unittest.TestCase):
 
     def test_parsetask(self):
         """Can we parse task declarations successfully"""
+        Query.flush_modelsdb()
         spec = yaml.load(self.yamldata)['tasks']
         tasklist = []
         for tt in spec:
@@ -86,7 +87,7 @@ class TasksParsingTest(unittest.TestCase):
         for ii, tt in enumerate(tasklist[4:]):
             self.assertTrue(isinstance(tt, tasks.GetTask))
             self.assertEqual(src[ii], tt.src_name)
-            self.assertEqual(src[ii], tt.src_name)
+            self.assertEqual(dst[ii], tt.dst_name)
 
 
 class GetTaskTest(unittest.TestCase):
@@ -119,33 +120,33 @@ class GetTaskTest(unittest.TestCase):
         """Can we declare and execute a GetTask?"""
         # declare: create empty model dictionaries d1 and d2
         Query.flush_modelsdb()
+        src = Query.add_modelsdb('d1')
         tt = tasks.GetTask(self.func_1, 'd1', 'd2')
         self.assertEqual(tt.func, self.func_1)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd2')
         # update source dictionary
-        src = Query.get_modeldb('d1')
-        dst = Query.get_modeldb('d2')
         src['key'] = True
         src['other'] = False
         # call
         tt()
         # check destination
+        dst = Query.get_modeldb('d2')
         self.assertTrue(dst['key'])
         #other is not queried for... self.assertFalse(dst['other'])
 
     def test_gettasks_posargs(self):
         """Can we declare a GetTask with positional args and execute it?"""
         Query.flush_modelsdb()
+        src = Query.add_modelsdb('d1')
         # declare: create empty model dictionaries d1 and d2
         tt = tasks.GetTask(self.func_2, 'd1', 'd1', 'key')
         self.assertEqual(tt.func, self.func_2)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd1')
         print (tt)
-        # update source dictionary
-        src = Query.get_modeldb('d1')
         dst = Query.get_modeldb('d1')
+        # update source dictionary
         src['key'] = True
         src['other'] = False
         # call
@@ -156,15 +157,15 @@ class GetTaskTest(unittest.TestCase):
     def test_gettasks_kwargs(self):
         """Can we declare a GetTask with keyword args and execute it?"""
         Query.flush_modelsdb()
+        src = Query.add_modelsdb('d1')
         # declare: create empty model dictionaries d1 and d2
         tt = tasks.GetTask(self.func_3, 'd1', 'd1', query=['key', 'other'])
         self.assertEqual(tt.func, self.func_3)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd1')
         print (tt)
-        # update source dictionary
-        src = Query.get_modeldb('d1')
         dst = Query.get_modeldb('d1')
+        # update source dictionary
         src['key'] = True
         src['other'] = False
         # call
