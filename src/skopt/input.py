@@ -12,6 +12,7 @@ from skopt.utils      import normalise
 from skopt.objectives import set_objectives
 from skopt.query      import Query
 from skopt.tasks      import set_tasks, exedict
+from skopt.optimise   import get_optargs
 from skopt import tasks
 
 def get_input_yaml(filename):
@@ -36,6 +37,8 @@ def parse_input(filename):
     exedict    = spec.get('executables', None)
     tasks      = set_tasks      (spec['tasks'])
     objectives = set_objectives (spec['objectives'])
+    optargs    = get_optargs    (spec['optimisation'])
     _input.append(tasks)
     _input.append(objectives)
+    _input.append(optargs)
     return _input
