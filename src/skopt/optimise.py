@@ -11,7 +11,7 @@ from skopt.runtasksDFTB import RunSKgen_sh
 from skopt.system import System
 from skopt.evaluate import Evaluator
 from skopt.pso import PSO, pso_dflts, pso_args, report_stats
-from skopt.parameters import read_parameters, write_parameters, report_parameters, update_pardict
+from skopt.parameters import get_parameters
 from deap.base import Toolbox
 
 optengines = {'pso': PSO}
@@ -20,8 +20,8 @@ optengines = {'pso': PSO}
 def get_optargs(spec):
     """
     """
-    algo = spec.get('algo', 'pso')
-    options = spec.get('options', {}))
+    algo    = spec.get('algo', 'pso').lower()
+    options = spec.get('options', {})
     try:
         parameters = get_parameters(spec['parameters'])
     except KeyError:

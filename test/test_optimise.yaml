@@ -1,0 +1,28 @@
+---
+
+tasks:
+    - set: [current.par, test_optimise_folder ]
+    - run: [python3 model_poly3.py, test_optimise_folder ]
+    - get: [get_model_data, test_optimise_folder/model_poly3_out.dat, poly3]
+
+objectives:
+
+    - yval:
+        doc: 3-rd order polinomial values for some values of the argument
+        models: poly3
+        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+
+
+optimisation:
+     
+    algo: PSO   # particle swarm optimisation
+    options:
+        npar: 8     # number of particles
+        ngen: 200   # number of generations
+    parameters:
+        # either file: filename, or
+        # list parameter_name: init min max type
+        - c0: -20 20
+        - c1:  -5 5
+        - c2:  -2 2
+        - c3:  -1 1
