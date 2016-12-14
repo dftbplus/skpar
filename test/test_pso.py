@@ -23,6 +23,7 @@ class PSOTest(unittest.TestCase):
         xref = np.linspace(xmin+1, xmax-1, nref)
         c = np.array([10, -2.5, 0.5, 0.05])
         refdata = polyval(xref, c)
+        print (refdata)
         refweights = np.ones(len(refdata))
         def model (par):
             return polyval(xref, par)
