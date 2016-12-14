@@ -21,7 +21,82 @@ from collections import OrderedDict
 import re
 
 
+def get_parameters(spec):
+    """
+    """
+    params=[]
+    for pardef in spec:
+        (pname, pdef), = pardef.items()
+        parstring = " ".join([pname, pdef])
+        params.append(Parameter(parstring))
+    return params
+
 class Parameter(object):
+    """
+    A parameter object, that is initialised from a string.
+
+    ParmaeterName InitialValue MinValue Maxvalue [ParameterType]
+    ParmaeterName MinValue Maxvalue [ParameterType]
+    ParmaeterName InitialValue [ParameterType]
+
+    ParameterName must be alphanumeric, allowing _ too.
+    Iinit/Min/MaxValue can be integer or float
+    ParameterType is optional (float by default), and indicated 
+    by either 'i'(int) or 'f'(float)
+    White space separation is mandatory.
+    """
+    # permitted parameter types
+    typedict = {'i': int, 'f': float}
+
+    def __init__(self, parameterstring):
+        """
+        assume S is a string of one of the following forms:
+        ParName initial min max partype
+        ParName min max partype
+        ParName initial partype
+        ParName partype
+        Permit only 'i' or 'f' for partype and make it optional
+        """
+        # take away spaces, check format consistency and get type
+        assert isinstance(parameterstring, str)
+        words = parameterstring.split()
+        if words[-1] in list(Parameter.typedict.keys()):
+            self.ptype = Parameter.typedict[words[-1]]
+            words = words[:-1]
+        else:
+            self.ptype = float
+
+        # extract data, converting values to appropriate type
+        self.name = words[0]
+        # the conversion from words to float to type allows one to do
+        # %(name,1.0,2.0,3.0)i; otherwise map(int,'3.0') gives valueerror
+        floats = list(map(float, words[1:]))
+        try:
+            self.value, self.minv, self.maxv = list(map(self.ptype, floats))
+        except ValueError:
+            try:
+                self.minv, self.maxv = list(map(self.ptype, floats))
+                self.value = 0.
+            except ValueError:
+                # note at this stage value is a single item, not a list
+                self.value = list(map(self.ptype, floats))[0]
+                self.minv = None
+                self.maxv = None
+            except:
+                print ("Parameter string not understood: {}".format(parstring))
+        except:
+            print ("Parameter string not understood: {}".format(parstring))
+
+    def __repr__(self):
+        return "Parameter {name} = {val}, range=[{minv},{maxv}]". \
+            format(name=self.name, val=self.value, minv=self.minv, maxv=self.maxv)
+
+
+# ----------------------------------------------------------------------
+# OLD STUFF
+# ----------------------------------------------------------------------
+
+class ParameterOld(object):
     """
     A parameter object, that is initialised from a string
     with the following format:
