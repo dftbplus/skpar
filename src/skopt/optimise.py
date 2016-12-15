@@ -42,7 +42,7 @@ class Optimiser(object):
         self.evaluate = evaluate
         self.parameters = parameters
         try:
-            self.optimise = optengines[algo](self.evaluate, self.parameters, **kwargs)
+            self.optimise = optengines[algo](self.parameters, self.evaluate, **kwargs)
         except KeyError:
             print("Unsupported optimisation algorithm {}".format(algo))
             sys.exit(2)
