@@ -285,7 +285,8 @@ class PSO(object):
     pInertia = 0.7298
     pAcceleration = 2.9922
 
-    def __init__(self, parameters, evaluate, npart=10, ngen=100, objective_weights=(-1,), ErrTol=0.001):
+    def __init__(self, parameters, evaluate, npart=10, ngen=100, 
+                 objective_weights=(-1,), ErrTol=0.001):
         """
         Create a particle swarm
         """
