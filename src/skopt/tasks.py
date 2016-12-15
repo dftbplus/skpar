@@ -82,17 +82,34 @@ class RunTask (object):
 
 class SetTask (object):
     
-    def __init__(self, parfile=DEFAULT_PARAMETER_FILE, wd='.', append=False):
+    def __init__(self, parfile=DEFAULT_PARAMETER_FILE, wd='.', 
+                 append=False, logger=None):
         self.parfile = parfile
         self.wd = wd
+        assert not append, ("Append mode not supported yet by SetTask")
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+        else:
+            self.logger = logger
 
-    def __call__(self, parameters, iteration):
+    def __call__(self, parameters, iteration=None):
         self.logger.debug("\nSetting parameteres for iteration {} in {}.".
                 format(iteration, self.parfile))
         parfile = os.path.join(self.wd, self.parfile)
+        parout = []
+        for par in parameters:
+            try:
+                parout.append("{:>20s}  {}".format(par.name, par.value))
+            except AttributeError:
+                try:
+                    parout.append("{:>20s}  {}".format(par.name, par.val))
+                except AttributeError:
+                    parout.append(str(par))
+            
         with open(parfile, 'w') as fp:
-            fp.writeline('{}\n'.format(iteration))
-            fp.writeline('{}\n'.format(parameters))
+            if iteration is not None:
+                fp.writelines('#{}\n'.format(iteration))
+            fp.writelines('\n'.join(parout))
 
     def __repr__(self):
         """Yield a summary of the task.

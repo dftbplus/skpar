@@ -1,8 +1,11 @@
 import unittest
 import logging
 import yaml
-from pprint import pprint, pformat
+import os
+import numpy as np
+import numpy.testing as nptest
 from skopt import tasks
+from skopt.parameters import Parameter
 from skopt.query import Query
 from subprocess import CalledProcessError
 
@@ -88,6 +91,38 @@ class TasksParsingTest(unittest.TestCase):
             self.assertTrue(isinstance(tt, tasks.GetTask))
             self.assertEqual(src[ii], tt.src_name)
             self.assertEqual(dst[ii], tt.dst_name)
+
+
+class SetTaskTest(unittest.TestCase):
+    """Does SetTask operate correctly?"""
+
+    def test_settask_init_and_run(self):
+        """Can we declare and execute a SetTask?"""
+        parfile = "current.par"
+        wd      = "test_optimise_folder"
+        tt = tasks.SetTask(parfile=parfile, wd=wd)
+        self.assertEqual(tt.parfile, parfile)
+        self.assertEqual(tt.wd, wd)
+        # change wd to . for the call test
+        tt.wd = "."
+        ff = os.path.join(tt.wd, tt.parfile)
+        # test call with parameters being just a list of numbers
+        params = np.array([1., 2.23, 5.])
+        iteration = (13, 3) 
+        tt(params, iteration)
+        _params = np.loadtxt(ff)
+        nptest.assert_array_equal(params, _params)
+        # test call with key-val pairs
+        names = ['a','b','c']
+        clsparams = [Parameter(name, value=val) for name, val in zip(names, params)]
+        iteration = 7
+        tt(clsparams, iteration)
+        raw = np.loadtxt('current.par', dtype=[('keys', 'S15'), ('values', 'float')])
+        _params = np.array([pair[1] for pair in raw])
+        _names = [pair[0].decode("utf-8") for pair in raw]
+        nptest.assert_array_equal(params, _params)
+        self.assertListEqual(names, _names)
+        os.remove('current.par')
 
 
 class GetTaskTest(unittest.TestCase):
