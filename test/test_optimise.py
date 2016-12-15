@@ -26,6 +26,25 @@ class OptimiseTest(unittest.TestCase):
         algo, options, parameters = optimisation
         evaluate = Evaluator(objectives, tasks)
         optimise = Optimiser(algo, parameters, evaluate, **options)
+
+        print ("\n### -------------------------------------------------- ###")
+        print ("### ----------- Tasks -------------------------------- ###")
+        print ("### -------------------------------------------------- ###")
+        for tt in optimise.evaluate.tasks:
+            print (tt)
+
+        print ("\n### -------------------------------------------------- ###")
+        print ("### ----------- Objectives --------------------------- ###")
+        print ("### -------------------------------------------------- ###")
+        for oo in optimise.evaluate.objectives:
+            print (oo)
+
+        print ("\n### -------------------------------------------------- ###")
+        print ("### ----------- Parameters --------------------------- ###")
+        print ("### -------------------------------------------------- ###")
+        for pp in optimise.parameters:
+            print (pp)
+
         optimout = optimise()
 
 

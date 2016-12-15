@@ -17,8 +17,8 @@ optimisation:
      
     algo: PSO   # particle swarm optimisation
     options:
-        npar: 8     # number of particles
-        ngen: 200   # number of generations
+        npart: 8     # number of particles
+        ngen : 200   # number of generations
     parameters:
         # either file: filename, or
         # list parameter_name: init min max type

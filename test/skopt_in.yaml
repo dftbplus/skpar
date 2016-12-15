@@ -170,7 +170,7 @@ optimisation:
      
     algo: PSO   # particle swarm optimisation
     options:
-        npar: 10   # number of particles
+        npart: 10   # number of particles
         ngen: 50   # number of generations
     parameters:
         # either file: filename, or
