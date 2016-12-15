@@ -48,7 +48,16 @@ class Parameter(object):
     # permitted parameter types
     typedict = {'i': int, 'f': float}
 
-    def __init__(self, parameterstring):
+    def __init_from_kwargs(self, name, **kwargs):
+        """
+        Look for one obligatory argument -- name, and 
+        the rest is optional.
+        """
+        self.name = name
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+    def __init_from_string(self, parameterstring):
         """
         assume S is a string of one of the following forms:
         ParName initial min max partype
@@ -86,6 +95,16 @@ class Parameter(object):
                 print ("Parameter string not understood: {}".format(parstring))
         except:
             print ("Parameter string not understood: {}".format(parstring))
+
+    def __init__(self, string, **kwargs):
+        """wrapper init method
+
+        The whole thing became patchy. It needs a careful revision.
+        """
+        if string.split() == [string,]:
+            self.__init_from_kwargs(string, **kwargs)
+        else:
+            self.__init_from_string(string)
 
     def __repr__(self):
         return "Parameter {name} = {val}, range=[{minv},{maxv}]". \
