@@ -52,7 +52,11 @@ class Query(object):
 
     @classmethod
     def get_modeldb(cls, name):
-        return cls.__modelsdb[name]
+        try:
+            modelref = cls.__modelsdb[name]
+            return modelref
+        except KeyError:
+            return None
 
     @classmethod
     def add_modelsdb(cls, name, ref=None):

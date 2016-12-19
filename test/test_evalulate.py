@@ -1,8 +1,8 @@
 import unittest
+import logging
 import numpy as np
 import numpy.testing as nptest
 from skopt import evaluate as ev
-from pprint import pprint, pformat
 
 class Objv(object):
     """Barebone objective"""

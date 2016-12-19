@@ -12,7 +12,7 @@ tasks:
     - run: [bs_dftb, SiO2, ]
     - get: [get_dftb, Si, Si]
     - get: [get_dftb, SiO2, SiO2]
-    - get: [get_meff, Si/bs, Si/bs, me_2, mh_0]
+    - get: [get_meff, Si/bs, Si/bs, [me_2, mh_0]]
 
 
 # Individual objectives

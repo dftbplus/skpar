@@ -1,6 +1,10 @@
 import unittest
-from pprint import pprint, pformat
 import yaml
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
 
 
 class ExecutablesTest(unittest.TestCase):
@@ -17,7 +21,7 @@ class ExecutablesTest(unittest.TestCase):
         exedict = yaml.load(yamldata).get('executables', None)
         try:
             for key, val in exedict.items():
-                print ("{:>10s}".format(key), ": ", " ".join(val.split()))
+                logger.debug ("{:>10s} : {}".format(key, " ".join(val.split())))
         except AttributeError:
             # assume no executables are remapped
             pass

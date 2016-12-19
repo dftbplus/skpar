@@ -316,10 +316,10 @@ class PSO(object):
         fit_stats.register("Min", np.min)
         fit_stats.register("Max", np.max)
         #  - Worst Relative Error statistics
-        wre_stats = tools.Statistics(key=lambda ind: ind.worstErr)
-        wre_stats.register("Min", np.min)
+        # wre_stats = tools.Statistics(key=lambda ind: ind.worstErr)
+        # wre_stats.register("Min", np.min)
         # All statistics will be compiled for each generation and added to the record
-        self.mstats = tools.MultiStatistics(Fitness=fit_stats, WRE=wre_stats)
+        self.mstats = tools.MultiStatistics(Fitness=fit_stats)
         self.stats_record = []
 
 
@@ -337,12 +337,8 @@ class PSO(object):
         for g in range(ngen):
             for i, part in enumerate(self.swarm):
                 iteration = (g, i)
-#                try:
-#                    # assume that the evaluator makes use of iteration
-                part.fitness.values, part.worstErr = self.toolbox.evaluate(part.renormalized, iteration)
-#                except:
-#                    # omit iteration from the arguments otherwise
-#                    part.fitness.values, part.worstErr = self.toolbox.evaluate(part.renormalized)
+                part.fitness.values = self.toolbox.evaluate(part.renormalized, iteration)
+                #   part.fitness.values, part.worstErr = self.toolbox.evaluate(part.renormalized, iteration)
                 if not part.best or part.best.fitness < part.fitness:
                     part.best = creator.Particle(part)
                     part.best.fitness.values = part.fitness.values
@@ -352,7 +348,7 @@ class PSO(object):
                     self.swarm.gbest = creator.Particle(part)
                     self.swarm.gbest.fitness.values = part.fitness.values
                     self.swarm.gbest.renormalized = part.renormalized
-                    self.swarm.gbest.worstErr = part.worstErr
+                    #self.swarm.gbest.worstErr = part.worstErr
                     self.halloffame.update(self.swarm)
 
             # Update particles only after full evaluation of the swarm,
@@ -364,9 +360,9 @@ class PSO(object):
             self.stats_record.append(self.mstats.compile(self.swarm))
 
             # Try an alternative exit criterion
-            if ErrTol is not None:
-                if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
-                    break
+            # if ErrTol is not None:
+            #    if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
+            #        break
 
         return self.swarm, self.stats_record
 

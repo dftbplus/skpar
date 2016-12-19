@@ -1,10 +1,14 @@
 import unittest
+import logging
 import numpy as np
 import numpy.testing as nptest
 import yaml
 from skopt import objectives as oo
 from skopt.query import Query
-from pprint import pprint, pformat
+
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
 
 
 class ParseWeightsKeyValueTest(unittest.TestCase):
@@ -641,11 +645,11 @@ class SetObjectivesTest(unittest.TestCase):
             try:
                 spec = yaml.load(ff)['objectives']
             except yaml.YAMLError as exc:
-                print (exc)
+                logger.debug (exc)
         objectives = oo.set_objectives(spec)
         for objv in objectives:
-            print ()
-            print (objv)
+            #logger.debug ()
+            logger.debug (objv)
 
 
 class EvaluateObjectivesTest(unittest.TestCase):

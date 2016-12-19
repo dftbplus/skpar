@@ -1,9 +1,9 @@
 ---
 
 tasks:
-    - set: [current.par, test_optimise_folder ]
-    - run: [python3 model_poly3.py, test_optimise_folder ]
-    - get: [get_model_data, test_optimise_folder/model_poly3_out.dat, poly3]
+    - set: [current.par, test_optimise ]
+    - run: [pythonspecial model_poly3.py, test_optimise ]
+    - get: [get_model_data, test_optimise/model_poly3_out.dat, poly3]
 
 objectives:
 
@@ -17,12 +17,15 @@ optimisation:
      
     algo: PSO   # particle swarm optimisation
     options:
-        npart: 8     # number of particles
-        ngen : 200   # number of generations
+        npart: 4    # number of particles
+        ngen : 5   # number of generations
     parameters:
         # either file: filename, or
         # list parameter_name: init min max type
-        - c0: -20 20
-        - c1:  -5 5
-        - c2:  -2 2
-        - c3:  -1 1
+        - c0: 9.95   10.05
+        - c1: -2.49   -2.51
+        - c2:  0.499    0.501
+        - c3:  0.0499   0.0501
+
+executables:
+    pythonspecial: '~/anaconda3/python'

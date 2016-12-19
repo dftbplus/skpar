@@ -1,8 +1,14 @@
 import unittest
+import logging
 import numpy as np
 import numpy.testing as nptest
 import yaml
 from skopt.parameters import get_parameters
+
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
+
 
 class ParametersTest(unittest.TestCase):
     """
@@ -28,7 +34,7 @@ class ParametersTest(unittest.TestCase):
             self.assertEqual(par.minv, minv[i])
             self.assertEqual(par.maxv, maxv[i])
             self.assertEqual(par.name, names[i])
-            print (par)
+            logger.debug (par)
 
 if __name__ == '__main__':
     unittest.main()

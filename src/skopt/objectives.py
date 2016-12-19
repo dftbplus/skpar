@@ -331,7 +331,6 @@ class Objective(object):
         """Yield a summary of the objective.
         """
         s = []
-        s.append("\n")
         s.append("{:<15s}: {}".format("Objective:", pformat(self.doc)))
         s.append("{:<15s}: {}".format("Query", pformat(self.query_key)))
         s.append("{:<15s}: {}".format("Models", pformat(self.model_names)))
@@ -346,6 +345,7 @@ class Objective(object):
         s.append("{:<15s}: {:s} / {:s}".
                 format("Cost/Err. func.", self.costf.__name__, self.errf.__name__))
         s.append("{:<15s}: {}".format("Weight", pformat(self.weight)))
+        s.append("\n")
         return "\n".join(s)
 
 

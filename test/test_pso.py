@@ -11,6 +11,10 @@ from deap import base
 from skopt.pso import PSO
 from skopt.pso import PSO, report_stats
 
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
+
 class PSOTest(unittest.TestCase):
     """
     A small test and usage example of the PSO engine.
@@ -23,7 +27,7 @@ class PSOTest(unittest.TestCase):
         xref = np.linspace(xmin+1, xmax-1, nref)
         c = np.array([10, -2.5, 0.5, 0.05])
         refdata = polyval(xref, c)
-        print (refdata)
+        logger.debug ("Reference data: {}".format(refdata))
         refweights = np.ones(len(refdata))
         def model (par):
             return polyval(xref, par)
@@ -45,7 +49,8 @@ class PSOTest(unittest.TestCase):
             # no-average-required number of iterations by significantly -
             # e.g. from ~150 to ~ 110, to reduce the ErrTol
             fitness = np.atleast_1d(np.sqrt(sum(weights*np.power(errors/refdata, 2))))         
-            return fitness, np.max(np.abs(errors/refdata))
+            #return fitness, np.max(np.abs(errors/refdata))
+            return fitness
 
         # Variables specific to the optimisation problem
         # ----------------------------------------------------------------------
@@ -73,16 +78,17 @@ class PSOTest(unittest.TestCase):
         # deviations are no greater than ErrTol
         swarm, stats = pso()
 
-        print ("gbest iteration: {0}".format(swarm.gbest_iteration))
-        print ("gbest fitness: {:.5f}, and worstErr {:.3f} %".
-            format(swarm.gbest.fitness.values[0], swarm.gbest.worstErr*100.))
-        print ("Fitted coefficients: {}".
+        logger.debug ("gbest iteration: {0}".format(swarm.gbest_iteration))
+        # logger.debug ("gbest fitness: {:.5f}, and worstErr {:.3f} %".
+        #    format(swarm.gbest.fitness.values[0], swarm.gbest.worstErr*100.))
+        logger.debug ("gbest fitness: {:.5f}".format(swarm.gbest.fitness.values[0]))
+        logger.debug ("Fitted coefficients: {}".
             format(", ".join(["{0:.3f}".format(par) for par in swarm.gbest.renormalized])))
 
         nptest.assert_allclose(swarm.gbest.renormalized, c, rtol=0.1, verbose=True)
         self.assertTrue(swarm.gbest.fitness.values[0] < 0.2)
-        self.assertTrue(swarm.gbest.worstErr < ErrTol or 
-                        swarm.gbest_iteration[0] == ngen-1)
+        #self.assertTrue(swarm.gbest.worstErr < ErrTol or 
+        #                swarm.gbest_iteration[0] == ngen-1)
 
 
 

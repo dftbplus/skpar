@@ -47,6 +47,12 @@ def cost_RMS(ref, model, weights, errf=abserr):
     rms = np.sqrt(np.sum(weights*err2))
     return rms
 
+def eval_objectives(objectives):
+    """
+    """
+    fitness = np.array([objv() for objv in objectives])
+    return fitness
+
 # ----------------------------------------------------------------------
 # Function mappers
 # ----------------------------------------------------------------------
@@ -118,7 +124,7 @@ class Evaluator (object):
             # and TypeError is due to task not accepting arguments
             pass
         except:
-            self.logger.critical('\nEvaluation FAILED at task {}: {}'.format(jj, task))
+            self.logger.critical('\nEvaluation FAILED at task {}:\n{}'.format(jj, task))
             raise
         # Get new model data
         for ii, task in enumerate(self.tasks[jj:]):
@@ -126,14 +132,14 @@ class Evaluator (object):
             try:
                 task()
             except:
-                self.logger.critical('\nEvaluation FAILED at task {}: {}'.format(kk+1, task))
+                self.logger.critical('\nEvaluation FAILED at task {}:\n{}'.format(kk+1, task))
                 raise
         # Evaluate individual fitness for each objective
-        fitness = [objv() for objv in self.objectives]
+        self.objvfitness = eval_objectives(self.objectives)
         ref = self.utopia
         # evaluate global fitness
-        cost = self.costf(ref, fitness, self.weights)
-        return cost
+        cost = self.costf(ref, self.objvfitness, self.weights)
+        return np.atleast_1d(cost)
 
     def __call__(self, parameters, iteration=None):
         return self.evaluate(parameters, iteration)

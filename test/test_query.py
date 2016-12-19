@@ -1,9 +1,13 @@
 import unittest
+import logging
 import numpy as np
 import numpy.testing as nptest
 import yaml
 from skopt.query import Query
-from pprint import pprint, pformat
+
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
 
 
 class QueryTest(unittest.TestCase):

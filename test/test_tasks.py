@@ -2,46 +2,18 @@ import unittest
 import logging
 import yaml
 import os
+from os.path import normpath, expanduser
 import numpy as np
 import numpy.testing as nptest
-from skopt import tasks
+from skopt.tasks import SetTask, RunTask, GetTask, set_tasks
 from skopt.parameters import Parameter
 from skopt.query import Query
 from subprocess import CalledProcessError
+from skopt.taskdict import gettaskdict
 
-
-class TasksCreationTest(unittest.TestCase):
-    """Check if we can create and execute tasks."""
-
-    def test_passtask(self):
-        """Can we declare and execute a task successfully"""
-        t1 = tasks.RunTask(cmd='python', wd='testtasks', inp='pass.py')
-        self.assertListEqual(t1.cmd,['python', 'pass.py'])
-        self.assertEqual(t1.wd, 'testtasks')
-        self.assertTrue(isinstance(t1.logger,logging.Logger))
-        t1()
-        self.assertEqual(t1.out, "Running to pass!\n")
-
-    def test_passtask_listcmd_listinp(self):
-        """Can we declare tasks with multiple input arguments?"""
-        t1 = tasks.RunTask(cmd='python pass.py')
-        self.assertListEqual(t1.cmd,['python', 'pass.py'])
-        t2 = tasks.RunTask(cmd='python pass.py', inp='monkey boogie')
-        self.assertListEqual(t2.cmd,['python', 'pass.py', 'monkey', 'boogie'])
-
-    def test_passtask_listcmd_listinp2(self):
-        """Can we declare tasks with multiple input arguments?"""
-        t1 = tasks.RunTask(cmd=['python', 'pass.py'])
-        self.assertListEqual(t1.cmd,['python', 'pass.py'])
-        t2 = tasks.RunTask(cmd=['python', 'pass.py'], inp=['monkey','boogie'])
-        self.assertListEqual(t2.cmd,['python', 'pass.py', 'monkey', 'boogie'])
-
-    def test_task_fail(self):
-        """Can we fail a task due to non-zero return status of executable?"""
-        t1 = tasks.RunTask(cmd='python', wd='testtasks', inp='fail.py')
-        self.assertRaises(CalledProcessError, t1)
-        self.assertEqual(t1.out, "About to fail...\n")
-
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
 
 class TasksParsingTest(unittest.TestCase):
     """Check if we can create and execute tasks."""
@@ -59,7 +31,7 @@ class TasksParsingTest(unittest.TestCase):
             - get: [get_dftb, SiO2, SiO2]
             - get: [get_meff, Si/bs, Si]
         """
-    taskmapper = {'run': tasks.RunTask, 'set': tasks.SetTask, 'get': tasks.GetTask}
+    taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
 
     def test_parsetask(self):
         """Can we parse task declarations successfully"""
@@ -68,29 +40,120 @@ class TasksParsingTest(unittest.TestCase):
         tasklist = []
         for tt in spec:
             # we should be getting 1 dict entry only!
-            (_t, _args), = tt.items()
-            try:
-                a0 = _args.pop(0)
-                a1 = _args.pop(0)
-                tasklist.append(self.taskmapper[_t](a0, a1, *_args))
-            except TypeError:
-                # end up here if unknown task type, which is mapped to None
-                self.assertEqual(self.taskmapper.get(_t, None), None)
-                pass
-        self.assertTrue(isinstance(tasklist[0], tasks.SetTask))
+            (tasktype, args), = tt.items()
+            if tasktype.lower() == 'set':
+                tasklist.append(SetTask(*args, parnames=[], logger=logger))
+            if tasktype.lower() == 'run':
+                tasklist.append(RunTask(*args, exedict={}, logger=logger))
+            if tasktype.lower() == 'get':
+                tasklist.append(GetTask(*args, gettaskdict=gettaskdict, logger=logger))
+        self.assertTrue(isinstance(tasklist[0], SetTask))
+        fun = ['get_dftb', 'get_dftb', 'get_meff']
         cmd = ['skgen', 'bs_dftb', 'bs_dftb']
         wd  = ['skf', 'Si', 'SiO2']
         for ii, tt in enumerate(tasklist[1:4]):
-            self.assertTrue(isinstance(tt, tasks.RunTask))
+            self.assertTrue(isinstance(tt, RunTask))
             self.assertListEqual(tt.cmd, [cmd[ii]])
             self.assertEqual(tt.wd, wd[ii])
-        fun = ['get_dftb', 'get_dftb', 'get_meff']
         src = ['Si', 'SiO2', 'Si/bs']
         dst = ['Si', 'SiO2', 'Si']
         for ii, tt in enumerate(tasklist[4:]):
-            self.assertTrue(isinstance(tt, tasks.GetTask))
+            self.assertTrue(isinstance(tt, GetTask))
+            self.assertTrue(fun[ii], tt.func.__name__)
             self.assertEqual(src[ii], tt.src_name)
             self.assertEqual(dst[ii], tt.dst_name)
+
+
+class RunTaskTest(unittest.TestCase):
+    """Check if we can create and execute tasks."""
+
+    def test_passtask(self):
+        """Can we declare and execute a task successfully"""
+        t1 = RunTask(cmd='python', wd='test_tasks', inp='pass.py')
+        self.assertListEqual(t1.cmd,['python', 'pass.py'])
+        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertTrue(isinstance(t1.logger,logging.Logger))
+        logger.debug(t1)
+        t1()
+        self.assertEqual(t1.out, "Running to pass!\n")
+
+    def test_passtask_altcmd(self):
+        """Can we declare task without input file and execute a task successfully"""
+        t1 = RunTask(cmd='python pass.py', wd='test_tasks')
+        self.assertListEqual(t1.cmd,['python', 'pass.py'])
+        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertTrue(isinstance(t1.logger,logging.Logger))
+        logger.debug(t1)
+        t1()
+        self.assertEqual(t1.out, "Running to pass!\n")
+
+    def test_passtask_fromyaml(self):
+        """Can we declare task without input file and execute a task successfully"""
+        yamldata="""
+            tasks:
+                - run: [python pass.py, test_tasks ]
+            """
+        taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
+        spec = yaml.load(yamldata)['tasks']
+        tt = spec[0]
+        (ttype, args), = tt.items()
+        t1 = taskmapper[ttype](*args)
+        self.assertListEqual(t1.cmd,['python', 'pass.py'])
+        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertTrue(isinstance(t1.logger,logging.Logger))
+        logger.debug (t1)
+        t1()
+        self.assertEqual(t1.out, "Running to pass!\n")
+
+    def test_passtask_listcmd_listinp(self):
+        """Can we declare tasks with multiple input arguments?"""
+        t1 = RunTask(cmd='python pass.py')
+        self.assertListEqual(t1.cmd,['python', 'pass.py'])
+        t2 = RunTask(cmd='python pass.py', inp='monkey boogie')
+        self.assertListEqual(t2.cmd,['python', 'pass.py', 'monkey', 'boogie'])
+
+    def test_passtask_listcmd_listinp2(self):
+        """Can we declare tasks with multiple input arguments?"""
+        t1 = RunTask(cmd=['python', 'pass.py'])
+        self.assertListEqual(t1.cmd,['python', 'pass.py'])
+        t2 = RunTask(cmd=['python', 'pass.py'], inp=['monkey','boogie'])
+        self.assertListEqual(t2.cmd,['python', 'pass.py', 'monkey', 'boogie'])
+
+    def test_task_fail_subprosseserr(self):
+        """Can we fail a task due to non-zero return status of executable?"""
+        t1 = RunTask(cmd='python', wd='test_tasks', inp='fail.py')
+        logger.debug (t1)
+        self.assertRaises(CalledProcessError, t1)
+        self.assertEqual(t1.out, "About to fail...\n")
+
+    def test_task_fail_oserr(self):
+        """Can we fail a task due to OS error, e.g. command not found?"""
+        t1 = RunTask(cmd='python_missing', wd='test_tasks', inp='pass.py')
+        logger.debug (t1)
+        self.assertRaises(OSError, t1)
+
+    def test_passtask_remapexe(self):
+        """Test if we can redefine the executable in the yaml"""
+        yamldata="""
+            tasks:
+                - run: [pythonspecial pass.py, test_tasks ]
+            executables:
+                pythonspecial: '~/anaconda3/python'
+            """
+        taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
+        spec = yaml.load(yamldata)
+        taskspec = spec.get('tasks')
+        exedict  = spec.get('executables', None)
+        tt = taskspec[0]
+        (ttype, args), = tt.items()
+        kwargs = {"exedict": exedict}
+        t1 = taskmapper[ttype](*args, **kwargs)
+        exe = normpath(expanduser('~/anaconda3/python'))
+        self.assertListEqual(t1.cmd,[exe, 'pass.py'])
+        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertTrue(isinstance(t1.logger,logging.Logger))
+        t1()
+        self.assertEqual(t1.out, "Running to pass!\n")
 
 
 class SetTaskTest(unittest.TestCase):
@@ -100,7 +163,7 @@ class SetTaskTest(unittest.TestCase):
         """Can we declare and execute a SetTask?"""
         parfile = "current.par"
         wd      = "test_optimise_folder"
-        tt = tasks.SetTask(parfile=parfile, wd=wd)
+        tt = SetTask(parfile=parfile, wd=wd)
         self.assertEqual(tt.parfile, parfile)
         self.assertEqual(tt.wd, wd)
         # change wd to . for the call test
@@ -156,7 +219,7 @@ class GetTaskTest(unittest.TestCase):
         # declare: create empty model dictionaries d1 and d2
         Query.flush_modelsdb()
         src = Query.add_modelsdb('d1')
-        tt = tasks.GetTask(self.func_1, 'd1', 'd2')
+        tt = GetTask(self.func_1, 'd1', 'd2')
         self.assertEqual(tt.func, self.func_1)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd2')
@@ -175,11 +238,11 @@ class GetTaskTest(unittest.TestCase):
         Query.flush_modelsdb()
         src = Query.add_modelsdb('d1')
         # declare: create empty model dictionaries d1 and d2
-        tt = tasks.GetTask(self.func_2, 'd1', 'd1', 'key')
+        tt = GetTask(self.func_2, 'd1', 'd1', 'key')
         self.assertEqual(tt.func, self.func_2)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd1')
-        print (tt)
+        logger.debug (tt)
         dst = Query.get_modeldb('d1')
         # update source dictionary
         src['key'] = True
@@ -194,11 +257,11 @@ class GetTaskTest(unittest.TestCase):
         Query.flush_modelsdb()
         src = Query.add_modelsdb('d1')
         # declare: create empty model dictionaries d1 and d2
-        tt = tasks.GetTask(self.func_3, 'd1', 'd1', query=['key', 'other'])
+        tt = GetTask(self.func_3, 'd1', 'd1', query=['key', 'other'])
         self.assertEqual(tt.func, self.func_3)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd1')
-        print (tt)
+        logger.debug (tt)
         dst = Query.get_modeldb('d1')
         # update source dictionary
         src['key'] = True
@@ -210,7 +273,7 @@ class GetTaskTest(unittest.TestCase):
         self.assertFalse(dst['other'])
 
 
-class SetTasksTest(unittest.TestCase):
+class SetAllTasksTest(unittest.TestCase):
     """Check if we can create objectives from skopt_in.yaml"""
 
     def test_settasks(self):
@@ -219,11 +282,11 @@ class SetTasksTest(unittest.TestCase):
             try:
                 spec = yaml.load(ff)
             except yaml.YAMLError as exc:
-                print (exc)
-        tasklist = tasks.set_tasks(spec['tasks'])
+                logger.debug (exc)
+        tasklist = set_tasks(spec['tasks'])
         for task in tasklist:
-            print ()
-            print (task)
+            logger.debug ("")
+            logger.debug (task)
 
 
 if __name__ == '__main__':
