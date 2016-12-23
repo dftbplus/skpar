@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import sys
-if sys.hexversion < 0x03020000:
-    sys.exit("SKOPT only works with python 3.2 or greater,"
-             " as required by the underlying SKGEN")
 import os
 import argparse
-from skopt.optimise import SKopt
-from skopt.evaluate import Evaluator
 import logging
-import importlib
-import skopt
+from skopt.input import parse_input
+from skopt.evaluate import Evaluator
+from skopt.optimise import Optimiser
+from skopt.query import Query
 
 
 def main():
@@ -19,28 +16,8 @@ def main():
             description="Tool for optimising Slater-Koster tables for DFTB."
             )
     parser.add_argument(
-            "-np", "-npart", "-nind", dest="np", type=int, default=5, 
-            action="store",
-            help="Number of individuals(particles) in the population(swarm)."
-            )
-    parser.add_argument(
-            "-ng", "-ngen", dest="ng", type=int, default=50, 
-            action="store",
-            help="Number of generations through which the population(swarm) evolves."
-            )
-    parser.add_argument(
-            "-etol", dest="etol", type=float, default=1.0, 
-            action="store", 
-            help="Maximum tolerable error [%%], below which optimisation stops."
-            )
-    parser.add_argument(
-            "--evaluate-only", dest="evaluate_only", action="store_true",
-            help=("Do not perform optimisation. Instead, only "
-                  "evaluate a given SKF set against reference data.")
-            )
-    parser.add_argument(
-            "skopt_input", type=str, default="skopt_in.py", action="store", 
-            help="Input to skopt: description of systems, targets, weights, etc."
+            "skopt_input", type=str, default="skopt_in.yaml", action="store", 
+            help="YAML input file: objectives, tasks, executables, optimisation options."
             )
     args = parser.parse_args()
 
@@ -48,13 +25,9 @@ def main():
     # Project work directory
     # -------------------------------------------------------------------
     workdir = os.getcwd()
-    # Make sure we add the working directory to sys.path(), or else
-    # we cannot import the skopt_input.py
-    # we will still fail if we attempt skopt_input.py from another directory...
-    sys.path.append(workdir)
 
-
-    # Logging at console and to debug file
+    # Logging: console(INFO) and debug(DEBUG) file
+    # Logging level may be controlled via command argument in the future
     # -------------------------------------------------------------------
     # Default logging is set so that skopt.debug.log gets all DEBUG
     # messages and above. At the same time console gets INFO and above.
@@ -63,115 +36,48 @@ def main():
             datefmt='%m-%d %H:%M',
             filename=os.path.join(workdir,'skopt.debug.log'),
             filemode='w')
-    log=logging.getLogger('skopt')
+    logger=logging.getLogger('skopt')
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     # set a format which is simpler for console use
-    # formatter = logging.Formatter('%(name)s: %(levelname)-8s %(message)s')
     formatter = logging.Formatter('%(levelname)-8s %(message)s')
     # tell the handler to use this format
     console.setFormatter(formatter)
     # add the handler to the root logger
     logging.getLogger('skopt').addHandler(console)
+    # question: do we have to do this mambo for all modules?
+    # if we pass the logger, then we will not have %(name)s of the module,
+    # but 'skopt' instead, and that will carry almost no info, i.e. redundant
 
 
-    # Import the definition of the systems
+    # Main part
     # -------------------------------------------------------------------
-    # the skoptdefs input is a python file; may be specified either as a
-    # module name (something) or as a python file (something.py)
-    # first we have to get rid of the .py, in order to use the import_module()
-    # we must get rid of path too, if present, i.e. './blah.py' should become 'blah'
-    argskoptinp = os.path.basename(args.skopt_input)
-    fname, fext = os.path.splitext(argskoptinp)
-    if fext=='.py':
-        skoptinp_module = fname
-    else:
-        skoptinp_module = argskoptinp
-    # now we should have a clean module name, w/o .py trailing
-    try:
-        log.info('Looking for input in {} python module'.format(skoptinp_module))
-        skoptinp = importlib.import_module(skoptinp_module)
-    except ImportError:
-        log.critical('The specified {0} module is missing.'.format(args.skopt_input))
-        log.critical('Make sure it is in the current directory and is a valid python3 file.')
-        log.critical('Doing "python3 {}" should pass without any output/error.'.format(args.skopt_input))
-        raise
-        sys.exit()
+    # Do we really need to flush the modeldb?
+    logger.info('Initialising ModelDataBase.')
+    Query.flush_modelsdb()
 
-    skoptdefs = skoptinp.SKoptInput(workdir=workdir)
+    # parse input file
+    filename = args.skopt_input
+    logger.info('Parsing input file {}'.format(filename))
+    tasks, objectives, optimisation = parse_input(filename)
 
-    systems    = skoptdefs.systems
-    sysweights = skoptdefs.sysweights
-    reportkeys = skoptdefs.reportkeys
+    # instantiate the evaluator machinery
+    logger.info('Instantiating Evaluator')
+    evaluate   = Evaluator(objectives, tasks)
 
-    if args.evaluate_only:
-        # Instance of Evaluator
-        # ----------------------------------------------------------------------
-        ## Configure the evaluator of fitness (cost)
-        evaluate = Evaluator(systems=systems, 
-                    systemweights=sysweights, 
-                    workdir=workdir,
-                    # costfunc=costfunc,   # use default cost function       
-                    verbose=True,
-                    useRelErr=False,     # if true, would use relerr in costfunc
-                    log=log)
+    # instantiate the optimiser
+    algo, options, parameters = optimisation
+    logger.info('Instantiating optimiser')
+    optimiser  = Optimiser(algo, parameters, evaluate, **options)
 
-        ## fine-tuning what should be reported at each evaluation:
-        ## in constructing reportkeys, recall that s0 is with 0 system-weight,
-        ## so nothing will be reported anyway (nothing from s0 goes to flatrefdata)
-        # TODO: reconsider this bit. This is strictly evaluator functionality so
-        #       it may be better to pass reortkeys as a kwarg directly to evaluator
-        #       and not burden skopt with that.
-        try:
-            evaluate.evalcost.keys = reportkeys or []
-        except AttributeError:
-            log.critical((
-            "You supply reportkeys to evaluator, "
-            "but the costfunc you supplied does not support that."))
-            log.debug("costfunc is {0}".costfunc)
-            sys.exit(2)
+    # run the optimiser
+    logger.info('Starting optimisation')
+    optimiser()
+    # issue final report
+    optimiser.report()
+    logger.info('Done.')
 
-        # do the evaluation
-        evaluate([])
-
-    else:
-        # Input parameter definition for the optimiser and for definitions 
-        # for skgen:
-        # skfdir is where skgen is run into: $workdir/$skfdir
-        # skdefs_out naturally goes into the skfdir; the file is actually 
-        # the input for skgen
-        # skdefs_template stays in $workdir, as it is for the optimiser
-        # -------------------------------------------------------------------
-        skfdir = "skf"
-        skdefs_out = "skdefs.py"
-        skdefs_template = "skdefs.template.py"
-
-
-        # Configure an instance of the optimiser
-        # ----------------------------------------------------------------------
-        # Parameters describing the optimisation strategy with PSO
-        objectives = (-1,)  # Keep single objective optimisation for now;
-                            # don't know how to handle multiobjective optimisation
-        npart  = args.np         # Number of particles in the warm
-        ngen   = args.ng         # Number of generations through which the swarm evolves
-        ErrTol = args.etol/100.  # Use this as an alternative, if ngen is rather large,
-                                # we stop as soon as the worst relative error accross
-                                # the reference data falls below ErrTol.
-        # instantiate an optimiser
-        optimise = SKopt(workdir=workdir, skfdir=skfdir,
-                        skdefs_template=skdefs_template, skdefs_out=skdefs_out,
-                        # Systems definition
-                        systems=systems, sysweights=sysweights, 
-                        # Evaluator arguments
-                        reportkeys=reportkeys,
-                        # optimiser arguments as a list of kwargs
-                        npart=npart, objectives=objectives,
-                        ngen=ngen, ErrTol=ErrTol,
-                        # log
-                        log=log)
-        # do the optimisation
-        swarm, stats = optimise()
 
 if __name__ == "__main__":
     main()
