@@ -51,6 +51,8 @@ class Optimiser(object):
         output = self.optimise(**kwargs)
         return output
 
+    def report(self, *args, **kwargs):
+        self.optimise.report(*args, **kwargs)
 
 # ----------------------------------------------------------------------
 # OLD stuff

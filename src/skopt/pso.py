@@ -240,19 +240,21 @@ def pso_args(**kwargs):
     return init_args, call_args, init_optional_args, call_optional_args
 
 
-def report_stats(stats, logger=logging.getLogger(__name__)):
+def report_stats(stats, logger=None):
     """
     """
+    if logger is None:
+        logger = logging.getLogger(__name__)
     statsHeader = "".join([
     '{0:>5s}'.format('Gen.'),
     '{0:>10s}'.format('Min.'),
     '{0:>10s}'.format('Max.'),
     '{0:>10s}'.format('Avg.'),
     '{0:>10s}'.format('Std.'),
-    '{0:>12s}'.format('WorstErr(%)'),
+#    '{0:>12s}'.format('WorstErr(%)'),
     ])
     logger.info('')
-    logger.info("PSO statistics follow:")
+    logger.info("Fitness statistics follow:")
     logger.info(statsHeader)
     logger.info('============================================================')
     ngen = len(stats)
@@ -264,7 +266,7 @@ def report_stats(stats, logger=logging.getLogger(__name__)):
         '{0:>10.4f}'.format(s['Fitness']['Max']),
         '{0:>10.4f}'.format(s['Fitness']['Avg']),
         '{0:>10.4f}'.format(s['Fitness']['Std']),
-        '{0:>12.2f}'.format(s['WRE']['Min']*100),
+ #       '{0:>12.2f}'.format(s['WRE']['Min']*100),
             ]))
     logger.info('============================================================')
 
@@ -322,7 +324,6 @@ class PSO(object):
         self.mstats = tools.MultiStatistics(Fitness=fit_stats)
         self.stats_record = []
 
-
     def optimise(self, ngen=None, ErrTol=None):
         """
         Let the swarm evolve for ngen (or self.ngen) generations.
@@ -366,6 +367,14 @@ class PSO(object):
 
         return self.swarm, self.stats_record
 
+    def report(self, logger = None):
+        if logger is None:
+            logger = logging.getLogger(__name__)
+        report_stats(self.stats_record, logger=logger)
+        logger.info("GBest iteration   : {}".format(self.swarm.gbest_iteration))
+        logger.info("GBest fitness     : {}".format(self.swarm.gbest.fitness.values))
+        gbestpars = self.swarm.gbest.renormalized
+        logger.info("GBest parameters  : {}".format(gbestpars))
 
     def __call__(self, *args, **kwargs):
         return self.optimise(*args, **kwargs)
