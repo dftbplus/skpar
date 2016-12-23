@@ -3,7 +3,7 @@
 tasks:
     - set: [current.par, test_optimise ]
     - run: [pythonspecial model_poly3.py, test_optimise ]
-    - get: [get_model_data, test_optimise/model_poly3_out.dat, poly3]
+    - get: [get_model_data, test_optimise/model_poly3_out.dat, poly3, yval]
 
 objectives:
 

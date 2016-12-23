@@ -7,19 +7,11 @@ from os.path import normpath, expanduser
 from skopt.input import parse_input
 from skopt.evaluate import Evaluator, eval_objectives, cost_RMS
 from skopt.optimise import Optimiser, get_optargs
-from skopt.taskdict import gettaskdict
 from skopt.query import Query
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
 logger = logging.getLogger(__name__)
-
-def get_model_data (src, dst, *args, **kwargs):
-    assert isinstance(src, str), type(src)
-    #logger.debug("Getting model data from {}:".format(src))
-    data = np.loadtxt(src)
-    #logger.debug(data)
-    dst['yval'] = data
 
 class OptimiseTest(unittest.TestCase):
     """
@@ -28,7 +20,6 @@ class OptimiseTest(unittest.TestCase):
     def test_parse_input(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
         Query.flush_modelsdb()
-        gettaskdict['get_model_data'] = get_model_data
         filename   = "test_optimise.yaml"
         testfolder = "test_optimise"
         parfile    = os.path.join(testfolder, 'current.par')
@@ -95,7 +86,6 @@ class OptimiseTest(unittest.TestCase):
     def test_optimisation_run(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
         Query.flush_modelsdb()
-        gettaskdict['get_model_data'] = get_model_data
         filename   = "test_optimise.yaml"
         testfolder = "test_optimise"
         parfile    = os.path.join(testfolder, 'current.par')
