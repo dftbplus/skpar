@@ -46,7 +46,9 @@ class TasksParsingTest(unittest.TestCase):
             if tasktype.lower() == 'run':
                 tasklist.append(RunTask(*args, exedict={}, logger=logger))
             if tasktype.lower() == 'get':
-                tasklist.append(GetTask(*args, gettaskdict=gettaskdict, logger=logger))
+                func = gettaskdict[args[0]]
+                args[0] = func
+                tasklist.append(GetTask(*args, logger=logger))
         self.assertTrue(isinstance(tasklist[0], SetTask))
         fun = ['get_dftb', 'get_dftb', 'get_meff']
         cmd = ['skgen', 'bs_dftb', 'bs_dftb']

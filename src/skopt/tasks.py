@@ -147,15 +147,10 @@ class SetTask (object):
 
 class GetTask (object):
     """Wrapper class to declare tasks w/ arguments but calls w/o args"""
-    def __init__(self, func, source, destination, *args, 
-            gettaskdict=gettaskdict, logger=None, **kwargs):
+    def __init__(self, func, source, destination, *args, **kwargs):
+        self.func = func
+        self.logger = kwargs.get('logger', logging.getLogger(__name__))
         assert isinstance (source, str)
-        if isinstance(func, str):
-            self.func = gettaskdict[func]
-        else:
-            self.func = func
-        # lets make it possible to handle both strings and dictionaries 
-        # as source/dest.
         self.src_name = source
         dbref = Query.get_modeldb(source)
         # see if a database exists
@@ -250,8 +245,11 @@ def set_tasks(spec, exedict=None, parnames=None, logger=None):
                 logger.debug (spec)
                 raise
         if tasktype.lower() == 'get':
+            if isinstance(args[0], str):
+                func = gettaskdict[args[0]]
+                args[0] = func
             try: 
-                tasklist.append(GetTask(*args, gettaskdict=gettaskdict, logger=logger))
+                tasklist.append(GetTask(*args, logger=logger))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
