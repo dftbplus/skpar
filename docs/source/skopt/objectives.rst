@@ -1,10 +1,11 @@
-#.. index:: Objectives
+.. index:: Opitmisation objectives
 
 .. _objectives:
 
 ======================================================================
 Objectives
 ======================================================================
+
 Central to the optimisation problem are objectives. The problem is
 defined as a weighted multi-objective optimisation, where each objective 
 typically is composed of multiple sub-objectives itself, but upon
@@ -12,15 +13,24 @@ evaluation, its fitness is a single scalar. Each objective is assigned
 a weight, corresponding to its relative significance.
 A good review of the mathematical formulation is found here [MOO-review]_.
 
+The declaration of an objective establishes a way for a direct 
+comparison between some reference data and some model data.
+With each data item is associated a weight, corresponding to
+the significance of this item relative to the rest of the items.
+These weights are regarded as sub-weights, and are used for 
+the scalarisation of a given objective.
+
+
 Assumptions
 ======================================================================
 
-1) Objective name defines the object to be queried from data base (DB)
-   of the model, exception being an objective with key-value pairs as
-   reference data -- the keys define the queries in that case.
+1) **Objective name** defines the object to be queried from the Model 
+   Database (MDB). Exception to this rule is an objective with 
+   key-value pairs as reference data -- the keys define the queries 
+   in that case, and the name of the objective is irrelevant.
 
-2) Format of reference data in combination with the number of model
-   names uniquely defines the type of objective. 
+2) **Format of reference data** in combination with the **number of model
+   names** uniquely defines the type of objective. 
    The type of reference data could be:
 
     * 1-D array: e.g. energy-volume relation of a solid
@@ -30,16 +40,10 @@ Assumptions
     * key-value pairs: e.g. named physical quantities, like effective
       masses, E-k points within the first Brilloin zone, etc.
 
-3) The declaration of an objective establishes a way for a direct 
-   comparison between some reference data and some model data.
-   With each data item is associated a weight, corresponding to
-   the significance of this item relative to the rest of the items.
-   These weights are regarded as sub-weights, and are used for 
-   the scalarisation of a given objective.
 
-4) Correspondence between model and reference data may be non trivial
-   when the data has the character of a band-structure, i.e. is 2D array.
-   In this case correspondence can be established via 
+3) **Correspondence between model data and reference data** may be non 
+   trivial when the data has the character of a band-structure, i.e. 
+   is 2D array. In this case correspondence can be established via 
    *use*, and *align* clauses, as in the example YAML code below.
    These clauses should be in the 'options' block of the declaration of
    an objective, as indicated.
@@ -67,18 +71,20 @@ Assumptions
                 rows   : [18,36], [1,4]   # filter k-points if needed for some reason
  
 
-    In any case, arrays of identical shape are compared in the end, 
-    and sub-weights array of the same shape is applied for the
-    evaluation of error and fitness.
+    In any case, the final comparison (model vs objective) is over
+    arrays of identical shape.
+    Naturally, sub-weight array is of the same shape.
 
-5) Sub-weights, per data item, are indexed with respect to the array 
-   shape that results *after* applying the `use` and `align` clauses.
+5) **Correspondence between sub-weights and data**, per data item, is
+   established **after** the application of ``use`` and ``align`` 
+   clauses from the declaration of the objective.
    When selection for applying sub-weights is based on data values,
    the values considered are with respect to the new alignment, i.e.
-   after the application of the `align` clause.
+   after the application of the ``align`` clause.
 
-6) Indexed counting starts from 1, and index ranges are inclusive of
+6) **Index counting** starts from 1, and index ranges are inclusive of
    both boundaries, i.e. FORTRAN-style is used.
+
 
 Objective Types
 ======================================================================
@@ -213,5 +219,12 @@ Objective Types
 
 **REFERENCES**
 
-.. [MOO-review] R.T. Marler and J.S. Arora, Struct Multidisc Optim 26, 369–395 (2004),
+.. [MOO-review] R.T. Marler and J.S. Arora, Struct Multidisc Optim 26, 369-395 (2004),
                 "Survey of multi-objective optimization methods for engineering"
+
+
+Details of the ``objectives`` module
+======================================================================
+
+.. automodule:: skopt.objectives
+    :members:
