@@ -1,5 +1,5 @@
 import numpy as np
-from dftbp.queryDFTB import get_dftbp_data
+from dftbp.queryDFTB import get_dftbp_data, get_bandstructure
 
 def get_model_data (src, dst, key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
@@ -28,4 +28,5 @@ gettaskdict = {
         'get_model_data': get_model_data,
         'get_dftbp_data': get_dftbp_data,
         'get_meff': get_meff,
+        'get_dftbp_bs': get_bandstructure,
         }

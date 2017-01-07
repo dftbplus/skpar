@@ -4,7 +4,7 @@ from os.path import normpath, expanduser, isdir
 from os.path import join as joinpath
 
 class DetailedOut (dict):
-    """A subclass of dictionary, automatically initialised from file.
+    """A dictionary initialised from file with the detailed output of dftb+.
     
     Useage:
 
@@ -82,6 +82,76 @@ def get_dftbp_data(source, destination, workdir='.', *args, **kwargs):
     else:
         ff = normpath(expanduser(joinpath(workdir, source)))
     data = DetailedOut.fromfile(ff)
+    destination.update(data)
+
+
+class BandsOut (dict):
+    """A dictionary initialised with the bands from dp_bands or similar tool.
+
+    Useage:
+
+        destination_dict = BandsOut.fromfile(file)
+    """
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
+    @classmethod
+    def fromfile(cls, fp, enumeration=True):
+        fname = isinstance(fp, str)
+        if fname:
+            fp = open(fp, "r")
+        values = {}
+        bands = np.loadtxt(fp, dtype=float)
+        if enumeration:
+            k = bands[:,0].astype(int)
+            # removing the kpoint-index, we get a 2D array of energies
+            bands = np.delete(bands,0,1)
+        if fname:
+            fp.close()
+        # post process
+        nk, nb = bands.shape
+        values['bands'] = bands
+        values['nkpts'] = nk
+        values['nbands'] = nb
+        return cls(values)
+
+
+class Bandstructure(dict):
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
+    @classmethod
+    def fromfiles(cls, fp1, fp2, enumeration=True):
+        data = DetailedOut.fromfile(fp1)
+        banddata = BandsOut.fromfile(fp2)
+        data.update(banddata)
+        # post process
+        if data['withSOC']:
+            ivbtop = int(data['neo']) - 1
+        else:
+            ivbtop = int(data['neo']/2.) - 1
+        evb = max(data['bands'][:, ivbtop])
+        ecb = min(data['bands'][:, ivbtop + 1])
+        egap = ecb - evb
+        data['Egap'] = egap
+        data['Ecb']  = ecb
+        return cls(values)
+
+
+def get_bandstructure(source, destination, workdir='.', *args, **kwargs):
+    """Load whatever data can be obtained from detailed.out of dftb+ and bands_tot.dat of dp_bands.
+    """
+    assert isinstance(source, str), \
+        "src must be a string (filename or directory name), but is {} instead.".format(type(src))
+    if isdir(source):
+        f1 = normpath(expanduser(joinpath(source, 'detailed.out')))
+        f2 = normpath(expanduser(joinpath(source, 'bands_tot.dat')))
+    else:
+        # band_tot.dat can be controled from command line during execution of dp_bands
+        # while 'detailed.out' cannot be controled by user
+        f1 = normpath(expanduser(joinpath(workdir, 'detailed.out')))
+        f2 = normpath(expanduser(joinpath(workdir, source)))
+    data = Bandstructure(f1, f2)
     destination.update(data)
 
 
