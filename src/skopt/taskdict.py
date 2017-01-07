@@ -1,6 +1,5 @@
 import numpy as np
-from os.path import normpath, expanduser, isdir
-from os.path import join as joinpath
+from dftbp.queryDFTB import get_dftbp_data
 
 def get_model_data (src, dst, key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
@@ -20,19 +19,6 @@ def get_model_data (src, dst, key, *args, **kwargs):
     data = np.loadtxt(src)
     #logger.debug(data)
     dst[key] = data
-
-def get_dftbp_data(source, destination, workdir='', *args, **kwargs):
-    """Load whatever data can be obtained from detailed.out of dftb+.
-    """
-    dflt_keys = ["Etot", "", "", ]
-    assert isinstance(source, str), \
-        "src must be a string (filename or directory name), but is {} instead.".format(type(src))
-    if isdir(source):
-        ff = normpath(expanduser(joinpath(source, 'detailed.out')))
-    else:
-        ff = normpath(expanduser(joinpath(workdir, source)))
-    data = DetailedOut.fromfile(ff)
-    destination.update(data)
 
 def get_meff(src, dest, *args, **kwargs):
     """fake function with arguments"""
