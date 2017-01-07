@@ -27,8 +27,8 @@ class TasksParsingTest(unittest.TestCase):
             - run: [skgen, skf, ]
             - run: [bs_dftb, Si, ]
             - run: [bs_dftb, SiO2, ]
-            - get: [get_dftb, Si, Si]
-            - get: [get_dftb, SiO2, SiO2]
+            - get: [get_dftbp_data, Si, Si]
+            - get: [get_dftbp_data, SiO2, SiO2]
             - get: [get_meff, Si/bs, Si]
         """
     taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
@@ -50,7 +50,7 @@ class TasksParsingTest(unittest.TestCase):
                 args[0] = func
                 tasklist.append(GetTask(*args, logger=logger))
         self.assertTrue(isinstance(tasklist[0], SetTask))
-        fun = ['get_dftb', 'get_dftb', 'get_meff']
+        fun = ['get_dftbp_data', 'get_dftbp_data', 'get_meff']
         cmd = ['skgen', 'bs_dftb', 'bs_dftb']
         wd  = ['skf', 'Si', 'SiO2']
         for ii, tt in enumerate(tasklist[1:4]):

@@ -191,28 +191,6 @@ class GetTask (object):
 
 taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
 
-# def get_task(spec, logger=None, **kwargs):
-#     """Return an instance of a task, as defined in the input spec.
-# 
-#    Args:
-#        spec (dict): a dictionary with a single entry, being
-#            tasktype: {dict with the arguments of the task}
-#
-#    Returns:
-#        list: an instance of the corresponding task-types class.
-#    """
-#    (ttype, args), = spec.items()
-#    try:
-#        #a0 = args.pop(0)
-#        #task = taskmapper[ttype](a0, *args, **kwargs)
-#        task = taskmapper[ttype](*args, **kwargs)
-#    except TypeError:
-#        # end up here if unknown task type, which is mapped to None
-#        print ('Cannot handle the following task specification:')
-#        print (spec)
-#        raise
-#    return task
-
 def set_tasks(spec, exedict=None, parnames=None, logger=None):
     """Parse user specification of Tasks, and return a list of Tasks for execution.
 
