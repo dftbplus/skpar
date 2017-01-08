@@ -2,6 +2,7 @@ import os
 import logging
 from os.path import normpath, expanduser, isdir
 from os.path import join as joinpath
+import numpy as np
 
 class DetailedOut (dict):
     """A dictionary initialised from file with the detailed output of dftb+.
@@ -122,6 +123,8 @@ class Bandstructure(dict):
 
     @classmethod
     def fromfiles(cls, fp1, fp2, enumeration=True):
+        """Read the output of dftb+ and dp_bands and return a dictionary with band-structure data.
+        """
         data = DetailedOut.fromfile(fp1)
         banddata = BandsOut.fromfile(fp2)
         data.update(banddata)
@@ -135,7 +138,8 @@ class Bandstructure(dict):
         egap = ecb - evb
         data['Egap'] = egap
         data['Ecb']  = ecb
-        return cls(values)
+        data['Evb']  = evb
+        return cls(data)
 
 
 def get_bandstructure(source, destination, workdir='.', *args, **kwargs):
@@ -151,7 +155,7 @@ def get_bandstructure(source, destination, workdir='.', *args, **kwargs):
         # while 'detailed.out' cannot be controled by user
         f1 = normpath(expanduser(joinpath(workdir, 'detailed.out')))
         f2 = normpath(expanduser(joinpath(workdir, source)))
-    data = Bandstructure(f1, f2)
+    data = Bandstructure.fromfiles(f1, f2)
     destination.update(data)
 
 

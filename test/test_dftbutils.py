@@ -8,7 +8,8 @@ import numpy.testing as nptest
 from skopt.tasks import GetTask
 from subprocess import CalledProcessError
 from skopt.taskdict import gettaskdict
-from dftbutils.queryDFTB import DetailedOut, get_dftbp_data
+from dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
+from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -113,8 +114,69 @@ class DetailedOutTest(unittest.TestCase):
         self.assertDictEqual(dst, self.ref_scc_soc)
 
 
-        
+class BandsOutTest(unittest.TestCase):
+    """Check if we can read bands_tot.dat from dp_bands."""
 
+    ff1 = 'reference_data/fakebands.dat'
+    fake_bands = np.loadtxt(ff1)
+    # eliminate column 1, which enumerates the kpoints
+    fake_bands = fake_bands[:, 1:]
+    fake_nk, fake_nb = fake_bands.shape
+
+    ff2 = 'test_dftbutils/bs/bands_tot.dat'
+    ref_bands = np.loadtxt(ff2)
+    ref_bands = ref_bands[:, 1:]
+    ref_nk, ref_nb = ref_bands.shape
+    ref_Ev = np.max(ref_bands[:, 15])
+    ref_Ec = np.min(ref_bands[:, 16])
+    ref_Eg = ref_Ec - ref_Ev
+    ref_Ef = 0.9931
+
+    def test_bands_out(self):
+        """Can we get the 2D array correpsonding to energies in bands_tot.dat?"""
+        dst = BandsOut.fromfile(self.ff1)
+        nptest.assert_array_almost_equal(dst['bands'], self.fake_bands)
+        self.assertEqual(dst['nkpts'], self.fake_nk)
+        self.assertEqual(dst['nbands'], self.fake_nb)
+
+    def test_bandstructure(self):
+        """Can we get the bandstructure and gap/cb/vb details?"""
+        f1 = 'test_dftbutils/bs/detailed.out' 
+        f2 = 'test_dftbutils/bs/bands_tot.dat' 
+        data = Bandstructure.fromfiles(f1, f2)
+        nptest.assert_array_almost_equal(data['bands'], self.ref_bands)
+        self.assertEqual(data['nkpts'], self.ref_nk)
+        self.assertEqual(data['nbands'], self.ref_nb)
+        self.assertEqual(data['Ef'], self.ref_Ef)
+        self.assertEqual(data['Egap'], self.ref_Eg)
+        self.assertEqual(data['Ecb'], self.ref_Ec)
+        self.assertEqual(data['Evb'], self.ref_Ev)
+
+    def test_get_bandstructure_dirsrc(self):
+        """Can we get the bandstructure and gap/cb/vb details; source is a directory?"""
+        dst = {}
+        src = 'test_dftbutils/bs'
+        get_bandstructure(src, dst)
+        nptest.assert_array_almost_equal(dst['bands'], self.ref_bands)
+        self.assertEqual(dst['nkpts'], self.ref_nk)
+        self.assertEqual(dst['nbands'], self.ref_nb)
+        self.assertEqual(dst['Ef'], self.ref_Ef)
+        self.assertEqual(dst['Egap'], self.ref_Eg)
+        self.assertEqual(dst['Ecb'], self.ref_Ec)
+        self.assertEqual(dst['Evb'], self.ref_Ev)
+
+    def test_get_bandstructure_fileandwd(self):
+        """Can we get the bandstructure and gap/cb/vb details; workdir and bands file?"""
+        dst = {}
+        wd = 'test_dftbutils/bs'
+        get_bandstructure('bands_tot.dat', dst, wd)
+        nptest.assert_array_almost_equal(dst['bands'], self.ref_bands)
+        self.assertEqual(dst['nkpts'], self.ref_nk)
+        self.assertEqual(dst['nbands'], self.ref_nb)
+        self.assertEqual(dst['Ef'], self.ref_Ef)
+        self.assertEqual(dst['Egap'], self.ref_Eg)
+        self.assertEqual(dst['Ecb'], self.ref_Ec)
+        self.assertEqual(dst['Evb'], self.ref_Ev)
 
 if __name__ == '__main__':
     unittest.main()
