@@ -8,7 +8,7 @@ import numpy.testing as nptest
 from skopt.tasks import GetTask
 from subprocess import CalledProcessError
 from skopt.taskdict import gettaskdict
-from dftbp.queryDFTB import DetailedOut, get_dftbp_data
+from dftbutils.queryDFTB import DetailedOut, get_dftbp_data
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -79,36 +79,36 @@ class DetailedOutTest(unittest.TestCase):
     # Electronic structure calculations (no atom relaxation)
     # SCC calculation without SOC
     def test_scc_out(self):
-        src = 'test_dftbp/scc/detailed.out'
+        src = 'test_dftbutils/scc/detailed.out'
         dst = DetailedOut.fromfile(src)
         self.assertDictEqual(dst, self.ref_scc)
 
     # SCC calculation with SOC
     def test_scc_out_withsoc(self):
-        src = 'test_dftbp/scc_soc/detailed.out'
+        src = 'test_dftbutils/scc_soc/detailed.out'
         dst = DetailedOut.fromfile(src)
         self.assertDictEqual(dst, self.ref_scc_soc)
 
     # BS  calculation (not converged due to maxiscc=1)
     def test_bs_out(self):
-        src = 'test_dftbp/bs/detailed.out'
+        src = 'test_dftbutils/bs/detailed.out'
         dst = DetailedOut.fromfile(src)
         self.assertDictEqual(dst, self.ref_bs)
 
     def test_get_dftbp_data(self):
         dst = {}
         # src is file, including directory
-        src = 'test_dftbp/scc/detailed.out'
+        src = 'test_dftbutils/scc/detailed.out'
         get_dftbp_data(src, dst)
         self.assertDictEqual(dst, self.ref_scc)
         # src is a directory
-        src = 'test_dftbp/bs'
+        src = 'test_dftbutils/bs'
         get_dftbp_data(src, dst)
         # dictionary should be updated with new values, but same keys
         self.assertDictEqual(dst, self.ref_bs)
         # src is a file, but workdir is explicit
         src = 'detailed.out'
-        wd = 'test_dftbp/scc_soc'
+        wd = 'test_dftbutils/scc_soc'
         get_dftbp_data(src, dst, wd)
         self.assertDictEqual(dst, self.ref_scc_soc)
 
