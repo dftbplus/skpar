@@ -14,11 +14,8 @@ class RunTask (object):
     """
     
     def __init__(self, cmd, wd='.', inp=None, out='out.log', 
-            err=subprocess.STDOUT, exedict=None, logger=None):
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-        else:
-            self.logger = logger
+            err=subprocess.STDOUT, exedict=None, *args, **kwargs):
+        self.logger = kwargs.get('logger', logging.getLogger(__name__))
         self.wd = wd
         try:
             _cmd = cmd.split()
@@ -101,14 +98,11 @@ class SetTask (object):
     """
     """
     def __init__(self, parfile=DEFAULT_PARAMETER_FILE, wd='.', 
-            append=False, parnames=None, logger=None):
+            append=False, parnames=None, *args, **kwargs):
         self.parfile = parfile
         self.wd = wd
         assert not append, ("Append mode not supported yet by SetTask")
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-        else:
-            self.logger = logger
+        self.logger = kwargs.get('logger', logging.getLogger(__name__))
         self.parnames = parnames
 
     def __call__(self, parameters, iteration=None):
@@ -191,7 +185,7 @@ class GetTask (object):
 
 taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
 
-def set_tasks(spec, exedict=None, parnames=None, logger=None):
+def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
     """Parse user specification of Tasks, and return a list of Tasks for execution.
 
     Args:
@@ -202,6 +196,7 @@ def set_tasks(spec, exedict=None, parnames=None, logger=None):
         list: a List of instances of task classes, each 
             corresponding to a recognised task type.
     """
+    logger = kwargs.get('logger', logging.getLogger(__name__))
     tasklist = []
     # the spec list has definitions of different tasks
     for item in spec:
