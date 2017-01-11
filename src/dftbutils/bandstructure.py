@@ -8,8 +8,7 @@ import logging
 from collections import OrderedDict
 import numpy as np
 from math import pi
-from skopt.lattice import getSymPtLabel
-from skopt.utils import is_monotonic
+from dftbutils.lattice import getSymPtLabel
 
 
 # relevant fundamental constants
@@ -18,6 +17,11 @@ aB = 0.52918        # [A]  Bohr radius
 hbar = 1.054572e-34 # [J.s] reduced Planck's constant (h/2pi)
 q0 = 1.602176e-19   # [C] electron charge
 m0 = 9.10938e-31    # [kg] electron rest mass
+
+
+def is_monotonic(x):
+    dx = np.diff(x)
+    return np.all(dx <= 0) or np.all(dx >= 0)
 
 
 def meff(band, kline):

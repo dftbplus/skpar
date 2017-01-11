@@ -1,15 +1,11 @@
 import unittest
 import logging
-import yaml
-import os
-from os.path import normpath, expanduser
 import numpy as np
 import numpy.testing as nptest
-from skopt.tasks import GetTask
-from subprocess import CalledProcessError
-from skopt.taskdict import gettaskdict
 from dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
 from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from dftbutils import queryDFTB as dftb
+from math import pi
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -127,13 +123,14 @@ class BandsOutTest(unittest.TestCase):
     ref_bands = np.loadtxt(ff2)
     ref_bands = ref_bands[:, 1:]
     ref_nk, ref_nb = ref_bands.shape
-    ref_Ev = np.max(ref_bands[:, 15])
-    ref_Ec = np.min(ref_bands[:, 16])
+    ref_ivbtop = int(len(ref_bands.shape[1]/2))
+    ref_Ev = np.max(ref_bands[:, ref_ivbtop])
+    ref_Ec = np.min(ref_bands[:, ref_ivbtop+1])
     ref_Eg = ref_Ec - ref_Ev
     ref_Ef = 0.9931
 
     def test_bands_out(self):
-        """Can we get the 2D array correpsonding to energies in bands_tot.dat?"""
+        """Can we get the 2D array corresponding to energies in bands_tot.dat?"""
         dst = BandsOut.fromfile(self.ff1)
         nptest.assert_array_almost_equal(dst['bands'], self.fake_bands)
         self.assertEqual(dst['nkpts'], self.fake_nk)
@@ -148,6 +145,7 @@ class BandsOutTest(unittest.TestCase):
         self.assertEqual(data['nkpts'], self.ref_nk)
         self.assertEqual(data['nbands'], self.ref_nb)
         self.assertEqual(data['Ef'], self.ref_Ef)
+        self.assertEqual(data['ivbtop'], self.ref_ivbtop)
         self.assertEqual(data['Egap'], self.ref_Eg)
         self.assertEqual(data['Ecb'], self.ref_Ec)
         self.assertEqual(data['Evb'], self.ref_Ev)
@@ -178,6 +176,17 @@ class BandsOutTest(unittest.TestCase):
         self.assertEqual(dst['Ecb'], self.ref_Ec)
         self.assertEqual(dst['Evb'], self.ref_Ev)
 
+
+class MeffTest(unittest.TestCase):
+    """Can we extract designated effective masses from the bands."""
+    def test_meff(self):
+        k = np.linspace(0, 1, num=50)
+        eref = k**2
+        me = dftb.meff(eref, k)
+        self.assertAlmostEqual(me, 0.5)
+        eref = (k-0.5)**2
+        me = dftb.meff(eref, k)
+        self.assertAlmostEqual(me, 0.5)
 if __name__ == '__main__':
     unittest.main()
 

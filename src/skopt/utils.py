@@ -115,7 +115,7 @@ def get_logger(logger=None):
     One-liner to attempt and set a logger for an object.
     """
     if logger is None:
-        logger = logging.getLogger("__name__")
+        logger = logging.getLogger(__name__)
     else:
         logger = logger
     return logger
