@@ -2,8 +2,9 @@
 Module for k-Lines extraction and k-Label manipulation
 
 Recall that bands contains NO information of the k-points.
-So we must provide that ourselves, and reading the dftb_pin.hsd (the parsed input) seems the best way to do so.
-We also need to figure out what to do with equivalent points, or points where a new path starts.
+So we must provide that ourselves, and reading the dftb_pin.hsd (the parsed 
+input) seems the best way to do so. We also need to figure out what to do 
+with equivalent points, or points where a new path starts.
 Finally, points internal to the Brilloin Zone are labeled with Greek letters,
 which should be rendered properly.
 """
@@ -12,12 +13,10 @@ import os
 import logging
 import numpy as np
 from collections import defaultdict
-from skopt.lattice import getSymPtLabel
-#from skopt.queryDFTB import DFTBOutput
-#from skopt.queryBands import Bands
+from dftbutils.lattice import getSymPtLabel
 
-def getkLines(lattice, workdir='./', hsdfile='dftb_pin.hsd',
-                log=logging.getLogger('__name__')):
+
+def get_klines(lattice, workdir='./', hsdfile='dftb_pin.hsd', *args, **kwargs):
     """
     This routine analyses the KPointsAndWeighs stanza in the input file of DFTB+ 
     (given as an input argument *hsdfile*), and returns the k-path, based on 
@@ -38,39 +37,45 @@ def getkLines(lattice, workdir='./', hsdfile='dftb_pin.hsd',
     symmetry k-points, e.g. (see for 'Gamma' above): 
         {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
     """
+    logger = kwargs.get('logger', logging.getLogger(__name__))
 
     kLines_dftb = list()
 
-    with open(os.path.join(workdir,hsdfile)) as f:
-        for line in f:
-            if 'KPointsAndWeights = Klines {' in ' '.join(line.split()):
-                extraline = next(f)
+    with open(os.path.join(workdir,hsdfile)) as fh:
+        for line in fh:
+            if 'KPointsAndWeights = Klines {'.lower() in ' '.join(line.lower().split()):
+                extraline = next(fh)
                 while not extraline.strip().startswith("}"):
                     # skip over commented line, in case of non-parsed .hsd file
                     while extraline.strip().startswith("#"):
-                        extraline = next(f)
+                        extraline = next(fh)
                     words = extraline.split()[:4]
                     nk, k = int(words[0]), [float(w) for w in words[1:]]
-                    kLabel = getSymPtLabel(k, lattice, log)
+                    kLabel = getSymPtLabel(k, lattice, logger=logger)
                     if kLabel:
                         kLines_dftb.append((kLabel, nk))
                     if len(words)>4 and words[4] == "}":
                         extraline = "}"
                     else:
-                        extraline = next(f)
+                        extraline = next(fh)
 
-    kLines = [(sp[0],sum([sp[1] for sp in kLines_dftb[:i+1]])-1) for (i,sp) in enumerate(kLines_dftb)]
-    kLinesDict = defaultdict(list)
-    [kLinesDict[k].append(v) for (k,v) in kLines]
-    
-    log.debug('Parsed {f} and obtained the follwoing\n\tkLines:{l}\n\tkLinesDict:{d}'.
-            format(f=hsdfile, l=kLines, d=kLinesDict))
-
-    # output = {'kLines': kLines, 'kLinesDict': kLinesDict}
-    output = kLines,kLinesDict
+    logger.debug('Parsed {} and obtained:'.format(hsdfile))
+    # At this stage, kLines_dftb contains distances between k points
+    logger.debug('\t_kLines_dftb: {}'.format(kLines_dftb))
+    # Next, we convert it to index, from 0 to nk-1
+    kLines = [(lbl, sum([_dist for (_lbl,_dist) in kLines_dftb[:i+1]])-1) 
+                        for (i,(lbl, dist)) in enumerate(kLines_dftb)]
+    logger.debug('\tkLines      : {}'.format(kLines))
+    klbls = set([lbl for (lbl, nn) in kLines])
+    kLinesDict = dict.fromkeys(klbls)
+    for lbl, nn in kLines:
+        if kLinesDict[lbl] is not None:
+            kLinesDict[lbl].append(nn)
+        else:
+            kLinesDict[lbl] = [nn, ]
+    logger.debug('\tkLinesDict  : {}'.format(kLinesDict))
+    output = kLines, kLinesDict
     return output
-
-
 
 def rmEquivkPts (bands, kLines, equivpts):
     """
@@ -121,36 +126,16 @@ def greekLabels(kLines):
     (i.e. points that are inside the BZ, not at the faces) but in the future.
     """
     try:
-        lbls,ixs = list(zip(*kLines))
+        lbls, ixs = list(zip(*kLines))
     except ValueError:
-        lbls,ixs = kLines,None
+        lbls, ixs = kLines, None
     lbls = list(lbls)
 
-    for i,lbl in enumerate(lbls):
+    for i, lbl in enumerate(lbls):
         if lbl == 'Gamma':
             lbls[i] = r'$\Gamma$'
     if ixs is not None:
-        result = list(zip(lbls,ixs))
+        result = list(zip(lbls, ixs))
     else:
         result = lbls
     return result
-
-
-
-#if __name__ == "__main__":
-### test the rmEquivkPts routine, exhanging the order of K|U and R|M
-#    dftbout = DFTBOutput(workdir='./Plotter example/bulkSi',postfix='.bs')
-#    nElectrons = dftbout.getOutputElectrons()
-#    withSOC = dftbout.withSOC()
-#    bs_Si = Bands(workdir='./Plotter example/bulkSi',prefix='band',nElectrons=nElectrons,SOC=withSOC)
-#    bands,E0 = bs_Si.getBands('VBtop') 
-#    kLines1 = [('L', 0), ('Gamma', 108), ('X', 233), ('U', 277), ('K', 278), 
-#               ('K',300),('U',301), ('R',350), ('M',351),
-#               ('Gamma', 411),]
-#    newbands, newkLines = rmEquivkPts(bands,kLines1,[('K','U'),('M','R')])
-#    print(newkLines)
-#    print(newbands.shape)
-#
-
-
-

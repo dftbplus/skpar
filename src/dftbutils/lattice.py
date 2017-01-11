@@ -8,257 +8,200 @@
     """
 import sys
 import numpy as np
+from numpy import pi, sqrt
 from fractions import Fraction
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format=' %(message)s')
+logger = logging.getLogger(__name__)
 
 
-class FCC(object):
-    """
-    This is Face Centered Cubic lattice (cF)
-    """
-    def __init__(self,a,scale=2*np.pi,primvec=None):
-        """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
-        """
-        
-        self.name = 'FCC'
-        self.a = a
+class Lattice(object):
+    """Generic lattice class."""
+    def __init__(self, name, param, setting='curtarolo', scale=2*pi):
+        self.name = name
+        self.setting = setting
         self.scale = scale
-        self.constants = [a,]
-
-        if primvec is not None:
-            self.prim = primvec
-        else:
-            self.prim =  [ np.array((0   , a/2., a/2.)),
-                           np.array((a/2., 0   , a/2.)),
-                           np.array((a/2., a/2., 0   )) ]
-
-            self.conv =  [ np.array((a, 0, 0,)),
-                           np.array((0, a, 0,)),
-                           np.array((0, 0, a,)) ]
-
-
-        # reciprocal lattice vectors
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-        self.bvec = self.recipr
-
-        # symmetry points in terms of reciprocal lattice vectors
-        # and in terms of reciprocal length, e.g. 1/a
-        self.SymPts_k = {} # in terms of reciprocal cell-vectors
-        self.SymPts = {}   # in terms of reciprocal unit-vectors
-
-        self.SymPts_k = \
-            { 'Gamma': (0.,0.,0.),
-                'K': (3./8.,3./8.,3./4.),
-                'L': (1./2.,1./2.,1./2.),
-                'U': (5./8.,1./4.,5./8.),
-                'W': (1./2.,1./4.,3./4.),
-                'X': (1./2.,0.,1./2.),  }
-
+        lat = get_lattice[name](param, setting)
+        self.constants = lat.constants
+        self.primv = lat.primv
+        self.convv = lat.convv
+        self.SymPts_k = lat.SymPts_k
+        self.standard_path = lat.standard_path
+        #
+        self.reciprv = get_recipr_cell(self.primv, self.scale)
+        self.SymPts = {}
         for k,v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v)
-
-        self.standard_path = "Gamma-X-W-K-Gamma-L-U-W-L-K|U-X"
-
-    def get_kvec (self, beta):
-        return get_kvec(beta, self.recipr)
-
-
-class HEX(object):
-    """
-    This is HEXAGONAL, hP lattice
-    """
-    def __init__(self,a,c,scale=2*np.pi,primvec=None):
-        """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
-        """
-        
-        self.name = 'HEX'
-        self.a,self.c = a,c
-        self.scale = scale
-        self.constants = [a, c]
-
-        if primvec is not None:
-            self.prim = primvec
-            self.conv = primvec
-        else:
-            self.prim =  [ np.array((a/2., -a*np.sqrt(3)/2., 0.)),
-                           np.array((a/2., +a*np.sqrt(3)/2., 0.)),
-                           np.array((0, 0, c)) ]
-            self.conv = self.prim
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of k-vectors
-        self.SymPts = {}   # in terms of reciprocal length
-
-        self.SymPts_k =\
-            { 'Gamma': (0,0,0),
-                  'A': (0., 0., 1./2.),
-                  'H': (1./3., 1./3., 1./2.),
-                  'K': (1./3., 1./3., 0.),
-                  'L': (1./2., 0., 1./2.),
-                  'M': (1./2., 0., 0.), }
-
-        for k,v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v)
-
-        self.standard_path = "Gamma-M-K-Gamma-A-L-H-A|L-M|K-H"
-
-    def get_kvec (self, beta):
-        return get_kvec(beta, self.recipr)
+            self.SymPts[k] = get_kvec(v, self.reciprv)
 
 
 class CUB(object):
     """
     This is CUBic, cP lattice
     """
-    def __init__(self,a,scale=2*np.pi,primvec=None):
-        """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
-        """
-        
-        self.name = 'CUB'
+    def __init__(self, param, setting=None):
+        try:
+            a = param[0]
+        except TypeError:
+            a = param
+        self.constants = [a, a, a, pi/2, pi/2, pi/2]
         self.a = a
-        self.scale = scale
-        self.constants = [a]
-
-        if primvec is not None:
-            self.prim = primvec
-            self.conv = primvec
-        else:
-            self.prim =  [ np.array((a, 0., 0.)),
-                           np.array((0., a, 0.)),
-                           np.array((0., 0., a)) ]
-            self.conv = self.prim
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of k-vectors
-        self.SymPts = {}   # in terms of reciprocal length 1/a
-
+        self.primv =  [ np.array((a, 0., 0.)),
+                        np.array((0., a, 0.)),
+                        np.array((0., 0., a)) ]
+        self.convv = self.primv
         self.SymPts_k =\
             { 'Gamma': (0,0,0),
                   'M': (1./2., 1./2., 0.),
                   'R': (1./2., 1./2., 1./2.),
                   'X': (0., 1./2., 0.), }
-
-        for k,v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v)
-
         self.standard_path = "Gamma-X-M-Gamma-R-X|M-R"
 
-    def get_kvec (self, beta):
-        return get_kvec(beta, self.recipr)
 
+class FCC(object):
+    """
+    This is Face Centered Cubic lattice (cF)
+    """
+    def __init__(self, param, setting='curtarolo'):
+        try:
+            a = param[0]
+        except TypeError:
+            a = param
+        self.constants = [a, a, a, pi/2, pi/2, pi/2]
+        self.a = a
+        if setting == 'curtarolo':
+            self.primv =  [np.array((0   , a/2., a/2.)),
+                           np.array((a/2., 0   , a/2.)),
+                           np.array((a/2., a/2., 0   ))]
+            self.convv = [ np.array((a, 0, 0,)),
+                           np.array((0, a, 0,)),
+                           np.array((0, 0, a,)) ]
+            # symmetry points in terms of reciprocal lattice vectors
+            self.SymPts_k = \
+                { 'Gamma': (0.,0.,0.),
+                    'K': (3./8.,3./8.,3./4.),
+                    'L': (1./2.,1./2.,1./2.),
+                    'U': (5./8.,1./4.,5./8.),
+                    'W': (1./2.,1./4.,3./4.),
+                    'X': (1./2.,0.,1./2.),  }
+            self.standard_path = "Gamma-X-W-K-Gamma-L-U-W-L-K|U-X"
+        else:
+            logger.error('Unsupported setting {} for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
+
+
+class BCC(object):
+    """
+    This is Body Centered Cubic lattice (cF)
+    """
+    def __init__(self, param, setting='curtarolo'):
+        try:
+            a = param[0]
+        except TypeError:
+            a = param
+        self.constants = [a, a, a, pi/2, pi/2, pi/2]
+        self.a = a
+        if setting == 'curtarolo':
+            self.primv = [ np.array((-a/2.,  a/2.,  a/2.)),
+                           np.array(( a/2., -a/2.,  a/2.)),
+                           np.array(( a/2.,  a/2., -a/2.)) ]
+            self.convv = [ np.array((a, 0, 0,)),
+                           np.array((0, a, 0,)),
+                           np.array((0, 0, a,)) ]
+            self.SymPts_k = \
+                { 'Gamma': (0.,0.,0.),
+                    'H': (1./2., -1./2., 1./2.),
+                    'P': (1./4.,  1./4., 1./4.),
+                    'N': (   0.,     0., 1./2.) }
+            self.standard_path = "Gamma-H-N-Gamma-P-H|P-N"
+        else:
+            logger.error('Unsupported setting "{}" for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
+
+
+class HEX(object):
+    """
+    This is HEXAGONAL, hP lattice
+    """
+    def __init__(self, param, setting='curtarolo'):
+        a, c = param[:2]
+        self.constants = [a, a, c, pi/2, pi/2, 2*pi/3]
+        self.a = a
+        self.c = c
+        if setting == 'curtarolo':
+            self.primv =  [ np.array((a/2., -a*np.sqrt(3)/2., 0.)),
+                            np.array((a/2., +a*np.sqrt(3)/2., 0.)),
+                            np.array((0, 0, c)) ]
+            self.convv = self.primv
+            self.SymPts_k =\
+                { 'Gamma': (0,0,0),
+                    'A': (0., 0., 1./2.),
+                    'H': (1./3., 1./3., 1./2.),
+                    'K': (1./3., 1./3., 0.),
+                    'L': (1./2., 0., 1./2.),
+                    'M': (1./2., 0., 0.), }
+            self.standard_path = "Gamma-M-K-Gamma-A-L-H-A|L-M|K-H"
+        else:
+            logger.error('Unsupported setting "{}" for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
 
 
 class TET(object):
     """
     This is TETRAGONAL, tP lattice
     """
-    def __init__(self,a,c,scale=2*np.pi,primvec=None):
-        """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
-        """
-        
-        self.name = 'TET'
-        self.a,self.c = a,c
-        self.scale = scale
-        self.constants = [a, c]
-
-        if primvec is not None:
-            self.prim = primvec
-            self.conv = primvec
-        else:
-            self.prim =  [ np.array((a, 0., 0.)),
+    def __init__(self, param, setting='curtarolo'):
+        a, c = param[:2]
+        self.constants = [a, a, c, pi/2, pi/2, pi/2]
+        self.a = a
+        self.c = c
+        if setting == 'curtarolo':
+            self.primv = [ np.array((a, 0., 0.)),
                            np.array((0., a, 0.)),
-                           np.array((0, 0, c)) ]
-            self.conv = self.prim
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of reciprocal lattice vectors
-        self.SymPts = {}   # in terms of reciprocal unit vectors
-
-        self.SymPts_k =\
-            { 'Gamma': (0,0,0),
-                  'A': (1./2., 1./2., 1./2.),
-                  'M': (1./2., 1./2., 0.),
-                  'R': (0., 1./2., 1./2.),
-                  'X': (0., 1./2., 0.),
-                  'Z': (0., 0., 1./2.), }
-
-        for k,v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v)
-
-        self.standard_path = "Gamma-X-M-Gamma-Z-R-A-Z|X-R|M-A"
-
-    def get_kvec (self, beta):
-        return get_kvec(beta, self.recipr)
-
+                           np.array((0.,0., c)) ]
+            self.convv = self.primv
+            self.SymPts_k =\
+                { 'Gamma': (0,0,0),
+                    'A': (1./2., 1./2., 1./2.),
+                    'M': (1./2., 1./2., 0.),
+                    'R': (0., 1./2., 1./2.),
+                    'X': (0., 1./2., 0.),
+                    'Z': (0., 0., 1./2.), }
+            self.standard_path = "Gamma-X-M-Gamma-Z-R-A-Z|X-R|M-A"
+        else:
+            logger.error('Unsupported setting {} for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
 
 
 class ORC(object):
     """
     This is ORTHOROMBIC, oP lattice
     """
-    def __init__(self, a, b, c, scale=2*np.pi,primvec=None):
-        """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
-        """
-        
-        self.name = 'ORC'
-        self.a, self.b, self.c = a, b, c
-        self.scale = scale
+    def __init__(self, param, setting='curtarolo'):
+        a, b, c = param[:3]
         self.constants = [a, b, c]
-
-        if primvec is not None:
-            self.prim = primvec
-            self.conv = primvec
-        else:
-            self.prim =  [ np.array((a, 0., 0.)),
+        self.a = a
+        self.b = b
+        self.c = c
+        if setting == 'curtarolo':
+            self.primv = [ np.array((a, 0., 0.)),
                            np.array((0., b, 0.)),
                            np.array((0., 0., c)) ]
-            self.conv = self.prim
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of k-vectors
-        self.SymPts = {}   # in terms of reciprocal length vectors
-
-        self.SymPts_k =\
-            { 'Gamma': (0,0,0),
-                  'R': (1./2., 1./2., 1./2.),
-                  'S': (1./2., 1./2., 0.),
-                  'T': (0., 1./2., 1./2.),
-                  'U': (1./2., 0., 1./2.),
-                  'X': (1./2., 0.,  0.),
-                  'Y': (0., 1./2., 0.),
-                  'Z': (0., 0., 1./2.), }
-
-        for k,v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v)
-
-        self.standard_path = "Gamma-X-S-Y-Gamma-Z-U-R-T-Z|Y-T|U-X|S-R"
-
-    def get_kvec (self, beta):
-        return get_kvec(beta, self.recipr)
-
+            self.convv = self.primv
+            self.SymPts_k =\
+                { 'Gamma': (0,0,0),
+                    'R': (1./2., 1./2., 1./2.),
+                    'S': (1./2., 1./2., 0.),
+                    'T': (0., 1./2., 1./2.),
+                    'U': (1./2., 0., 1./2.),
+                    'X': (1./2., 0.,  0.),
+                    'Y': (0., 1./2., 0.),
+                    'Z': (0., 0., 1./2.), }
+            self.standard_path = "Gamma-X-S-Y-Gamma-Z-U-R-T-Z|Y-T|U-X|S-R"
+        else:
+            logger.error('Unsupported setting {} for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
 
 
 class RHL(object):
@@ -268,7 +211,7 @@ class RHL(object):
     a = b = c, and alpha = beta = gamma <> 90 degrees
     Two variations exists: RHL1 (alpha < 90) and RHL2 (alpha > 90)
     """
-    def __init__(self, a, alpha, scale=2*np.pi, primvec=None):
+    def __init__(self, param, setting=None):
         """
         Initialise the lattice parameter(s) upon instance creation, and
         calculate the direct and reciprocal lattice vectors, as well
@@ -277,40 +220,26 @@ class RHL(object):
         Note that RHL has two variants:
         RHL1, where alpha < 90 degrees
         RHL2, where alpha > 90 degrees
-        The instance is initialised appropriately.
         Symmetry points (SymPts_k) and standard_path are from:
         W. Setyawan, S. Curtarolo / Computational Materials Science 49 (2010) 299-312
         """
-        
+        a, alpha = param[:2]
         assert not abs(alpha - 90.0) < 1.e-5
-        self.a     = a
         self.alpha_rad = np.radians(alpha)
-        self.scale = scale
-        self.constants = [a, alpha]
-
-        if primvec is not None:
-            self.prim = primvec
-            self.conv = primvec
-        else:
-            c1 = np.cos(self.alpha_rad)
-            c2 = np.cos(self.alpha_rad/2.)
-            s2 = np.sin(self.alpha_rad/2.)
-            self.prim =  [ self.a*np.array([c2, -s2, 0.]),
-                           self.a*np.array([c2, +s2, 0.]),
-                           self.a*np.array([c1/c2, 0., np.sqrt(1-(c1/c2)**2)]) ]
-            self.conv = self.prim
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of k-vectors
-        self.SymPts = {}   # in terms of reciprocal length
-
+        self.constants = [a, a, a, alpha, alpha, alpha]
+        self.a = a
+        self.angle = angle
+        c1 = np.cos(self.alpha_rad)
+        c2 = np.cos(self.alpha_rad/2.)
+        s2 = np.sin(self.alpha_rad/2.)
+        self.primv =  [ self.a*np.array([c2, -s2, 0.]),
+                        self.a*np.array([c2, +s2, 0.]),
+                        self.a*np.array([c1/c2, 0., np.sqrt(1-(c1/c2)**2)]) ]
+        self.convv = self.primv
         # The fractions defining the symmetry points in terms of reciprocal vectors
         # are dependent on the angle alpha of the RHL lattice 
         # So we cannot use the dictionary SymPts_k to get them.
-
-        if self.alpha_rad < np.pi/2.:
-            self.name = 'RHL1'
+        if self.alpha_rad < pi/2.:
             eta = (1 + 4 * np.cos(self.alpha_rad)) / (2 + 4 * np.cos(self.alpha_rad))
             nu  = 3./4. - eta/2.
             self.SymPts_k =\
@@ -344,75 +273,40 @@ class RHL(object):
         self.eta = eta
         self.nu  = nu
 
-        for k,v in self.SymPts_k.items():
-            self.SymPts[k] = np.dot(np.array(v), np.array(self.recipr))
-
-
-    def get_kvec (self, beta):
-        return get_kvec(beta, self.recipr)
-
-
 
 class MCL(object):
     """
     This is simple Monoclinic MCL_* (mP) lattice, set via
     a, b <= c, and alpha < 90 degrees, beta = gamma = 90 degrees as in
     W. Setyawan, S. Curtarolo / Computational Materials Science 49 (2010) 299-312.
-    Setting ITC flat to True should work for the standard setting
-    of ITC-A, but is not currently implemented.
+    Setting=ITC should work for the standard setting (angle>90) of ITC-A, 
+    but is not currently implemented.
     Note that conventional and primitive cells are the same.
     """
-    def __init__(self, a, b, c, angle, ITC=False, scale=2*np.pi, primvec=None):
+    def __init__(self, param, setting='curtarolo'):
         """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
-        The default setting (ITC=False) assumes that alpha < 90 as in 
+        The default setting assumes that alpha < 90 as in 
         W. Setyawan, S. Curtarolo / Computational Materials Science 49 (2010) 299-312
-        TODO: If _ITC_ is True, the ITC convention is followed for 
-              direct and reciprocal lattice.
+        TODO: support for setting='ITC'
         """
-        
-        # only Curtarolo's setting is supported for now
-        assert (ITC == False) and (a<=c) and (b<=c) and (angle < 90) 
-
-        self.name = 'MCL'
-
-        self.a     = a
-        self.b     = b
-        self.c     = c
-        self.angle_rad = np.radians(angle)
-        self.scale = scale
-        self.constants = [a, b, c, angle]
-
-        if primvec is not None:
-            self.prim = primvec
-        else:
-            if ITC:
-                log.critical("Unsupported MCL(mP) setting")
-                sys.exit(1)
-            else:
-                # conventional cell
-                a1c = self.a * np.array([1, 0, 0])
-                a2c = self.b * np.array([0, 1, 0])
-                a3c = self.c * np.array([0, np.cos(self.angle_rad), np.sin(self.angle_rad)])
-                self.conv = np.array([a1c, a2c, a3c])
-                # primitive cell
-                self.prim = self.conv
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of reciprocal cell-vectors
-        self.SymPts = {}   # in terms of reciprocal unit-vectors
-
-        # The fractions defining the symmetry points in terms of reciprocal 
-        # cell-vectors are dependent on the angle alpha of the MCL lattice 
-        # So we cannot use the dictionary SymPts_k to get them.
-
-        if not ITC and self.angle_rad < np.pi/2.:
-            eta = ( 1 - self.b * np.cos(self.angle_rad) / self.c ) / ( 2 * (np.sin(self.angle_rad))**2 )
-            nu  = 1./2. - eta * self.c * np.cos(self.angle_rad) / self.b 
+        a, b, c, beta = param[:4]
+        self.beta_rad = np.radians(beta)
+        self.constants = [a, b, c, pi/2, beta_rad, pi/2]
+        self.a = a
+        self.b = b
+        self.c = c
+        self.angle = beta
+        if setting == 'curtarolo':
+            assert (a<=c) and (b<=c) and (beta < 90) 
+            a1c = a * np.array([1, 0, 0])
+            a2c = b * np.array([0, 1, 0])
+            a3c = c * np.array([0, np.cos(self.beta_rad), np.sin(self.beta_rad)])
+            self.convv = np.array([a1c, a2c, a3c])
+            # primitive cell
+            self.primv = self.convv
+            #
+            eta = ( 1 - self.b * np.cos(self.beta_rad) / self.c ) / ( 2 * (np.sin(self.beta_rad))**2 )
+            nu  = 1./2. - eta * self.c * np.cos(self.beta_rad) / self.b 
             self.SymPts_k =\
                 { 'Gamma': (0., 0., 0.),
                     'A'  : (1./2., 1./2., 0.), 
@@ -430,18 +324,10 @@ class MCL(object):
                     'Y'  : (0., 0., 1./2.), 
                     'Y1' : (0., 0., -1./2.), 
                     'Z'  : (1./2., 0., 0.), }
-
             self.standard_path = "Gamma-Y-H-C-E-M1-A-X-H1|M-D-Z|Y-D"
         else:
-            log.critical("Not supported MCL setting with ITC or w/ angle > 90degrees")
-            sys.exit(1)
-
-        for k, v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v) #np.dot(np.array(v), np.array(self.recipr))
-
-
-    def get_kvec (self, comp_rc):
-        return get_kvec(comp_rc, self.recipr)
+            logger.error('Unsupported setting {} for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
 
 
 class MCLC(object):
@@ -450,68 +336,42 @@ class MCLC(object):
     Primitive lattice defined via:
     a <> b <> c, and alpha <> 90 degrees, beta = gamma = 90 degrees
     """
-    def __init__(self, a, b, c, angle, ITC=True, scale=2*np.pi, primvec=None):
+    def __init__(self, param, setting='ITC'):
         """
-        Initialise the lattice parameter(s) upon instance creation, and
-        calculate the direct and reciprocal lattice vectors, as well
-        as the components of the k-vectors defining the high-symmetry
-        points known for the given lattice.
         Note that MCLC has several variants, depending on abc ordering and
         face(base) centering or not:
         Additionally, ITC stipulates alpha > 90 degrees, while in 
         W. Setyawan, S. Curtarolo / Computational Materials Science 49 (2010) 299-312
         alpha < 90 is used.
-        If _ITC_ is True (default), the ITC convention is followed for 
-        direct and reciprocal lattice.
-        If _ITC_ is False, then the convention in 
-        W. Setyawan, S. Curtarolo / Computational Materials Science 49 (2010) 299-312
-        is followed.
         """
-        
-        # only ITC supported for now, and only for MCLC1
-        assert (ITC == True) and (a >= b) and (a>=c) and (angle > 90) 
-
+        a, b, c, angle = param[:4]
         self.a     = a
         self.b     = b
         self.c     = c
         self.angle_rad = np.radians(angle)
-        self.scale = scale
+        self.angle = angle
         self.constants = [a, b, c, angle]
+        if setting == 'ITC' and self.angle_rad > pi/2.:
+            assert (a >= b) and (a >= c) and (angle > 90) 
+            # conventional cell
+            a1c = self.a * np.array([1, 0, 0])
+            a2c = self.b * np.array([0, 1, 0])
+            a3c = self.c * np.array([np.cos(self.angle_rad), 0, np.sin(self.angle_rad)])
+            self.conv = np.array([a1c, a2c, a3c])
+            # primitive cell
+            a1p = (+a1c + a2c) / 2.
+            a2p = (-a1c + a2c) / 2.
+            a3p = a3c
+            self.primv = np.array([a1p, a2p, a3p])
 
-        if primvec is not None:
-            self.prim = primvec
-        else:
-            if ITC:
-                # conventional cell
-                a1c = self.a * np.array([1, 0, 0])
-                a2c = self.b * np.array([0, 1, 0])
-                a3c = self.c * np.array([np.cos(self.angle_rad), 0, np.sin(self.angle_rad)])
-                self.conv = np.array([a1c, a2c, a3c])
-                # primitive cell
-                a1p = (+a1c + a2c) / 2.
-                a2p = (-a1c + a2c) / 2.
-                a3p = a3c
-                self.prim = np.array([a1p, a2p, a3p])
-            else:
-                log.critical("Unsupported MCLC setting")
-                sys.exit(1)
-
-        self.recipr = get_recipr_cell(self.prim,self.scale)
-
-        self.SymPts_k = {} # in terms of reciprocal cell-vectors
-        self.SymPts = {}   # in terms of reciprocal unit-vectors
-
-        # The fractions defining the symmetry points in terms of reciprocal 
-        # cell-vectors are dependent on the angle alpha of the MCLC lattice 
-        # So we cannot use the dictionary SymPts_k to get them.
-
-        if ITC and self.angle_rad > np.pi/2.:
-            self.name = 'MCLC1.ITC'
+            # The fractions defining the symmetry points in terms of reciprocal 
+            # cell-vectors are dependent on the angle alpha of the MCLC lattice 
+            # So we cannot use the dictionary SymPts_k to get them.
             psi = 3./4. - (self.b / (2 * self.a * np.sin(self.angle_rad)))**2
             phi = psi - ( 3./4. - psi ) * (self.a / self.c) * np.cos(self.angle_rad)
             ksi = ( 2 + (self.a/self.c) *  np.cos(self.angle_rad) ) / ( 2 * np.sin(self.angle_rad) )**2
             eta = 1./2. - 2 * ksi * (self.c/self.a) *  np.cos(self.angle_rad)
-            print (psi, phi, ksi, eta)
+            logger.debug (psi, phi, ksi, eta)
             self.SymPts_k =\
                 { 'Gamma': (0., 0., 0.),
                     'N' : (0., 1./2., 0.),
@@ -529,25 +389,17 @@ class MCLC(object):
                     'X1': (psi-1, psi, 0.),
                     'X2': (psi, psi-1, 0.),
                     'Z' : (0., 0., 1./2.), }
-
             self.standard_path = "X1-Y-Gamma-N-X-Gamma-M-I-L-F-Y-Gamma-Z-F1-Z-I1"
         else:
-            log.critical("Not supported (MCLC) non ITC or w/ angle < 90degrees")
-            sys.exit(1)
-
-        for k, v in self.SymPts_k.items():
-            self.SymPts[k] = self.get_kvec(v) #np.dot(np.array(v), np.array(self.recipr))
-
-
-    def get_kvec (self, comp_rc):
-        return get_kvec(comp_rc, self.recipr)
+            logger.error('Unsupported setting {} for {} lattice'.format(setting, self.__name__))
+            sys.exit(2)
 
 
 
 def get_kvec(comp_rc, recipr_cell):
     """
     *comp_rc* are the components of a vector expressed in terms of
-    reciprocal call vectors *recipr_cell*.
+    reciprocal cell vectors *recipr_cell*.
     Return the components of this vector in terms of reciprocal
     unit vectors.
     """
@@ -577,8 +429,9 @@ def get_recipr_cell (A,scale):
         B.append( scale * np.cross(A[i1],A[i2]) / volume )
     return B
 
-def getSymPtLabel(kvec, lattice, log):
-    """ 
+def getSymPtLabel(kvec, lattice, logger):
+    """Return the symbol corresponding to a given k-vector, if named.
+
     This routine returns the symbol of a symmetry point that is 
     given in terms of reciprocal cell-vectors (*kvec* -- a 3-tuple)
     of the *lattice* object.
@@ -592,9 +445,9 @@ def getSymPtLabel(kvec, lattice, log):
             kLabel = lbl
             
     if not kLabel:
-        log.warning("Unable to match k-vector {0} to a symmetry point of {1} lattice".
+        logger.warning("Unable to match k-vector {0} to a symmetry point of {1} lattice".
                     format(kvec,lattice))
-        log.warning("\tReturning fractions of reciprocal unit vectors")
+        logger.warning("\tReturning fractions of reciprocal unit vectors")
         kx = Fraction(kvec[0]).limit_denominator()
         ky = Fraction(kvec[1]).limit_denominator()
         kz = Fraction(kvec[2]).limit_denominator()
@@ -618,33 +471,33 @@ def repr_lattice(lat):
     """
     Report cell vectors, reciprocal vectors and standard path
     """
-    print(("\n\n *** {0} lattice ***".format(lat.name)))
-    print("\nLattice constants: ", lat.constants)
-    print("\nAssumed Conventional vectors:")
-    for cvec in lat.conv:
-        print(cvec)
+    logger.debug(("*** {0} lattice ***".format(lat.name)))
+    logger.debug("Lattice constants: {}".format(lat.constants))
+    logger.debug("Assumed Conventional vectors:")
+    for cvec in lat.convv:
+        logger.debug(cvec)
 
-    print("\nCorresponding Primitive vectors:")
-    for pvec in lat.prim:
-        print(pvec)
+    logger.debug("Corresponding Primitive vectors:")
+    for pvec in lat.primv:
+        logger.debug(pvec)
 
-    print("\nCorresponding Reciprocal vectors:")
-    for rvec in lat.recipr:
-        print(rvec)
+    logger.debug("Corresponding Reciprocal vectors:")
+    for rvec in lat.reciprv:
+        logger.debug(rvec)
 
-    print("\nSymmetry points in terms of reciprocal lattice vectors:")
+    logger.debug("Symmetry points in terms of reciprocal lattice vectors:")
     for pt in list(lat.SymPts_k.items()):
-        print(pt)
+        logger.debug("{:>6s}: {}".format(pt[0], pt[1]))
 
-    print("\nSymmetry points in reciprocal lengths:")
+    logger.debug("Symmetry points in reciprocal lengths:")
     for pt in list(lat.SymPts.items()):
-        print(pt)
+        logger.debug("{:>6s}: {}".format(pt[0], pt[1]))
 
-    print("\nSymmetry points in 2pi/a units:")
+    logger.debug("Symmetry points in 2pi/a units:")
     for pt in list(lat.SymPts.items()):
-        print(pt[0],pt[1]/(2*np.pi/lat.a))
+        logger.debug("{:>6s}: {}".format(pt[0],pt[1]/(2*pi/lat.constants[0])))
 
-    print("\nLengths along a standard path [2pi/a]:")
+    logger.debug("Lengths along a standard path [2pi/a]:")
     len_pathsegments(lat)
 
 
@@ -656,13 +509,13 @@ def len_pathsegments(lattice, scale=None, path=None):
     if path is None:
         path = lattice.standard_path
     if scale is None:
-        scale = (lattice.a/(2.*np.pi))
-    print(path)
+        scale = (lattice.constants[0]/(2.*pi))
+    logger.debug(path)
     for subpath in path.split('|'):
         segments = subpath.split('-')
         for i, pt in enumerate(segments[:-1]):
             nextpt = segments[i+1]
-            print("{:>6s}-{:<6s}: {:.3f}".format(pt, nextpt, 
+            logger.debug("{:>6s}-{:<6s}: {:.3f}".format(pt, nextpt, 
                 scale*np.linalg.norm(lattice.SymPts[pt]-lattice.SymPts[nextpt])))
 
 
@@ -675,20 +528,33 @@ def get_dftbp_klines(lattice, delta=None, path=None):
         path = lattice.standard_path
     if delta is None:
         delta = 0.01 # reciprocal units
-    print("# {:s}".format(path))
+    logger.debug("# {:s}".format(path))
     for subpath in path.split('|'):
         segments = subpath.split('-')
         pt = segments[0]
         npts = 1
         len = 0
-        print("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
+        logger.debug("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
             "".join(["{:>10.5f}".format(comp) for comp in lattice.SymPts_k[pt]]), pt, len))
         for i, pt in enumerate(segments[:-1]):
             nextpt = segments[i+1]
             len = np.linalg.norm(lattice.SymPts[pt]-lattice.SymPts[nextpt])
             npts = int(len/delta)
-            print("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
+            logger.debug("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
                 "".join(["{:>10.5f}".format(comp) for comp in lattice.SymPts_k[nextpt]]), nextpt, len))
+
+# lattice types are as per curtarolo's article.
+get_lattice = {
+        'CUB': CUB,
+        'FCC': FCC,
+        'BCC': BCC,
+        'TET': TET,
+        'ORC': ORC,
+        'HEX': HEX,
+        'RHL': RHL,
+        'MCL': MCL,
+        'MCLC': MCLC,
+        }
 
 
 if __name__ == "__main__":
