@@ -11,6 +11,7 @@ import numpy as np
 from numpy import pi, sqrt
 from fractions import Fraction
 import logging
+from pprint import pprint, pformat
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format=' %(message)s')
@@ -19,11 +20,20 @@ logger = logging.getLogger(__name__)
 
 class Lattice(object):
     """Generic lattice class."""
-    def __init__(self, name, param, setting='curtarolo', scale=2*pi):
-        self.name = name
-        self.setting = setting
-        self.scale = scale
-        lat = get_lattice[name](param, setting)
+    def __init__(self, info):
+        try:
+            self.name = info['type']
+        except KeyError:
+            logger.critical('Cannot continue without lattice type')
+            sys.exit(2)
+        self.setting = info.get('setting', 'curtarolo')
+        self.scale = info.get('scale', 2*pi)
+        try:
+            self.param = info['param']
+        except:
+            logger.critical('Cannot continue without lattice parameter(s)')
+            sys.exit(2)
+        lat = get_lattice[self.name](self.param, self.setting)
         self.constants = lat.constants
         self.primv = lat.primv
         self.convv = lat.convv
@@ -34,6 +44,12 @@ class Lattice(object):
         self.SymPts = {}
         for k,v in self.SymPts_k.items():
             self.SymPts[k] = get_kvec(v, self.reciprv)
+
+    def get_kvec(self, beta):
+        return get_kvec(beta, self.reciprv)
+
+    def __repr__(self):
+        return repr_lattice(self)
 
 
 class CUB(object):
@@ -471,34 +487,39 @@ def repr_lattice(lat):
     """
     Report cell vectors, reciprocal vectors and standard path
     """
-    logger.debug(("*** {0} lattice ***".format(lat.name)))
-    logger.debug("Lattice constants: {}".format(lat.constants))
-    logger.debug("Assumed Conventional vectors:")
+    s = ["\n"]
+    s.append("------ {} lattice ------".format(lat.name))
+    s.append("-------------------------")
+    s.append("Lattice constants: {}".format(
+        " ".join(["{:.4f}".format(c) for c in lat.constants])))
+    s.append("Assumed Conventional vectors:")
     for cvec in lat.convv:
-        logger.debug(cvec)
+        s.append("{}".format(cvec))
 
-    logger.debug("Corresponding Primitive vectors:")
+    s.append("Corresponding Primitive vectors:")
     for pvec in lat.primv:
-        logger.debug(pvec)
+        s.append("{}".format(pvec))
 
-    logger.debug("Corresponding Reciprocal vectors:")
+    s.append("Corresponding Reciprocal vectors:")
     for rvec in lat.reciprv:
-        logger.debug(rvec)
+        s.append("{}".format(rvec))
 
-    logger.debug("Symmetry points in terms of reciprocal lattice vectors:")
+    s.append("Symmetry points in terms of reciprocal lattice vectors:")
     for pt in list(lat.SymPts_k.items()):
-        logger.debug("{:>6s}: {}".format(pt[0], pt[1]))
+        s.append("{:>6s}: {}".format(pt[0], pt[1]))
 
-    logger.debug("Symmetry points in reciprocal lengths:")
+    s.append("Symmetry points in reciprocal lengths:")
     for pt in list(lat.SymPts.items()):
-        logger.debug("{:>6s}: {}".format(pt[0], pt[1]))
+        s.append("{:>6s}: {}".format(pt[0], pt[1]))
 
-    logger.debug("Symmetry points in 2pi/a units:")
+    s.append("Symmetry points in 2pi/a units:")
     for pt in list(lat.SymPts.items()):
-        logger.debug("{:>6s}: {}".format(pt[0],pt[1]/(2*pi/lat.constants[0])))
+        s.append("{:>6s}: {}".format(pt[0],pt[1]/(2*pi/lat.constants[0])))
 
-    logger.debug("Lengths along a standard path [2pi/a]:")
-    len_pathsegments(lat)
+    s.append("Lengths along a standard path [2pi/a]:")
+    s.append("{}".format(len_pathsegments(lat)))
+    s2 = get_dftbp_klines(lat)
+    return "\n".join(s) + "\n" + s2
 
 
 def len_pathsegments(lattice, scale=None, path=None):
@@ -510,13 +531,14 @@ def len_pathsegments(lattice, scale=None, path=None):
         path = lattice.standard_path
     if scale is None:
         scale = (lattice.constants[0]/(2.*pi))
-    logger.debug(path)
+    s = [path, ]
     for subpath in path.split('|'):
         segments = subpath.split('-')
         for i, pt in enumerate(segments[:-1]):
             nextpt = segments[i+1]
-            logger.debug("{:>6s}-{:<6s}: {:.3f}".format(pt, nextpt, 
+            s.append("{:>6s}-{:<6s}: {:.3f}".format(pt, nextpt, 
                 scale*np.linalg.norm(lattice.SymPts[pt]-lattice.SymPts[nextpt])))
+    return '\n'.join(s)
 
 
 def get_dftbp_klines(lattice, delta=None, path=None):
@@ -528,20 +550,22 @@ def get_dftbp_klines(lattice, delta=None, path=None):
         path = lattice.standard_path
     if delta is None:
         delta = 0.01 # reciprocal units
-    logger.debug("# {:s}".format(path))
+    s = ["DFTB kLines stanza:", ]
+    s.append("# {:s}".format(path))
     for subpath in path.split('|'):
         segments = subpath.split('-')
         pt = segments[0]
         npts = 1
         len = 0
-        logger.debug("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
+        s.append("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
             "".join(["{:>10.5f}".format(comp) for comp in lattice.SymPts_k[pt]]), pt, len))
         for i, pt in enumerate(segments[:-1]):
             nextpt = segments[i+1]
             len = np.linalg.norm(lattice.SymPts[pt]-lattice.SymPts[nextpt])
             npts = int(len/delta)
-            logger.debug("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
+            s.append("{:>8d} {:s}  # {:<6s}  {:<8.3f}".format(npts,
                 "".join(["{:>10.5f}".format(comp) for comp in lattice.SymPts_k[nextpt]]), nextpt, len))
+    return "\n".join(s)
 
 # lattice types are as per curtarolo's article.
 get_lattice = {

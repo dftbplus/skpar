@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import numpy.testing as nptest
 from dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
-from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure, get_effmasses
 from dftbutils import queryDFTB as dftb
 from math import pi
 
@@ -123,7 +123,7 @@ class BandsOutTest(unittest.TestCase):
     ref_bands = np.loadtxt(ff2)
     ref_bands = ref_bands[:, 1:]
     ref_nk, ref_nb = ref_bands.shape
-    ref_ivbtop = int(len(ref_bands.shape[1]/2))
+    ref_ivbtop = 15 # data is from SiO2 (2*4e(Si)  + 4*8e(O) = 32e)
     ref_Ev = np.max(ref_bands[:, ref_ivbtop])
     ref_Ec = np.min(ref_bands[:, ref_ivbtop+1])
     ref_Eg = ref_Ec - ref_Ev
@@ -150,24 +150,11 @@ class BandsOutTest(unittest.TestCase):
         self.assertEqual(data['Ecb'], self.ref_Ec)
         self.assertEqual(data['Evb'], self.ref_Ev)
 
-    def test_get_bandstructure_dirsrc(self):
-        """Can we get the bandstructure and gap/cb/vb details; source is a directory?"""
+    def test_get_bandstructure(self):
+        """Can we get the bandstructure and gap/cb/vb details?"""
         dst = {}
         src = 'test_dftbutils/bs'
         get_bandstructure(src, dst)
-        nptest.assert_array_almost_equal(dst['bands'], self.ref_bands)
-        self.assertEqual(dst['nkpts'], self.ref_nk)
-        self.assertEqual(dst['nbands'], self.ref_nb)
-        self.assertEqual(dst['Ef'], self.ref_Ef)
-        self.assertEqual(dst['Egap'], self.ref_Eg)
-        self.assertEqual(dst['Ecb'], self.ref_Ec)
-        self.assertEqual(dst['Evb'], self.ref_Ev)
-
-    def test_get_bandstructure_fileandwd(self):
-        """Can we get the bandstructure and gap/cb/vb details; workdir and bands file?"""
-        dst = {}
-        wd = 'test_dftbutils/bs'
-        get_bandstructure('bands_tot.dat', dst, wd)
         nptest.assert_array_almost_equal(dst['bands'], self.ref_bands)
         self.assertEqual(dst['nkpts'], self.ref_nk)
         self.assertEqual(dst['nbands'], self.ref_nb)
@@ -181,12 +168,37 @@ class MeffTest(unittest.TestCase):
     """Can we extract designated effective masses from the bands."""
     def test_meff(self):
         k = np.linspace(0, 1, num=50)
+        #
         eref = k**2
         me = dftb.meff(eref, k)
         self.assertAlmostEqual(me, 0.5)
+        #
         eref = (k-0.5)**2
         me = dftb.meff(eref, k)
         self.assertAlmostEqual(me, 0.5)
+
+    def test_get_effmasses(self):
+        """Can we get the bandstructure and gap/cb/vb details; source is a directory?"""
+        dst = {}
+        src = 'test_dftbutils/Si/bs'
+        get_bandstructure(src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        # the values below are in oldskopt.debug.log in the above dir
+        self.assertTrue(dst['withSOC'])
+        self.assertEqual(dst['ivbtop'], 7)
+        self.assertEqual(dst['nkpts'], 2042)
+        self.assertEqual(dst['nbands'], 36)
+        self.assertAlmostEqual(dst['Ef'], -4.1910)
+        self.assertAlmostEqual(dst['Egap'], 1.12878)
+        self.assertAlmostEqual(dst['Ecb'], -3.06221)
+        self.assertAlmostEqual(dst['Evb'], -4.19099)
+        #
+        ref_klines = [('L', 0), ('Gamma', 532), ('X', 1132), ('U', 1408), ('K', 1409), ('Gamma', 2041)]
+        ref_klinesdict = {'K': [1409], 'X': [1132], 'Gamma': [532, 2041], 'L': [0], 'U': [1408]}
+        self.assertListEqual(dst['kLines'], ref_klines)
+        self.assertDictEqual(dst['kLinesDict'], ref_klinesdict)
+        get_effmasses(dst, dst)
+        logger.debug(dst)
+
 if __name__ == '__main__':
     unittest.main()
 

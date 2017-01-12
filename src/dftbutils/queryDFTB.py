@@ -2,9 +2,11 @@ import os
 import logging
 from os.path import normpath, expanduser, isdir
 from os.path import join as joinpath
-from dftbutils.lattice import getSymPtLabel
+from dftbutils.lattice import Lattice, getSymPtLabel
+from dftbutils.querykLines import get_klines
 from math import pi
 import numpy as np
+from collections import OrderedDict
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -176,20 +178,26 @@ class Bandstructure(dict):
         return cls(data)
 
 
-def get_bandstructure(source, destination, workdir='.', *args, **kwargs):
+def get_bandstructure(source, destination,
+        detailfile='detailed.out', bandsfile='bands_tot.dat', hsdfile='dftb_pin.hsd', 
+        latticeinfo=None, *args, **kwargs):
     """Load whatever data can be obtained from detailed.out of dftb+ and bands_tot.dat of dp_bands.
     """
-    assert isinstance(source, str), \
-        "src must be a string (filename or directory name), but is {} instead.".format(type(src))
-    if isdir(source):
-        f1 = normpath(expanduser(joinpath(source, 'detailed.out')))
-        f2 = normpath(expanduser(joinpath(source, 'bands_tot.dat')))
-    else:
-        # band_tot.dat can be controled from command line during execution of dp_bands
-        # while 'detailed.out' cannot be controled by user
-        f1 = normpath(expanduser(joinpath(workdir, 'detailed.out')))
-        f2 = normpath(expanduser(joinpath(workdir, source)))
+    assert isdir(source)
+    f1 = normpath(expanduser(joinpath(source, detailfile)))
+    f2 = normpath(expanduser(joinpath(source, bandsfile)))
+    f3 = normpath(expanduser(joinpath(source, hsdfile)))
     data = Bandstructure.fromfiles(f1, f2)
+    #
+    if latticeinfo is not None:
+        lattice = Lattice(latticeinfo)
+        kLines, kLinesDict = get_klines(lattice, workdir=source, hsdfile=f3)
+        data.update({'lattice': lattice, 
+                    'kLines': kLines, 
+                    'kLinesDict': kLinesDict})
+        logger.debug(data['lattice'])
+        logger.debug(data['kLines'])
+        logger.debug(data['kLinesDict'])
     destination.update(data)
 
 # ----------------------------------------------------------------------
@@ -215,9 +223,9 @@ def meff(band, kline):
     y = band    # [Hartree]
     c = np.polyfit(x,y,2)
     fit = np.poly1d(c)
-    logger.debug('meff band: {}'.format(y)) 
-    logger.debug('meff kline: {}'.format(x))
-    logger.debug('meff poly1d (c2, c1, c0): {}'.format(c))
+    #logger.debug('meff band: {}'.format(y)) 
+    #logger.debug('meff kline: {}'.format(x))
+    #logger.debug('meff poly1d (c2, c1, c0): {}'.format(c))
     # NOTA BENE:
     # in numpy.poly[fit|1d], the 2nd order coeff is c[0]
     c2 = c[0]
@@ -351,7 +359,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
             _Erng += Erng 
             krange = np.where(abs(band-extr)<=_Erng)[0]
         if _Erng > Erng:
-            log.warning("Erange pushed from {:.3f} to {:.3f} eV, to "\
+            logger.warning("Erange pushed from {:.3f} to {:.3f} eV, to "\
                         "encompass {:d} E-k points including the extremum".
                         format(Erng, _Erng, len(krange)))
         # We have a problem if the band wiggles and we get an inflection point
@@ -379,14 +387,14 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         nhigh = max(krange)
 
         if nhigh-iextr < 4 and iextr != nk-1:
-            log.warning('Too few points ({0}) to the right of extremum: Poor {1} fit likely.'.
+            logger.warning('Too few points ({0}) to the right of extremum: Poor {1} fit likely.'.
                         format(nhigh - iextr, meff_id(ib)))
-            log.warning("\tCheck if extremum is at the end of k-line; "
+            logger.warning("\tCheck if extremum is at the end of k-line; "
                         "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
         if iextr-nlow < 4 and iextr != 0:
-            log.warning("Too few points ({0}) to the left of extremum: Poor {1} fit likely.".
+            logger.warning("Too few points ({0}) to the left of extremum: Poor {1} fit likely.".
                         format(iextr - nlow, meff_id(ib)))
-            log.warning("\tCheck if extremum is at the end of k-line; "
+            logger.warning("\tCheck if extremum is at the end of k-line; "
                         "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
 
         logger.debug("Fitting {id:8s} at {ee:8.3f} [eV], {relpos:.2f}, nlow/nhigh {nl:>6d}/{nh:>6d}".
@@ -417,9 +425,8 @@ def expand_meffdata(meff_data):
         expanded_data[kpostag] = kposval
     return expanded_data
 
-def get_effmasses(source, destination, 
-                lattype=None, latparams=None, latsetting=None,
-                directions=None, carriers='both', nb=1, Erange=0.04,
+def get_effmasses(source, destination, directions=None, 
+                carriers='both', nb=1, Erange=0.04,
                 usebandindex=False, forceErange=False):
     """Return a dictionary with effective masses for the given *carriers* for 
     the first *nb* *bands* in the VB and CB, along the given *paths*, as well 
@@ -429,24 +436,27 @@ def get_effmasses(source, destination,
     masses = OrderedDict()
     bands  = np.transpose(source['bands'])
     nE, nk = bands.shape
-    nVBtop = source['ivbtop']
-    kLines = source['klines']
-    kLinesDict = source['klinesdict']
-    if lattype is None:
-        lattice = source.get('lattice', None)
-#        if lattice is None:
+    ivbtop = source['ivbtop']
+    try:
+        lattice = source['lattice']
+        logger.debug(lattice)
+        logger.debug('lattice is good!')
+    except KeyError:
 #            Since dftbp_in.hsd contains the atomic structure and cell info,
 #            we may try to get the lattice type with spglib...in the future.
-    else:
-        lattice = lat.latdict(lattype, latparams, latsetting)
-    if lattice is None:
-        logger.error('The lack of lattice information precludes interpretation'
-                'band-structure and effective masses.')
-    lattice = source['lattice']
-
-    # suppose we have something like "L-Gamma-X|K-Gamma"
-    # this makes for two paths and three directions in total
-#    for path in paths.split('|'):
+        logger.error('The lack of lattice information precludes'
+            'interpretation of band-structure and effective masses.')
+    kLines = source['kLines']
+    kLinesDict = source['kLinesDict']
+    ## suppose we have something like "L-Gamma-X|K-Gamma"
+    ## this makes for two paths and three directions in total
+    if directions is None:
+        # derive directions from kLines, omitting segments shorter than 5 kpts
+        directions = []
+        for i, (lbl1, indx1) in enumerate(kLines[:-1]):
+            lbl2, indx2 = kLines[i+1]
+            if indx2 - indx1 > 5:
+                directions.append('-'.join([lbl1, lbl2]))
     for direction in directions:
         kLabels = direction.split('-')
         assert len(kLabels)==2
@@ -454,7 +464,7 @@ def get_effmasses(source, destination,
         ix0 = None
         ix1 = None
         for ii,pt in enumerate(kLines[:-1]):
-            # check that the labels specifying a direction form a consequtive pair
+            # check that the labels specifying a direction form a consecutive pair
             # in kLines, and then get the corresponding indexes, sorting them too
             if kLines[ii][0] in endpoints and kLines[ii+1][0] in endpoints:
                 kLineEnds = sorted([kLines[ii], kLines[ii+1]], key=lambda x: x[1])
@@ -468,7 +478,7 @@ def get_effmasses(source, destination,
         # hole masses
         # NOTABENE the reverse indexing of bands, so that mh_*_0 is the top VB
         if carriers in ['both', 'eh', True, 'h', 'holes']:
-            ib0 = nVBtop
+            ib0 = ivbtop
             kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
                                     meff_tag=direction, Erange=Erange,
@@ -482,7 +492,7 @@ def get_effmasses(source, destination,
         # electron masses
         # NOTABENE the direct indexing of bands, so that me_*_0 is the bottom CB
         if carriers in ['both', 'eh', True, 'e', 'electrons']:
-            ib0 = nVBtop+1
+            ib0 = ivbtop+1
             kLine = bands[ib0:ib0+nb, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
                                     meff_tag=direction, Erange=Erange, 
@@ -492,73 +502,8 @@ def get_effmasses(source, destination,
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
             masses.update({'me_av': mav})
-
-    return masses
-
-def get_effmasses_old(bsdata, directions, carriers='both', nb=1, Erange=0.04, 
-                  usebandindex=False, forceErange=False):
-    """Return a dictionary with effective masses for the given *carriers* for 
-    the first *nb* *bands* in the VB and CB, along the given *paths*, as well 
-    as the values of the extrema and their position along the directions in 
-    the *paths*.
-    """
-    masses = OrderedDict()
-    bands  = np.transpose(bsdata['Bands'])
-    nE, nk = bands.shape
-    nVBtop = bsdata['nVBtop']
-    kLines = bsdata['kLines']
-    kLinesDict = bsdata['kLinesDict']
-    lattice = bsdata['lattice']
-
-    # suppose we have something like "L-Gamma-X|K-Gamma"
-    # this makes for two paths and three directions in total
-#    for path in paths.split('|'):
-    for direction in directions:
-        kLabels = direction.split('-')
-        assert len(kLabels)==2
-        endpoints = (kLabels[0], kLabels[1]) 
-        ix0 = None
-        ix1 = None
-        for ii,pt in enumerate(kLines[:-1]):
-            # check that the labels specifying a direction form a consequtive pair
-            # in kLines, and then get the corresponding indexes, sorting them too
-            if kLines[ii][0] in endpoints and kLines[ii+1][0] in endpoints:
-                kLineEnds = sorted([kLines[ii], kLines[ii+1]], key=lambda x: x[1])
-                ix0 = kLineEnds[0][1]
-                ix1 = kLineEnds[1][1]
-                break
-        assert ix0 is not None
-        assert ix1 is not None
-        kEndPts = [lattice.SymPts_k[point[0]] for point in kLineEnds]
-
-        # hole masses
-        # NOTABENE the reverse indexing of bands, so that mh_*_0 is the top VB
-        if carriers in ['both', 'eh', True, 'h', 'holes']:
-            ib0 = nVBtop
-            kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
-            meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange,
-                                    forceErange=forceErange, nb=nb,
-                                    usebandindex=usebandindex)
-            masses.update(expand_meffdata(meff_data))
-            # report also the average (arithmetic) mass
-            mav = np.mean([mm[0] for mm in meff_data.values()])
-            masses.update({'mh_av': mav})
-
-        # electron masses
-        # NOTABENE the direct indexing of bands, so that me_*_0 is the bottom CB
-        if carriers in ['both', 'eh', True, 'e', 'electrons']:
-            ib0 = nVBtop+1
-            kLine = bands[ib0:ib0+nb, ix0:ix1+1]
-            meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange, 
-                                    forceErange=forceErange, nb=nb,
-                                    usebandindex=usebandindex)
-            masses.update(expand_meffdata(meff_data))
-            # report also the average (arithmetic) mass
-            mav = np.mean([mm[0] for mm in meff_data.values()])
-            masses.update({'me_av': mav})
-
+        #
+        destination.update(masses) 
     return masses
 
 def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, **kwargs):

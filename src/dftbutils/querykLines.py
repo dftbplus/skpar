@@ -16,7 +16,7 @@ from collections import defaultdict
 from dftbutils.lattice import getSymPtLabel
 
 
-def get_klines(lattice, workdir='./', hsdfile='dftb_pin.hsd', *args, **kwargs):
+def get_klines(lattice, hsdfile='dftb_pin.hsd', *args, **kwargs):
     """
     This routine analyses the KPointsAndWeighs stanza in the input file of DFTB+ 
     (given as an input argument *hsdfile*), and returns the k-path, based on 
@@ -41,7 +41,7 @@ def get_klines(lattice, workdir='./', hsdfile='dftb_pin.hsd', *args, **kwargs):
 
     kLines_dftb = list()
 
-    with open(os.path.join(workdir,hsdfile)) as fh:
+    with open(hsdfile, 'r') as fh:
         for line in fh:
             if 'KPointsAndWeights = Klines {'.lower() in ' '.join(line.lower().split()):
                 extraline = next(fh)
@@ -61,7 +61,7 @@ def get_klines(lattice, workdir='./', hsdfile='dftb_pin.hsd', *args, **kwargs):
 
     logger.debug('Parsed {} and obtained:'.format(hsdfile))
     # At this stage, kLines_dftb contains distances between k points
-    logger.debug('\t_kLines_dftb: {}'.format(kLines_dftb))
+    logger.debug('\tkLines_dftb: {}'.format(kLines_dftb))
     # Next, we convert it to index, from 0 to nk-1
     kLines = [(lbl, sum([_dist for (_lbl,_dist) in kLines_dftb[:i+1]])-1) 
                         for (i,(lbl, dist)) in enumerate(kLines_dftb)]
