@@ -9,14 +9,15 @@ Finally, points internal to the Brilloin Zone are labeled with Greek letters,
 which should be rendered properly.
 """
 import sys
-import os
+from os.path import normpath, expanduser, isdir
+from os.path import join as joinpath
 import logging
 import numpy as np
 from collections import defaultdict
 from dftbutils.lattice import getSymPtLabel
 
 
-def get_klines(lattice, hsdfile='dftb_pin.hsd', *args, **kwargs):
+def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     """
     This routine analyses the KPointsAndWeighs stanza in the input file of DFTB+ 
     (given as an input argument *hsdfile*), and returns the k-path, based on 
@@ -41,7 +42,11 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', *args, **kwargs):
 
     kLines_dftb = list()
 
-    with open(hsdfile, 'r') as fh:
+    if workdir is not None:
+        fhsd = normpath(expanduser(joinpath(workdir, hsdfile)))
+    else:
+        fhsd = hsdfile
+    with open(fhsd, 'r') as fh:
         for line in fh:
             if 'KPointsAndWeights = Klines {'.lower() in ' '.join(line.lower().split()):
                 extraline = next(fh)

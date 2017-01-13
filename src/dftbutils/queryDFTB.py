@@ -191,13 +191,13 @@ def get_bandstructure(source, destination,
     #
     if latticeinfo is not None:
         lattice = Lattice(latticeinfo)
-        kLines, kLinesDict = get_klines(lattice, workdir=source, hsdfile=f3)
+        kLines, kLinesDict = get_klines(lattice, hsdfile=f3)
         data.update({'lattice': lattice, 
                     'kLines': kLines, 
                     'kLinesDict': kLinesDict})
-        logger.debug(data['lattice'])
-        logger.debug(data['kLines'])
-        logger.debug(data['kLinesDict'])
+        #logger.debug(data['lattice'])
+        #logger.debug(data['kLines'])
+        #logger.debug(data['kLinesDict'])
     destination.update(data)
 
 # ----------------------------------------------------------------------
@@ -331,7 +331,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     meff_data = OrderedDict([])       # permits list-like extraction of data too
 
     for ib in range(nb):
-        logger.debug('Fitting effective mass {}.'.format(meff_id(ib)))
+        #logger.debug('Fitting effective mass {}.'.format(meff_id(ib)))
         # set the references for the current band
         band = bands[ib0 + ib]
 
@@ -397,14 +397,14 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
             logger.warning("\tCheck if extremum is at the end of k-line; "
                         "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
 
-        logger.debug("Fitting {id:8s} at {ee:8.3f} [eV], {relpos:.2f}, nlow/nhigh {nl:>6d}/{nh:>6d}".
+        logger.debug("Fitting {id:8s}at{ee:7.3f} [eV], k-pos. {relpos:.2f} along nlow/nhigh {nl:>6d}/{nh:>6d}".
                 format(id=meff_id(ib), relpos=extr_relpos, ee=extr, nl=nlow, nh=nhigh))
 
         mass = meff(band[krange]/Eh, kline[krange]*aB)  # transform to atomic units
         
         meff_data[meff_id(ib, usebandindex)] = (mass, extr, extr_relpos)
-        logger.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {relpos:.2f}".format(
-                 id=meff_id(ib, usebandindex), mass=mass, relpos=extr_relpos, ee=extr))
+        logger.debug("Fitted  {id:8s}:{mass:8.3f} [m0], E_extr: {ee:8.3f} [eV], k_extr/klinelen: {relpos:.2f}".
+                format(id=meff_id(ib, usebandindex), mass=mass, relpos=extr_relpos, ee=extr))
     return meff_data
 
 def expand_meffdata(meff_data):
@@ -439,8 +439,8 @@ def get_effmasses(source, destination, directions=None,
     ivbtop = source['ivbtop']
     try:
         lattice = source['lattice']
-        logger.debug(lattice)
-        logger.debug('lattice is good!')
+#        logger.debug(lattice)
+#        logger.debug('lattice is good!')
     except KeyError:
 #            Since dftbp_in.hsd contains the atomic structure and cell info,
 #            we may try to get the lattice type with spglib...in the future.
@@ -459,6 +459,7 @@ def get_effmasses(source, destination, directions=None,
                 directions.append('-'.join([lbl1, lbl2]))
     for direction in directions:
         kLabels = direction.split('-')
+        logger.debug('Fitting effective mass along {}-{}.'.format(*kLabels))
         assert len(kLabels)==2
         endpoints = (kLabels[0], kLabels[1]) 
         ix0 = None
@@ -542,25 +543,25 @@ def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, **kwargs):
     ax.plot(xx, yy, **kwargs)
     
 
-def get_Eatk(bsdata, sympts):
+# ----------------------------------------------------------------------
+# Eigenvalues at special points of symmetry in the BZ
+# ----------------------------------------------------------------------
+def get_Ek(bsdata, sympts):
     """
     """
-    bands      = np.transpose(bsdata['Bands'])
-#    nE, nk     = bands.shape
-#    nVBtop     = bsdata['nVBtop']
-#    kLines = bsdata['kLines']
+    bands      = np.transpose(bsdata['bands'])
     kLinesDict = bsdata['kLinesDict']
-#    lattice = bsdata['lattice']
-    Eatk = OrderedDict()
+    Ek = OrderedDict()
 # wrap this in try:except, and catch label not in kLinesDict
     kindexes = [kLinesDict[label][0] for label in sympts]
     for ix, label in zip(kindexes, sympts):
-        Eatk[label] = bands[:, ix]
-    return Eatk
+        Ek[label] = bands[:, ix]
+    return Ek
     
 
-def get_tagged_Eatk(bsdata, sympts, extract={'cb': [0, ], 'vb': [0, ]}):
-    """
+def get_special_Ek(source, destination, sympts=None, 
+                    extract={'cb': [0, ], 'vb': [0, ]}, align='Ef'):
+    """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
     """
     def shorten (label):
         shortlabel = {"Gamma": "G", }
@@ -577,19 +578,32 @@ def get_tagged_Eatk(bsdata, sympts, extract={'cb': [0, ], 'vb': [0, ]}):
         extract.update({'cb': []})
     if 'vb' not in extract:
         extract.update({'vb': []})
-
-    Eatk = get_Eatk(bsdata, sympts)
-    nVBtop     = bsdata['nVBtop']
-    tagged_Eatk = OrderedDict()
-    for label in Eatk.keys():
+    # if user does not provide sympts, then extract from kLines
+    if sympts is None:
+        try:
+            sympts = list(source['kLinesDict'].keys())
+        except KeyError:
+            logger.critical('Attempting to guess symmetry points, but kLinesDict not available.')
+            sys.exit(2)
+    # align the energies to a reference value, e.g. Efermi
+    if isinstance(align, str):
+        # that would be an energy that is computed already
+        E0 = source[align]
+    else:
+        # assume a scalar
+        E0 = align
+    Ek = get_Ek(source, sympts)
+    Ek = {key: val-E0 for key, val in Ek.items()}
+    nVBtop     = source['ivbtop']
+    tagged_Ek = {}
+    for label in Ek:
         for bandix in extract['cb']:
             tag = 'Ec_{:s}_{:d}'.format(shorten(label), bandix)
-            value = Eatk[label][nVBtop + 1 + bandix]
-            tagged_Eatk[tag] = value
+            value = Ek[label][nVBtop + 1 + bandix]
+            tagged_Ek[tag] = value
         for bandix in extract['vb']:
             tag = 'Ev_{:s}_{:d}'.format(shorten(label), bandix)
-            value = Eatk[label][nVBtop  - bandix]
-            tagged_Eatk[tag] = value
-    return tagged_Eatk
-
-
+            value = Ek[label][nVBtop  - bandix]
+            tagged_Ek[tag] = value
+    destination.update(tagged_Ek)
+    return tagged_Ek
