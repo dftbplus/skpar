@@ -162,8 +162,9 @@ class GetTask (object):
         try:
             self.func(self.src, self.dst, *self.args, **self.kwargs)
         except:
-            logger.critical("FAILED attempt to call {} with the following args:\n{} and kwargs:\n{}".
+            self.logger.critical("FAILED attempt to call {} with the following args:\n{} and kwargs:\n{}".
                     format(self.func.__name__, self.args, self.kwargs))
+            raise
         
     def __repr__(self):
         """Yield a summary of the task.

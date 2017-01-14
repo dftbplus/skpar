@@ -444,7 +444,7 @@ def expand_meffdata(meff_data):
 
 def get_effmasses(source, destination, directions=None, 
                 carriers='both', nb=1, Erange=0.04,
-                usebandindex=False, forceErange=False):
+                usebandindex=False, forceErange=False, *args, **kwargs):
     """Return a dictionary with effective masses for the given *carriers* for 
     the first *nb* *bands* in the VB and CB, along the given *paths*, as well 
     as the values of the extrema and their position along the directions in 
@@ -524,7 +524,7 @@ def get_effmasses(source, destination, directions=None,
         destination.update(masses) 
     return masses
 
-def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, **kwargs):
+def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, *args, **kwargs):
     """
     Plot the second order polynomial fitted to E(k) dispersion on top of
     *ax* axes of a matplotlib figure object.
@@ -604,7 +604,8 @@ def greek (label):
     return lbl
 
 def get_special_Ek(source, destination, sympts=None, 
-                    extract={'cb': [0, ], 'vb': [0, ]}, align='Ef'):
+                    extract={'cb': [0, ], 'vb': [0, ]}, align='Ef', 
+                    *args, **kwargs):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
     """
 

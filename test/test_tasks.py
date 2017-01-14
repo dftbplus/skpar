@@ -2,6 +2,7 @@ import unittest
 import logging
 import yaml
 import os
+from pprint import pprint, pformat
 from os.path import normpath, expanduser
 import numpy as np
 import numpy.testing as nptest
@@ -275,18 +276,6 @@ class GetTaskTest(unittest.TestCase):
         self.assertFalse(dst['other'])
 
 
-class GetTaskDFTBpTest(unittest.TestCase):
-    """Do DFTB query tasks work well?"""
-    def test_get_dftb_data(self):
-        pass
-    def test_get_dftb_bs(self):
-        pass
-    def test_get_dftb_meff(self):
-        pass
-    def test_get_dftb_Ek(self):
-        pass
-
-
 class SetAllTasksTest(unittest.TestCase):
     """Check if we can create objectives from skopt_in.yaml"""
 
@@ -336,6 +325,32 @@ class SetAllTasksTest(unittest.TestCase):
         self.assertTrue(all([item in tt.kwargs.items() for item in 
             {'directions': ['G-X', 'GK'], 'nb': 4, 'Erange': 0.002}.items()]))
 
+
+class GetTaskDFTBpTest(unittest.TestCase):
+    """Do DFTB query tasks work well?"""
+    yamlspec = yaml.load("""
+        tasks:
+            - get: [get_dftbp_bs, test_dftbutils/Si/bs, Si.bs, {latticeinfo: {'type': 'FCC', 'param': 5.431}}]
+            - get: [get_dftbp_meff, Si.bs, {directions: ['Gamma-X', 'Gamma-K'], nb: 1, Erange: 0.005}]
+            - get: [get_dftbp_Ek, Si.bs]
+        """)
+    def test_execution_get_dftbp(self):
+        """Can we execute the declared get_dftbp_* tasks?"""
+        Query.flush_modelsdb()
+        tasks = set_tasks(self.yamlspec['tasks'])
+        for tt in tasks:
+            tt()
+        db = Query.get_modeldb('Si.bs')
+        self.assertAlmostEqual(db['Egap'], 1.129, places=3)
+        self.assertAlmostEqual(db['Ef'], -4.191, places=4)
+        self.assertAlmostEqual(db['me_GX'],  0.945, places=3)
+        self.assertAlmostEqual(db['mh_GK'], -0.585, places=3)
+        self.assertAlmostEqual(db['Ec_L_0'], 1.528, places=3)
+        self.assertAlmostEqual(db['Ec_G_0'], 2.744, places=3)
+        self.assertAlmostEqual(db['Ec_X_0'], 1.331, places=3)
+        self.assertAlmostEqual(db['Ec_U_0'], 1.820, places=3)
+        self.assertAlmostEqual(db['Ec_K_0'], 1.820, places=3)
+        # logger.debug(pformat(db))
 
 if __name__ == '__main__':
     unittest.main()
