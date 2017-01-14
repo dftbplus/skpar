@@ -29,7 +29,7 @@ class TasksParsingTest(unittest.TestCase):
             - run: [bs_dftb, SiO2, ]
             - get: [get_dftbp_data, Si, Si]
             - get: [get_dftbp_data, SiO2, SiO2]
-            - get: [get_meff, Si/bs, Si]
+            - get: [get_dftbp_meff, Si/bs, Si]
         """
     taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
 
@@ -50,7 +50,7 @@ class TasksParsingTest(unittest.TestCase):
                 args[0] = func
                 tasklist.append(GetTask(*args, logger=logger))
         self.assertTrue(isinstance(tasklist[0], SetTask))
-        fun = ['get_dftbp_data', 'get_dftbp_data', 'get_meff']
+        fun = ['get_dftbp_data', 'get_dftbp_data', 'get_dftbp_meff']
         cmd = ['skgen', 'bs_dftb', 'bs_dftb']
         wd  = ['skf', 'Si', 'SiO2']
         for ii, tt in enumerate(tasklist[1:4]):
@@ -275,6 +275,18 @@ class GetTaskTest(unittest.TestCase):
         self.assertFalse(dst['other'])
 
 
+class GetTaskDFTBpTest(unittest.TestCase):
+    """Do DFTB query tasks work well?"""
+    def test_get_dftb_data(self):
+        pass
+    def test_get_dftb_bs(self):
+        pass
+    def test_get_dftb_meff(self):
+        pass
+    def test_get_dftb_Ek(self):
+        pass
+
+
 class SetAllTasksTest(unittest.TestCase):
     """Check if we can create objectives from skopt_in.yaml"""
 
@@ -289,6 +301,40 @@ class SetAllTasksTest(unittest.TestCase):
         for task in tasklist:
             logger.debug ("")
             logger.debug (task)
+        self.assertEqual(len(tasklist), 7)
+        # Set Tasks
+        tt = tasklist[0]
+        self.assertEqual(tt.wd, 'skf')
+        self.assertEqual(tt.parfile, 'current.par')
+        # Run Task
+        tt = tasklist[1]
+        self.assertEqual(tt.cmd, ['skgen',])
+        self.assertEqual(tt.outfile, 'out.log')
+        self.assertEqual(tt.wd, 'skf')
+        tt = tasklist[2]
+        self.assertEqual(tt.cmd, ['bs_dftb',])
+        self.assertEqual(tt.outfile, 'out.log')
+        self.assertEqual(tt.wd, 'Si')
+        tt = tasklist[3]
+        self.assertEqual(tt.cmd, ['bs_dftb',])
+        self.assertEqual(tt.outfile, 'out.log')
+        self.assertEqual(tt.wd, 'SiO2')
+        # GetTasks
+        tt = tasklist[4]
+        self.assertEqual(tt.func.__name__, 'get_dftbp_data')
+        self.assertEqual(tt.src_name, 'Si')
+        self.assertEqual(tt.dst_name, 'altSi')
+        tt = tasklist[5]
+        self.assertEqual(tt.func.__name__, 'get_dftbp_data')
+        self.assertEqual(tt.src_name, 'SiO2')
+        self.assertEqual(tt.dst_name, 'SiO2')
+        tt = tasklist[6]
+        self.assertEqual(tt.func.__name__, 'get_effmasses')
+        self.assertEqual(tt.src_name, 'Si/bs')
+        self.assertEqual(tt.dst_name, 'Si/bs')
+        self.assertEqual(tt.args, ())
+        self.assertTrue(all([item in tt.kwargs.items() for item in 
+            {'directions': ['G-X', 'GK'], 'nb': 4, 'Erange': 0.002}.items()]))
 
 
 if __name__ == '__main__':

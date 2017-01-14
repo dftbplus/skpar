@@ -5,6 +5,7 @@ import numpy.testing as nptest
 from dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
 from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from dftbutils.queryDFTB import get_effmasses, get_special_Ek
+from dftbutils.queryDFTB import get_labels
 from dftbutils import queryDFTB as dftb
 from math import pi
 
@@ -12,6 +13,22 @@ logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
 logger = logging.getLogger(__name__)
 
+
+class GetLabelsTest(unittest.TestCase):
+    """Test helper function get_labels."""
+    def test_getlabels(self):
+        exp = ['Gamma', 'X']
+        self.assertListEqual(exp, get_labels('GammaX'))
+        self.assertListEqual(exp, get_labels('Gamma-X'))
+        exp = ['P', 'Gamma']
+        self.assertListEqual(exp, get_labels('PGamma'))
+        self.assertListEqual(exp, get_labels('P-Gamma'))
+        exp = ['Gamma', 'Sigma']
+        self.assertListEqual(exp, get_labels('GammaSigma'))
+        self.assertListEqual(exp, get_labels('Gamma-Sigma'))
+        exp = ['L', 'K']
+        self.assertListEqual(exp, get_labels('LK'))
+        self.assertListEqual(exp, get_labels('L-K'))
 
 class DetailedOutTest(unittest.TestCase):
     """Check if we can read dftb+ detailed.out."""

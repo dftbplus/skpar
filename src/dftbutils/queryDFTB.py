@@ -19,6 +19,23 @@ hbar = 1.054572e-34 # [J.s] reduced Planck's constant (h/2pi)
 q0 = 1.602176e-19   # [C] electron charge
 m0 = 9.10938e-31    # [kg] electron rest mass
 
+def get_labels(ss):
+    """Return two labels from a string containing "-" or two words starting with a capital.
+
+    For example, the input string may be 'G-X', 'GX', 'Gamma-X', 'GammaX'.
+    The output is always: ('G', 'X') or ('Gamma', 'X').
+    """
+    if '-' in list(ss):
+        labels = ss.split('-')
+    else:
+        lss = list(ss)
+        ixs = [i for i,c in enumerate(lss) if c != c.lower()]
+        assert len(ixs) == 2
+        assert ixs[0] == 0
+        labels = [''.join(lss[:ixs[1]]), ''.join(lss[ixs[1]:])]
+    return labels
+
+
 # ----------------------------------------------------------------------
 # Detailed Output data
 # ----------------------------------------------------------------------
@@ -458,10 +475,10 @@ def get_effmasses(source, destination, directions=None,
             if indx2 - indx1 > 5:
                 directions.append('-'.join([lbl1, lbl2]))
     for direction in directions:
-        kLabels = direction.split('-')
-        logger.debug('Fitting effective mass along {}-{}.'.format(*kLabels))
-        assert len(kLabels)==2
-        endpoints = (kLabels[0], kLabels[1]) 
+        logger.debug(direction)
+        endpoints = get_labels(direction)
+        assert len(endpoints)==2
+        logger.debug('Fitting effective mass along {}-{}.'.format(*endpoints))
         ix0 = None
         ix1 = None
         for ii,pt in enumerate(kLines[:-1]):
@@ -559,17 +576,37 @@ def get_Ek(bsdata, sympts):
     return Ek
     
 
+def greek (label):
+    """Change Greek letter names to single Latin capitals, and vice versa.
+
+    Useful for some names of high-symmetry points inside the BZ, to shorten
+    the names of Gamma, Sigma and Delta.
+    Note that Lambda cannot be made into L, as it will make automatic L to 
+    Lambda as well, which is wrong since L is a standard point on the BZ 
+    surface.
+
+    TODO: 
+          We should handle all this shit through unicode and not bother with
+          greek-to-latin mapping; just show nice greek caracters and that's 
+          that. the issue is output and tests currently use mixture of
+          Gamma and G extensively.
+    """
+    fromgreek = {"Gamma": "G", "Sigma": "S", "Delta": "D",}
+    #fromgreek = {"Gamma": '\u0393', "Sigma": "\u03A3", "Delta": "\u0394", "Lambda": "\u039B"}
+    togreek = dict([(v,k) for k,v in fromgreek.items()])
+    try:
+        lbl = fromgreek[label]
+    except KeyError:
+        try:
+            lbl = togreek[label]
+        except KeyError:
+            lbl = label
+    return lbl
+
 def get_special_Ek(source, destination, sympts=None, 
                     extract={'cb': [0, ], 'vb': [0, ]}, align='Ef'):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
     """
-    def shorten (label):
-        shortlabel = {"Gamma": "G", }
-        try:
-            short = shortlabel[label]
-        except KeyError:
-            short = label
-        return short
 
     # let the user mute extraction of vb or cb by providing only the alternative key
     # this may be needed if reference energies are not available for both CB and VB 
@@ -598,11 +635,11 @@ def get_special_Ek(source, destination, sympts=None,
     tagged_Ek = {}
     for label in Ek:
         for bandix in extract['cb']:
-            tag = 'Ec_{:s}_{:d}'.format(shorten(label), bandix)
+            tag = 'Ec_{:s}_{:d}'.format(greek(label), bandix)
             value = Ek[label][nVBtop + 1 + bandix]
             tagged_Ek[tag] = value
         for bandix in extract['vb']:
-            tag = 'Ev_{:s}_{:d}'.format(shorten(label), bandix)
+            tag = 'Ev_{:s}_{:d}'.format(greek(label), bandix)
             value = Ek[label][nVBtop  - bandix]
             tagged_Ek[tag] = value
     destination.update(tagged_Ek)

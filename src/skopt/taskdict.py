@@ -1,5 +1,6 @@
 import numpy as np
 from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from dftbutils.queryDFTB import get_effmasses, get_special_Ek
 
 def get_model_data (src, dst, key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
@@ -20,13 +21,10 @@ def get_model_data (src, dst, key, *args, **kwargs):
     #logger.debug(data)
     dst[key] = data
 
-def get_meff(src, dest, *args, **kwargs):
-    """fake function with arguments"""
-    pass
-
 gettaskdict = {
         'get_model_data': get_model_data,
         'get_dftbp_data': get_dftbp_data,
         'get_dftbp_bs'  : get_bandstructure,
-        'get_meff'      : get_meff,
+        'get_dftbp_meff': get_effmasses,
+        'get_dftbp_Ek'  : get_special_Ek,
         }

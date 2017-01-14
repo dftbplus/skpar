@@ -159,15 +159,11 @@ class GetTask (object):
         self.kwargs = kwargs
 
     def __call__(self):
-        kwargs = self.kwargs
-        if not kwargs:
-            self.func(self.src, self.dst, *self.args)
-        else:
-            try:
-                self.func(self.src, self.dst, *self.args, **kwargs)
-            except:
-                logger.critical("FAILED attempt to call {} with the following kwargs".
-                        format(self.func.__name__, kwargs))
+        try:
+            self.func(self.src, self.dst, *self.args, **self.kwargs)
+        except:
+            logger.critical("FAILED attempt to call {} with the following args:\n{} and kwargs:\n{}".
+                    format(self.func.__name__, self.args, self.kwargs))
         
     def __repr__(self):
         """Yield a summary of the task.
@@ -183,8 +179,6 @@ class GetTask (object):
         return "\n".join(s)
 
 
-taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
-
 def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
     """Parse user specification of Tasks, and return a list of Tasks for execution.
 
@@ -197,32 +191,46 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
             corresponding to a recognised task type.
     """
     logger = kwargs.get('logger', logging.getLogger(__name__))
+    kwargs['logger'] = logger
+    #
     tasklist = []
     # the spec list has definitions of different tasks
     for item in spec:
-        (tasktype, args), = item.items()
-        if tasktype.lower() == 'set':
+        (tasktype, taskargs), = item.items()
+        if 'set' == tasktype.lower():
             try: 
-                tasklist.append(SetTask(*args, parnames=parnames, logger=logger))
+                tasklist.append(SetTask(*taskargs, parnames=parnames, logger=logger))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
                 logger.debug (spec)
                 raise
-        if tasktype.lower() == 'run':
+        if 'run' == tasktype.lower():
             try: 
-                tasklist.append(RunTask(*args, exedict=exedict, logger=logger))
+                tasklist.append(RunTask(*taskargs, exedict=exedict, logger=logger))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
                 logger.debug (spec)
                 raise
-        if tasktype.lower() == 'get':
-            if isinstance(args[0], str):
-                func = gettaskdict[args[0]]
-                args[0] = func
+        if 'get' == tasktype.lower():
+            assert isinstance(taskargs, list)
+            # 1. Assign the real function to 1st arg
+            func = gettaskdict[taskargs[0]]
+            taskargs[0] = func
+            # 2. Check if we have optional dictionary of arguments
+            if isinstance(taskargs[-1], dict):
+                optkwargs = taskargs[-1]
+                optkwargs.update(kwargs)
+                del taskargs[-1]
+            else:
+                optkwargs = kwargs
+            # 3. Check if we have a missing destination and assign the source
+            if len(taskargs) == 2:
+                taskargs.append(taskargs[1])
+            # 4. Register the task in the task-list
             try: 
-                tasklist.append(GetTask(*args, logger=logger))
+                tasklist.append(GetTask(*taskargs, **optkwargs))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')

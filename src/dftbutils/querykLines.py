@@ -64,13 +64,13 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
                     else:
                         extraline = next(fh)
 
-    logger.debug('Parsed {} and obtained:'.format(hsdfile))
+    #logger.debug('Parsed {} and obtained:'.format(hsdfile))
     # At this stage, kLines_dftb contains distances between k points
-    logger.debug('\tkLines_dftb: {}'.format(kLines_dftb))
+    #logger.debug('\tkLines_dftb: {}'.format(kLines_dftb))
     # Next, we convert it to index, from 0 to nk-1
     kLines = [(lbl, sum([_dist for (_lbl,_dist) in kLines_dftb[:i+1]])-1) 
                         for (i,(lbl, dist)) in enumerate(kLines_dftb)]
-    logger.debug('\tkLines      : {}'.format(kLines))
+    #logger.debug('\tkLines      : {}'.format(kLines))
     klbls = set([lbl for (lbl, nn) in kLines])
     kLinesDict = dict.fromkeys(klbls)
     for lbl, nn in kLines:
@@ -78,7 +78,7 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
             kLinesDict[lbl].append(nn)
         else:
             kLinesDict[lbl] = [nn, ]
-    logger.debug('\tkLinesDict  : {}'.format(kLinesDict))
+    #logger.debug('\tkLinesDict  : {}'.format(kLinesDict))
     output = kLines, kLinesDict
     return output
 

@@ -10,9 +10,11 @@ tasks:
     - run: [skgen, skf, ]
     - run: [bs_dftb, Si, ]
     - run: [bs_dftb, SiO2, ]
-    - get: [get_dftbp_data, Si, Si]
-    - get: [get_dftbp_data, SiO2, SiO2]
-    - get: [get_meff, Si/bs, Si/bs, [me_2, mh_0]]
+    - get: [get_dftbp_data, Si, altSi]
+    # below we omit the destination, and results will update the source dictionary
+    - get: [get_dftbp_data, SiO2]   
+    # 'G-K' or 'GK' both work for directions of effective masses
+    - get: [get_dftbp_meff, Si/bs, {directions: ['G-X', 'GK'], nb: 4, Erange: 0.002}]
 
 
 # Individual objectives
