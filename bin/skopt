@@ -4,7 +4,7 @@ import os
 import argparse
 import logging
 from skopt.input import parse_input
-from skopt.evaluate import Evaluator
+from skopt.evaluate import Evaluator, eval_objectives
 from skopt.optimise import Optimiser
 from skopt.query import Query
 
@@ -36,7 +36,7 @@ def main():
             datefmt='%m-%d %H:%M',
             filename=os.path.join(workdir,'skopt.debug.log'),
             filemode='w')
-    logger=logging.getLogger('skopt')
+    logger = logging.getLogger('skopt')
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
@@ -67,16 +67,22 @@ def main():
     evaluate   = Evaluator(objectives, tasks)
 
     # instantiate the optimiser
-    algo, options, parameters = optimisation
-    logger.info('Instantiating optimiser')
-    optimiser  = Optimiser(algo, parameters, evaluate, **options)
+    if optimisation is not None:
+        algo, options, parameters = optimisation
+        logger.info('Instantiating optimiser')
+        optimiser  = Optimiser(algo, parameters, evaluate, **options)
 
-    # run the optimiser
-    logger.info('Starting optimisation')
-    optimiser()
-    # issue final report
-    optimiser.report()
-    logger.info('Done.')
+        # run the optimiser
+        logger.info('Starting optimisation')
+        optimiser()
+        # issue final report
+        optimiser.report()
+        logger.info('Done.')
+    else:
+        fitness = evaluate(None)
+        logger.debug("Individual objective fitness: {}".format(evaluate.objvfitness))
+        logger.debug("Global fitness: {}".format(fitness))
+
 
 
 if __name__ == "__main__":
