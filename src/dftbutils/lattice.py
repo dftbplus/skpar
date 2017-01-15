@@ -26,14 +26,17 @@ class Lattice(object):
         except KeyError:
             logger.critical('Cannot continue without lattice type')
             sys.exit(2)
-        self.setting = info.get('setting', 'curtarolo')
         self.scale = info.get('scale', 2*pi)
         try:
             self.param = info['param']
         except:
             logger.critical('Cannot continue without lattice parameter(s)')
             sys.exit(2)
-        lat = get_lattice[self.name](self.param, self.setting)
+        try:
+            self.setting = info['setting']
+            lat = get_lattice[self.name](self.param, self.setting)
+        except KeyError:
+            lat = get_lattice[self.name](self.param)
         self.constants = lat.constants
         self.primv = lat.primv
         self.convv = lat.convv
@@ -61,6 +64,7 @@ class CUB(object):
             a = param[0]
         except TypeError:
             a = param
+        self.setting = setting
         self.constants = [a, a, a, pi/2, pi/2, pi/2]
         self.a = a
         self.primv =  [ np.array((a, 0., 0.)),
@@ -86,6 +90,7 @@ class FCC(object):
             a = param
         self.constants = [a, a, a, pi/2, pi/2, pi/2]
         self.a = a
+        self.setting = setting
         if setting == 'curtarolo':
             self.primv =  [np.array((0   , a/2., a/2.)),
                            np.array((a/2., 0   , a/2.)),
@@ -118,6 +123,7 @@ class BCC(object):
             a = param
         self.constants = [a, a, a, pi/2, pi/2, pi/2]
         self.a = a
+        self.setting = setting
         if setting == 'curtarolo':
             self.primv = [ np.array((-a/2.,  a/2.,  a/2.)),
                            np.array(( a/2., -a/2.,  a/2.)),
@@ -145,6 +151,7 @@ class HEX(object):
         self.constants = [a, a, c, pi/2, pi/2, 2*pi/3]
         self.a = a
         self.c = c
+        self.setting = setting
         if setting == 'curtarolo':
             self.primv =  [ np.array((a/2., -a*np.sqrt(3)/2., 0.)),
                             np.array((a/2., +a*np.sqrt(3)/2., 0.)),
@@ -172,6 +179,7 @@ class TET(object):
         self.constants = [a, a, c, pi/2, pi/2, pi/2]
         self.a = a
         self.c = c
+        self.setting = setting
         if setting == 'curtarolo':
             self.primv = [ np.array((a, 0., 0.)),
                            np.array((0., a, 0.)),
@@ -200,6 +208,7 @@ class ORC(object):
         self.a = a
         self.b = b
         self.c = c
+        self.setting = setting
         if setting == 'curtarolo':
             self.primv = [ np.array((a, 0., 0.)),
                            np.array((0., b, 0.)),
@@ -240,11 +249,12 @@ class RHL(object):
         W. Setyawan, S. Curtarolo / Computational Materials Science 49 (2010) 299-312
         """
         a, alpha = param[:2]
+        self.setting = setting
         assert not abs(alpha - 90.0) < 1.e-5
         self.alpha_rad = np.radians(alpha)
         self.constants = [a, a, a, alpha, alpha, alpha]
         self.a = a
-        self.angle = angle
+        self.angle = alpha
         c1 = np.cos(self.alpha_rad)
         c2 = np.cos(self.alpha_rad/2.)
         s2 = np.sin(self.alpha_rad/2.)
@@ -307,11 +317,12 @@ class MCL(object):
         """
         a, b, c, beta = param[:4]
         self.beta_rad = np.radians(beta)
-        self.constants = [a, b, c, pi/2, beta_rad, pi/2]
+        self.constants = [a, b, c, pi/2, self.beta_rad, pi/2]
         self.a = a
         self.b = b
         self.c = c
         self.angle = beta
+        self.setting = setting
         if setting == 'curtarolo':
             assert (a<=c) and (b<=c) and (beta < 90) 
             a1c = a * np.array([1, 0, 0])
@@ -367,13 +378,14 @@ class MCLC(object):
         self.angle_rad = np.radians(angle)
         self.angle = angle
         self.constants = [a, b, c, angle]
+        self.setting = setting
         if setting == 'ITC' and self.angle_rad > pi/2.:
             assert (a >= b) and (a >= c) and (angle > 90) 
             # conventional cell
             a1c = self.a * np.array([1, 0, 0])
             a2c = self.b * np.array([0, 1, 0])
             a3c = self.c * np.array([np.cos(self.angle_rad), 0, np.sin(self.angle_rad)])
-            self.conv = np.array([a1c, a2c, a3c])
+            self.convv = np.array([a1c, a2c, a3c])
             # primitive cell
             a1p = (+a1c + a2c) / 2.
             a2p = (-a1c + a2c) / 2.

@@ -51,6 +51,24 @@ class LatticeTest(unittest.TestCase):
         lat = Lattice({'type': 'ORC', 'param': [a, b, c]})
         logger.debug(lat)
 
+    def test_rhombohedral(self):
+        """Rhombohedral (RHL)"""
+        a, angle = 5.32208613808, 55.8216166097
+        lat = Lattice({'type': 'RHL', 'param': [a, angle]})
+        logger.debug(lat)
+
+    def test_monoclinic(self):
+        """Monoclinic (MCL)"""
+        a, b, c, angle = 5.17500, 5.17500, 5.29100, 80.78
+        lat = Lattice({'type': 'MCL', 'param': [a, b, c, angle]})
+        logger.debug(lat)
+
+    def test_monoclinic_facecentered(self):
+        """Face-centered Monoclinic (MCLC)"""
+        a, b, c, beta = 12.23, 3.04, 5.8, 103.70
+        lat = Lattice({'type': 'MCLC', 'param': [a, b, c, beta]})
+        logger.debug(lat)
+
 
 if __name__ == '__main__':
     unittest.main()
