@@ -116,5 +116,42 @@ class OptimiseTest(unittest.TestCase):
         nptest.assert_almost_equal(gbestpars, ideal, decimal=2)
 
 
+class EvaluateSiTest(unittest.TestCase):
+    """
+    Verify we can evaluate correctly the fitness for Si from old calculations
+    """
+    def test_parse_input(self):
+        """Can we parse input, create an evaluator instance, and run the tasks?"""
+        Query.flush_modelsdb()
+        filename   = "skopt_in_Si.yaml"
+        testfolder = "test_eval_Si"
+        parfile    = os.path.join(testfolder, 'current.par')
+        tasks, objectives, optimisation = parse_input(filename)
+        evaluate = Evaluator(objectives, tasks)
+        logger.debug('Evaluation only:')
+        if optimisation is None:
+            logger.debug ("\n### -------------------------------------------------- ###")
+            logger.debug ("### ----------- Tasks -------------------------------- ###")
+            logger.debug ("### -------------------------------------------------- ###")
+            for tt in evaluate.tasks:
+                logger.debug (tt)
+            logger.debug ("\n### -------------------------------------------------- ###")
+            logger.debug ("### ----------- Objectives --------------------------- ###")
+            logger.debug ("### -------------------------------------------------- ###")
+            for oo in evaluate.objectives:
+                logger.debug (oo)
+            for tt in evaluate.tasks:
+                tt()
+                # check evaluation
+            objvfitness = eval_objectives(evaluate.objectives)
+            #nptest.assert_almost_equal(objvfitness, np.zeros(len(objectives)))
+            logger.debug("Individual objective fitness: {}".format(objvfitness))
+            logger.debug(evaluate.costf.__name__)
+            logger.debug(evaluate.costf)
+            fitness = evaluate.costf(evaluate.utopia, objvfitness, evaluate.weights)
+            logger.debug("Global fitness: {}".format(fitness))
+            self.assertTrue(fitness < np.atleast_1d(0.2))
+        
+
 if __name__ == '__main__':
     unittest.main()

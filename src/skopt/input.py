@@ -34,9 +34,15 @@ def parse_input(filename):
     """
     spec = get_input_yaml(filename)
     exedict    = spec.get('executables', None)
-    optargs    = get_optargs    (spec['optimisation'])
-    parameters = optargs[2]
-    parnames = [p.name for p in parameters]
+    optspec    = spec.get('optimisation', None)
+    if optspec is not None:
+        optargs    = get_optargs    (spec['optimisation'])
+        parameters = optargs[2]
+        parnames = [p.name for p in parameters]
+    else:
+        optargs    = None
+        parnames   = None
+    #
     tasks      = set_tasks      (spec['tasks'], exedict, parnames)
     objectives = set_objectives (spec['objectives'])
     return tasks, objectives, optargs

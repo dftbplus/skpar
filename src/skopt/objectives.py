@@ -6,6 +6,7 @@ Classes and functions related to the:
     * evaluation of objectives.
 """
 import numpy as np
+import logging
 import yaml
 from pprint import pprint, pformat
 from skopt.utils import get_logger, normalise
@@ -14,6 +15,10 @@ from skopt.query import Query
 from skopt.evaluate import costf, errf
 DEFAULT_COST_FUNC = "rms"
 DEFAULT_ERROR_FUNC = "abs"
+
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(name)s %(levelname)-8s %(message)s')
+logger = logging.getLogger(__name__)
 
 def parse_weights_keyval(spec, data, normalised=True):
     """Parse the weights corresponding to key-value type of data.
@@ -257,7 +262,7 @@ class Objective(object):
     Instances are callable, and return a triplet of model data, reference data,
     and sub-weights of relative importance of the items within each data.
     """
-    def __init__(self, spec, logger=None, **kwargs):
+    def __init__(self, spec, **kwargs):
         """Instantiate the objective and set non-specific attributes.
         
         Must be extended to declare a Query and possibly -- CostFunction.
@@ -274,6 +279,7 @@ class Objective(object):
 
         Returns: None
         """
+        self.logger = kwargs.get('logger', logging.getLogger(__name__))
         # mandatory fields
         self.objtype = spec['type']
         self.query_key = spec['query']
@@ -296,7 +302,6 @@ class Objective(object):
                 pass
         dfltdoc = "{}: {}".format(self.query_key, pformat(self.model_names))
         self.doc = spec.get('doc', dfltdoc)
-        self.logger = get_logger(logger)
         # further definitions of set/get depend on type of objective
         # this may be set here or in a child, if more specific
         self.query = Query(self.model_names, self.query_key)
@@ -352,8 +357,8 @@ class Objective(object):
 class ObjValues(Objective):
     """
     """
-    def __init__(self, spec, logger=None, **kwargs):
-        super().__init__(spec, logger, **kwargs)
+    def __init__(self, spec, **kwargs):
+        super().__init__(spec, **kwargs)
         nmod = len(self.model_names)
         # coerce ref-data to 1D array if it is extracted from a 2D array
         if self.ref_data.ndim == 2 and self.ref_data.shape == (1,nmod):
@@ -382,8 +387,8 @@ class ObjValues(Objective):
 class ObjKeyValuePairs(Objective):
     """
     """
-    def __init__(self, spec, logger=None, **kwargs):
-        super().__init__(spec, logger, **kwargs)
+    def __init__(self, spec, **kwargs):
+        super().__init__(spec, **kwargs)
         # parse reference data options
         self.options = spec.get('options', None)
         # NOTABENE: we will replace self.ref_data, trimming the 
@@ -393,7 +398,7 @@ class ObjKeyValuePairs(Objective):
         ww = parse_weights_keyval(self.options['subweights'], data=self.ref_data,
                                     normalised=normalised)
         # eliminate ref_data items with zero subweights
-        mask = np.where(ww != 0)
+        mask = np.where(np.invert(np.isclose(ww, np.zeros(ww.shape))))
         self.query_key = [k.decode() for k in self.ref_data['keys'][mask]]
         self.ref_data = self.ref_data['values'][mask]
         self.subweights = ww[mask]
@@ -456,8 +461,8 @@ def get_refval(bands, refpt, ff={'min': np.min, 'max': np.max}):
 class ObjBands(Objective):
     """
     """
-    def __init__(self, spec, logger=None, **kwargs):
-        super().__init__(spec, logger, **kwargs)
+    def __init__(self, spec, **kwargs):
+        super().__init__(spec, **kwargs)
         assert isinstance(self.model_names, str),\
             'ObjBands accepts only one model, but models is not a string'
 
@@ -677,7 +682,7 @@ def get_refdata(data):
                 print ('`data` should be np.array, list, value, or dict, but it is not.')
                 raise
 
-def get_objective(spec, logger=None):
+def get_objective(spec):
     """Return an instance of an objective, as defined in the input spec.
 
     Args:
@@ -701,11 +706,11 @@ def get_objective(spec, logger=None):
         nmod = len(m_names)
     spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
     #   print (spec['type'], spec['query'])
-    objv = objectives_mapper.get(spec['type'], ObjValues)(spec, logger=logger)
+    objv = objectives_mapper.get(spec['type'], ObjValues)(spec)
     #print (objv)
     return objv
 
-def set_objectives(spec, logger=None):
+def set_objectives(spec):
     """Parse user specification of Objectives, and return a list of Objectives for evaluation.
 
     Args:
