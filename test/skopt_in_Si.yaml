@@ -39,6 +39,7 @@ objectives:
         models: Si.bs
         ref: 1.12
         weight: 4.0
+        eval: [rms, relerr]
 
     - effective_masses:
         doc: Effective masses, Si
@@ -56,6 +57,7 @@ objectives:
                 me_GX_0: 1.0                # only select entries; alternatively, set select entries
                 me_Xt_0: 0.0                # to zero effectively excludes them from consideration
         weight: 1.0
+        eval: [rms, abserr]
 
     - special_Ek:
         doc: Eigenvalues at k-points of symmetry
@@ -73,6 +75,7 @@ objectives:
                 me_GX_0: 1.0                # only select entries; alternatively, set select entries
                 mh_Xt_0: 0.0                # to zero effectively excludes them from consideration
         weight: 1.0
+        eval: [rms, relerr]
 
        
 # How to define a global criterion of success/fitness
@@ -85,9 +88,4 @@ objectives:
 #     objfun: WES # weighted exponential sum
 #     objfunpar:
 #         exp: 2    # exponent
-
-
-# How to explore the parameter space
-# E.g. if support for algorithms other than PSO is provided
-# in the future; Currently this part is ignored
 ...

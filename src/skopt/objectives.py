@@ -286,8 +286,9 @@ class Objective(object):
         self.model_names = spec['model_names']
         self.model_weights = spec['model_weights']
         self.ref_data = spec['ref_data']
-        self.costf = costf[DEFAULT_COST_FUNC]
-        self.errf = errf[DEFAULT_ERROR_FUNC]
+        _costf, _errf = spec.get('eval', [DEFAULT_COST_FUNC, DEFAULT_ERROR_FUNC])
+        self.costf = costf[_costf]
+        self.errf  = errf [_errf ]
         # optional fields
         self.weight = spec.get('weight', 1)
         self.options = spec.get('options', None)
