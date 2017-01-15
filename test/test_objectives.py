@@ -476,7 +476,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         spec = yaml.load(yamldata)['objectives'][0]
         que = 'meff'
         # NOTABENE: order here must coincide with order in ref:file
-        ref = np.array([('mh_GX_0', -0.276), ('me_GX_0', 0.916)],
+        ref = np.array([('me_GX_0', 0.916), ('mh_GX_0', -0.276)],
                        dtype=[('keys', 'S15'), ('values', 'float')])
         ref = ref['values']
         subw = np.array([1., 2.])
@@ -485,6 +485,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         mnm = spec[que]['models']
         # check declaration
         objv = oo.get_objective(spec)
+        logger.debug(objv)
         self.assertEqual(objv.doc, doc)
         self.assertEqual(objv.weight, oww)
         self.assertEqual(objv.model_names, mnm)

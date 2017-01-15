@@ -399,7 +399,7 @@ class MCLC(object):
             phi = psi - ( 3./4. - psi ) * (self.a / self.c) * np.cos(self.angle_rad)
             ksi = ( 2 + (self.a/self.c) *  np.cos(self.angle_rad) ) / ( 2 * np.sin(self.angle_rad) )**2
             eta = 1./2. - 2 * ksi * (self.c/self.a) *  np.cos(self.angle_rad)
-            logger.debug (psi, phi, ksi, eta)
+            logger.debug ((psi, phi, ksi, eta))
             self.SymPts_k =\
                 { 'Gamma': (0., 0., 0.),
                     'N' : (0., 1./2., 0.),
