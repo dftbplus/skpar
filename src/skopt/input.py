@@ -36,8 +36,8 @@ def parse_input(filename):
     exedict    = spec.get('executables', None)
     optspec    = spec.get('optimisation', None)
     if optspec is not None:
-        optargs    = get_optargs    (spec['optimisation'])
-        parameters = optargs[2]
+        algo, options, parameters = get_optargs(spec['optimisation'])
+        optargs = [algo, options, parameters]
         parnames = [p.name for p in parameters]
     else:
         optargs    = None

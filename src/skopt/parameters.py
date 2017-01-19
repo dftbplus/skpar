@@ -17,8 +17,10 @@ The following assumptions are made:
       file by string.format(dict(zip(ParNames,Parvalues)) substitution.
 """
 import logging
-from collections import OrderedDict
-import re
+from os.path import normpath, expanduser
+from os.path import join as joinpath
+from os.path import split as splitpath
+DEFAULT_PARAMETER_FILE='current.par'
 
 
 def get_parameters(spec):
@@ -26,9 +28,27 @@ def get_parameters(spec):
     """
     params=[]
     for pardef in spec:
-        (pname, pdef), = pardef.items()
-        parstring = " ".join([pname, pdef])
-        params.append(Parameter(parstring))
+        logging.debug(pardef)
+        try:
+            (pname, pdef), = pardef.items()
+        except AttributeError:
+            # pardef is cannot be itemised => assume just pname
+            pname = pardef
+            pdef  = ""
+        try:
+            parstring = " ".join([pname,] + pdef.split())
+        except AttributeError:
+            # pdef turns out to not be a string
+            try:
+                # assume it is a list of floats
+                parstring = " ".join([pname,] + ["{}".format(v) for v in pdef])
+            except TypeError:
+                # pdef not iterable; assume it is a single float
+                parstring = " ".join([pname, str(pdef)])
+        logging.debug(parstring)
+        newpar = Parameter(parstring)
+        logging.debug(newpar)
+        params.append(newpar)
     return params
 
 class Parameter(object):
@@ -38,6 +58,7 @@ class Parameter(object):
     ParmaeterName InitialValue MinValue Maxvalue [ParameterType]
     ParmaeterName MinValue Maxvalue [ParameterType]
     ParmaeterName InitialValue [ParameterType]
+    ParmaeterName [ParameterType]
 
     ParameterName must be alphanumeric, allowing _ too.
     Iinit/Min/MaxValue can be integer or float
@@ -54,8 +75,9 @@ class Parameter(object):
         the rest is optional.
         """
         self.name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
+        for key in ['value', 'minv', 'maxv']:
+            _val = kwargs.get(key, None)
+            setattr(self, key, _val)
 
     def __init_from_string(self, parameterstring):
         """
@@ -69,39 +91,46 @@ class Parameter(object):
         # take away spaces, check format consistency and get type
         assert isinstance(parameterstring, str)
         words = parameterstring.split()
-        if words[-1] in list(Parameter.typedict.keys()):
-            self.ptype = Parameter.typedict[words[-1]]
-            words = words[:-1]
-        else:
-            self.ptype = float
-
-        # extract data, converting values to appropriate type
-        self.name = words[0]
-        # the conversion from words to float to type allows one to do
-        # %(name,1.0,2.0,3.0)i; otherwise map(int,'3.0') gives valueerror
-        floats = list(map(float, words[1:]))
-        try:
-            self.value, self.minv, self.maxv = list(map(self.ptype, floats))
-        except ValueError:
+        logging.debug(len(words))
+        if len(words) > 1:
+            if words[-1] in list(Parameter.typedict.keys()):
+                self.ptype = Parameter.typedict[words[-1]]
+                words = words[:-1]
+            else:
+                self.ptype = float
+            # extract data, converting values to appropriate type
+            self.name = words[0]
+            # the conversion from words to float to type allows one to do
+            # %(name,1.0,2.0,3.0)i; otherwise map(int,'3.0') gives valueerror
+            floats = list(map(float, words[1:]))
             try:
-                self.minv, self.maxv = list(map(self.ptype, floats))
-                self.value = 0.
+                self.value, self.minv, self.maxv = list(map(self.ptype, floats))
             except ValueError:
-                # note at this stage value is a single item, not a list
-                self.value = list(map(self.ptype, floats))[0]
-                self.minv = None
-                self.maxv = None
+                try:
+                    self.minv, self.maxv = list(map(self.ptype, floats))
+                    self.value = 0.
+                except ValueError:
+                    # note at this stage value is a single item, not a list
+                    self.value = list(map(self.ptype, floats))[0]
+                    self.minv = None
+                    self.maxv = None
+                except:
+                    print ("Parameter string not understood: {}".format(parstring))
             except:
                 print ("Parameter string not understood: {}".format(parstring))
-        except:
-            print ("Parameter string not understood: {}".format(parstring))
+        else:
+            self.ptype = float
+            self.name  = words[0]
+            self.value = None
+            self.minv  = None
+            self.maxv  = None
 
     def __init__(self, string, **kwargs):
         """wrapper init method
 
         The whole thing became patchy. It needs a careful revision.
         """
-        if string.split() == [string,]:
+        if string.split() == [string,] and kwargs:
             self.__init_from_kwargs(string, **kwargs)
         else:
             self.__init_from_string(string)
@@ -109,74 +138,6 @@ class Parameter(object):
     def __repr__(self):
         return "Parameter {name} = {val}, range=[{minv},{maxv}]". \
             format(name=self.name, val=self.value, minv=self.minv, maxv=self.maxv)
-
-
-# ----------------------------------------------------------------------
-# OLD STUFF
-# ----------------------------------------------------------------------
-
-class ParameterOld(object):
-    """
-    A parameter object, that is initialised from a string
-    with the following format:
-
-    %( ParmaeterName, InitialValue, MinValue, Maxvalue )ParameterType
-    or,
-    %( ParmaeterName, MinValue, Maxvalue )ParameterType
-
-    Iinit/Min/MaxValue can be integer or float
-    ParameterName must be alphanumeric allowing _ too.
-    ParameterType is indicated by either 'i'(int) or 'f'(float)
-    Spaces are optional.
-    NOTABENE: NO space is allowed between %( nor between )i or )f.
-    """
-    # permitted parameter types
-    typedict = {'i': int, 'f': float}
-
-    def __init__(self, parameterstring):
-        """
-        assume S is a string of the form:
-        %(ParName, dflt, min, max)ParType
-        or
-        %(ParName, min, max)ParType
-        Permit only i(int) or f(float) values
-        """
-        # take away spaces, check format consistency and get type
-        assert isinstance(parameterstring, str)
-        parstr = parameterstring.strip()
-        assert parstr[0:2] == '%('
-        assert parstr[-2] == ')'
-        assert parstr[-1] in list(Parameter.typedict.keys())
-        self.ptype = Parameter.typedict[parstr[-1]]
-
-        # extract data, converting values to appropriate type
-        words = parstr[2:-2].split(',')
-        self.name = words[0]
-        # the conversion from words to float to type allows one to do
-        # %(name,1.0,2.0,3.0)i; otherwise map(int,'3.0') gives valueerror
-        floats = list(map(float, words[1:]))
-        if len(words) == 4: # we have dflt value in addition to min/max
-            self.value, self.minv, self.maxv = list(map(self.ptype, floats))
-        else: # we have only min and max values
-            assert len(words) == 3
-            self.minv, self.maxv = list(map(self.ptype, floats))
-            self.value = 0.
-
-    def __repr__(self):
-        return "Parameter {name} = {val}, range=[{minv},{maxv}]". \
-            format(name=self.name, val=self.value, minv=self.minv, maxv=self.maxv)
-
-
-def stripall(ss):
-    """
-    Assume SS is a string or a list of strings and
-    return the same but stripped off all whitespaces,
-    leading, trailing and in between, based on regular expressions.
-    """
-    if isinstance(ss, str):
-        return re.sub(r'\s*', '', ss)
-    else:
-        return [re.sub(r'\s*', '', s) for s in ss]
 
 
 def read_par_template(fileobj):
@@ -190,172 +151,108 @@ def read_par_template(fileobj):
 
     return "".join(fileobj.readlines())
 
-
-def parse_par_template(pardefs, log=logging.getLogger(__name__)):
-    """
-    Take the input pardefs string and return a list of substings,
-    each of which conveys the info related to a single parameter.
-    Each of the substrings that are returned is assumed to have
-    the format described in the Parameter Class above.
-    However, currently, we have hardcoded the format here, rather
-    than reusing whatever is defined in the Parameter class....
-    """
-    # get all substrings of the form
-    # %(ParName, initialvalue, minvalue, maxvalue)ParType
-    pattern = re.compile(r"%\(.+?\)[fi]")
-
-    # The pattern below serves to remove the optional initial value, and
-    # the min and max values from the output string template, 
-    # leaving only %(ParName)ParType format strings
-    # note the use of named group in the matching pattern, so later we
-    # form the replacement by selecting only the matching elements of interest
-    grouppattern = re.compile(r'(?P<pOpen>%[(])\s*' +  # %( 
-                              r'(?P<pName>\w+)\s*,(?P<pData>.+?)' +  # Parameter name and Data
-                              r'(?P<pClose>[)][fi])')  # )i or )f closing/type definition
-    # this is how the output should look like %(ParName)[fi]
-    outpattern = re.compile(r'%\(\w+\)[fi]')
-
-    # it may be nice to check if we're not already given list of lines, but how?
-    lines_in = pardefs.split('\n')
-    lines_out = []
-    parstr = []
-
-    for line in lines_in:
-        if line.strip().startswith('#'):
-            line_out = line
-        else:
-            newparstr = pattern.findall(line)
-
-            if newparstr is not None:
-                parstr.extend(newparstr)
-
-            try:
-                line_out = re.sub(grouppattern,
-                                  "\g<pOpen>\g<pName>\g<pClose>",
-                                  line)
-            except AttributeError:
-                line_out = line
-
-        lines_out.append(line_out)
-
-    reduced_pardefs = '\n'.join(lines_out)
-                              
-    # note that parstr is a list of strings, 
-    # each string describing one parameter
-    parstr = stripall(parstr)
-
-    if parstr == []:
-        log.warning("The given parameter template contains no parameter definitions")
-    else:
-        found = re.findall(outpattern, reduced_pardefs)
-        assert len(found) == len(parstr), "ERROR: given parameter string was incorrectly parsed."
-
-    parameters = [Parameter(ps) for ps in parstr]
-
-    # get back the neat skdefs template and the list of Parameter objects
-    return reduced_pardefs, parameters
-
-
-def read_parameters(fileobj, log=logging.getLogger(__name__)):
-    """
-    encapsulates reading the file containing the skdefs.template
-    and parameter info, and the parsing of the parameter info;
-    :param fileobj: fileobj or a string filename
-    :param log: logger for messages from the parser of fileobj
-    :return: a tuple, consisting of
-            0) a string (skdefs_template_out), which is the template
-            with format placeholders for the values of the parameters,
-            but no parameter info anymore,
-            1) an OrderedDict of Par.Name,Par.Value
-            2) an OrderedDict of Par.Name,(Par.min, Par.max)
-    """
-    par_template_out, parameters = parse_par_template(read_par_template(fileobj), log)
-    pardict = OrderedDict([(p.name, p.value) for p in parameters])
-    parrange = OrderedDict([(p.name, (p.minv, p.maxv)) for p in parameters])
-    return par_template_out, pardict, parrange
-
+def update_template(template, pardict):
+    """Update a template string with parameter values in placeholders.
     
-def update_pardict(pardict, values):
-    for p,v in zip(list(pardict.keys()),values):
-        pardict[p] = v
-    return pardict
-
-
-def report_parameters(iteration, pardict, log, tag=''):
+    Assume %(Name)[type] represents a placeholder.
+    Substitute placeholders with values from pardict.
+    Placeholders in commented lines (first non-white space char being #)
+    are untouched.
+    Return the updated string.
     """
-    """
-    log.info('')
-    log.info('{0}Iteration {1}'.format(tag, iteration))
-    log.info('============================================================')
-    for key,val in list(pardict.items()):
-        log.info('\t{name:<15s}:\t{val:n}'.format(name=key,val=val))
-
-
-def write_parameters(par_template, pardict, fileobj):
-    """
-    Write parameters to file, updating the named parameter placeholders
-    in the given template with the parameter values supplied in the pardict
-    :param fileobj: sting (filename) or file object to write to
-    :param par_template: string with named placeholders for formatting the
-                         supplied values of parameters
-    :param pardict: ordered dictionary of (parameter_name,parameter_value) pairs
-    :return: none
-    """
-    assert isinstance(pardict, OrderedDict)
-    if isinstance(fileobj, str):
-        fileobj = open(fileobj, 'w')
-    lines_in = par_template.split('\n')
+    assert isinstance(pardict, dict)
+    lines_in = template.split('\n')
     lines_out = []
     for line in lines_in:
         if line.strip().startswith('#'):
+            # do not touch comments, even if they have a placeholder
             lines_out.append(line)
         else:
             lines_out.append(line % pardict)
+    return "\n".join(lines_out)
 
-    fileobj.writelines('\n'.join(lines_out))
+def write_parameters(fileobj, template, parameters):
+    """Update a template with actual parameter values and write to file.
 
+    The `template` is a string with placeholders, which are updated
+    from the `pardict` dictionary, and the result is written to `fileobj`.
+    """
+    if isinstance(fileobj, str):
+        fileobj = open(fileobj, 'w')
+    try:
+        pardict = dict([(p.name, p.value) for p in parameters])
+    except AttributeError:
+        logger.critical(('Cannot update logger. Ensure parameters are objects',
+                'with name and value attributes'))
+        raise
+    updated = update_template(template, pardict)
+    # nota bene: since template contains '\n', updated contains them too
+    fileobj.writelines(updated)
 
+def update_parameters(parameters, iteration=None, parfile=None, wd='.', 
+        templatefiles=None, parnames=None, *args, **kwargs):
+    """Update relevant file(s) with new parameter values.
 
-if __name__ == "__main__":
-
-    log=logging.getLogger("SKOPT")
-    logging.basicConfig(level=logging.DEBUG)
-    print ("Testing Parameter Class:")
-    print ("------------------------")
-
-    s1 = "%(New,1.,2.,3.)i"
-    print(('Test string 1: ' + s1))
-    p1 = Parameter(s1)
-    print (p1)
-
-    s2 = "%(Newer,1.,2.,3.)f"
-    print(('Test string 2: ' + s2))
-    p2 = Parameter(s2)
-    print (p2)
-
-    s3 = "%(Newer, 2., 3.)f"
-    print(('Test string 3: ' + s3))
-    p3 = Parameter(s3)
-    print (p3)
-
-    print ("Testing skdefs.template parsing (looking for ./example SKOPT/test_skdefs.template file):")
-    print ("------------------------------------------------------------------------")
-    skdefs = read_par_template("./example SKOPT/test_skdefs.template")
-    reduced_skdefs, parameters = parse_par_template(skdefs)
-    print()
-    print ('Reduced skdefs.template (no info of parameter values, only formatting slots):')
-    print (reduced_skdefs)
-
-    print()
-    print ('Extracted parameters:')
-    for p in parameters:
-        print (p)
-
-    print()
-    print ('Writing skdefs output string based on the supplied initial values:')
-    # NOTABENE: we use OrderedDict which automatically eliminates duplicate parameters
-    # at the same time, the format dictionary automatically uses the same value
-    # no matter how many times we have the same parameter defined.
-    skdefs, skpar, skparrange = read_parameters("./example SKOPT/test_skdefs.template")
-    write_parameters(skdefs, skpar, "./example SKOPT/test_skdefs.py")
-    report_parameters(None, skpar, log)
+    ARGS:
+        parameters (list): Either a list of floats, or a list of objects
+            (each having .value and .name attributes)
+        parnames (list): If `parameters` is a list of floats, then 
+            parnames is the list of corresponding names.
+        parfile (string): Filename where the list of parameters is written
+            in a very plain format (one or two column, as per the absence 
+            or presence of parameter names.
+        templatefiles (list): List of ascii filenames containing placeholders
+            for inserting parameter values. The place holders must follow
+            the old string formatting of Python: $(ParameterName)ParameterType.
+        wd (string): Working directory, relative to SKOPTs invokation directory.
+            The full path to parfile is obtained by joining wd and parfile.
+            But the full path to templates depends on whether templatefiles
+            contain a path component in them or not. If they do not, then
+            wd is prepended to them; typically, they should have a path.
+    """
+    logger = kwargs.get('logger', logging.getLogger(__name__))
+    # Update parameter file
+    if parfile is None:
+        parfile = normpath(expanduser(joinpath(wd, DEFAULT_PARAMETER_FILE)))
+    else:
+        parfile = normpath(expanduser(joinpath(wd, parfile)))
+    parout = []
+    # Give priority to parnames, if supplied
+    if parnames is None:
+        try:
+            parnames  = [p.name  for p in parameters]
+        except AttributeError:
+            pass
+    else:
+        assert len(parameters) == len(parnames)
+    try:
+        parvalues = [p.value for p in parameters]
+    except AttributeError:
+        parvalues = parameters
+    if parnames is None:
+        parout = ["{}".format(p) for p in parvalues]
+    else:
+        parout = ["{:>20s}  {}".format(name, value) 
+                for (name, value) in zip(parnames, parvalues)]
+    with open(parfile, 'w') as fp:
+        if iteration is not None:
+            fp.writelines('#{}\n'.format(iteration))
+        fp.writelines('\n'.join(parout))
+    # Udpate (fill in) templates
+    if templatefiles:
+        for fetmpl in templatefiles:
+            # figure out if file has a path component, and preserve it;
+            # else, join wd and file
+            path, name = splitpath(fetmpl)
+            if path:
+                fin = normpath(expanduser(ftempl))
+            else:
+                fin = normpath(expanduser(joinpath(wd, ftempl)))
+            # remove 'template.' tag from filename to form destination
+            # make sure you do this on the filename, not on the path!
+            path, name = plitpath(fin)
+            fout = normpath(joinpath(path, name.replace('template.','')))
+            # read template and substitute values for placeholders
+            # make sure you do not substitute in comments
+            templ = read_par_template(fin)
+            write_parameters(fout, templ, parameters)

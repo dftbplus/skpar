@@ -73,34 +73,6 @@ class ParametersTest(unittest.TestCase):
         self.assertTrue(isinstance(p.minv, float))
         self.assertTrue(isinstance(p.maxv, float))
 
-class TemplateTest(unittest.TestCase):
-    """Test we can read, update and write the template file."""
-    tmplt = """This is some file
-    with a few parameters defined like this:
-    # %(Dummy) or something like this.
-        %(Dummy)f  # parameter name only
-    And we want to get
-    # 2.7 or something like this
-    by putting a real value in place of %(Gummy)i
-    and %(Bear)f
-    """
-    def test_update_template(self):
-        """Can we update a template and write it to a file?"""
-        p1 = Parameter('%(Dummy, 1.5)')
-        p2 = Parameter('%(Gummy, 15)i')
-        p3 = Parameter('%(Bear , 27.)')
-        pardict = dict([(p.name, p.value) for p in [p1, p2, p3]])
-        updated = update_template(self.tmplt, pardict)
-        expected = """This is some file
-    with a few parameters defined like this:
-    # %(Dummy) or something like this.
-        1.500000  # parameter name only
-    And we want to get
-    # 2.7 or something like this
-    by putting a real value in place of 15
-    and 27.000000
-    """
-        self.assertEqual(updated, expected)
 
 if __name__ == '__main__':
     unittest.main()

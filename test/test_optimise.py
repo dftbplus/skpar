@@ -95,10 +95,6 @@ class OptimiseTest(unittest.TestCase):
         optimiser  = Optimiser(algo, parameters, evaluate, **options)
         self.assertEqual(len(optimiser.optimise.swarm), 4)
         self.assertEqual(optimiser.optimise.ngen, 5)
-#        print (optimiser.optimise.toolbox.evaluate.func)
-#        print (evaluate.evaluate)
-#        print (evaluate.__call__)
-#        print (evaluate)
         # the pso.toolbox makes evaluate object into a partial function,
         # hence below we have to use the .func to make the correct comparison
         self.assertTrue(optimiser.optimise.toolbox.evaluate.func is evaluate)

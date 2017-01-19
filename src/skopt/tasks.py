@@ -5,8 +5,7 @@ from subprocess import STDOUT
 from pprint import pprint, pformat
 from skopt.query import Query
 from skopt.taskdict import gettaskdict
-
-DEFAULT_PARAMETER_FILE='current.par'
+from skopt.parameters import update_parameters
 
 
 class RunTask (object):
@@ -97,37 +96,22 @@ class RunTask (object):
 class SetTask (object):
     """
     """
-    def __init__(self, parfile=DEFAULT_PARAMETER_FILE, wd='.', 
-            append=False, parnames=None, *args, **kwargs):
-        self.parfile = parfile
+    def __init__(self, parfile=None, wd='.', #parnames=None,
+            templatefiles=None, *args, **kwargs):
+        self.func = update_parameters
         self.wd = wd
-        assert not append, ("Append mode not supported yet by SetTask")
+        self.parfile = parfile
+        self.templatefiles = templatefiles
         self.logger = kwargs.get('logger', logging.getLogger(__name__))
-        self.parnames = parnames
+#        self.parnames = parnames
+        self.args = args
+        self.kwargs = kwargs
 
     def __call__(self, parameters, iteration=None):
         self.logger.debug("Setting parameteres for iteration {} in {}.".
                 format(iteration, self.parfile))
-        parfile = os.path.join(self.wd, self.parfile)
-        parout = []
-        if self.parnames is not None:
-            assert len(parameters) == len(self.parnames)
-            for name, par in zip(self.parnames, parameters):
-                try:
-                    parout.append("{:>20s}  {}".format(name, par.value))
-                except AttributeError:
-                    parout.append("{:>20s}  {}".format(name, par))
-        else:
-            for par in parameters:
-                try:
-                    parout.append("{:>20s}  {}".format(par.name, par.value))
-                except AttributeError:
-                    parout.append(str(par))
-            
-        with open(parfile, 'w') as fp:
-            if iteration is not None:
-                fp.writelines('#{}\n'.format(iteration))
-            fp.writelines('\n'.join(parout))
+        self.func(parameters, iteration, parfile=self.parfile, wd=self.wd,
+                templatefiles=self.templatefiles, *self.args, **self.kwargs)
 
     def __repr__(self):
         """Yield a summary of the task.
@@ -187,9 +171,16 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
         spec (list): List of dictionaries, each dictionary being a,
             specification of a task of a recognised type.
 
+        exedict (dict): A dictionary of the user-accessible external 
+            executables commands.
+
+        parnames (list): A list of string names of the parameters.
+            This is the only point of communication between the
+            optimiser and the task for updating model parameters.
+
     Returns:
-        list: a List of instances of task classes, each 
-            corresponding to a recognised task type.
+        list: a List of task object, each corresponding to a 
+        recognised task type.
     """
     logger = kwargs.get('logger', logging.getLogger(__name__))
     kwargs['logger'] = logger

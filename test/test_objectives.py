@@ -479,7 +479,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         ref = np.array([('me_GX_0', 0.916), ('mh_GX_0', -0.276)],
                        dtype=[('keys', 'S15'), ('values', 'float')])
         ref = ref['values']
-        subw = np.array([1., 2.])
+        subw = np.array([2., 1.])
         doc = spec[que]['doc']
         oww = spec[que]['weight']
         mnm = spec[que]['models']
@@ -492,17 +492,20 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.model_weights, 1.)
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
-        self.assertEqual(objv.query_key, ['mh_GX_0', 'me_GX_0'])
+        self.assertEqual(objv.query_key, ['me_GX_0', 'mh_GX_0'])
         self.assertEqual(objv.objtype, 'keyval_pairs')
         # set data base: 
         # could be done either before or after declaration
         db1 = {}
-        dat = [-0.5, 0.9, 1.2]
-        db1.update({'me_GX_0': dat[1], 'mh_GX_0': dat[0], 'me_GL_2':dat[2]})
+        dat = [0.9, -0.5, 1.2]
+        db1.update({'me_GX_0': dat[0], 'mh_GX_0': dat[1], 'me_GL_2':dat[2]})
         Query.flush_modelsdb()
         Query.add_modelsdb('Si/bs', db1)
         # check __call__()
         mdat, rdat, weights = objv.get()
+        #logger.debug(mdat)
+        #logger.debug(rdat)
+        #logger.debug(weights)
         # NOTABENE: order depends on the order in the reference file!!!
         nptest.assert_array_equal(mdat, np.asarray(dat[0:2]), verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
