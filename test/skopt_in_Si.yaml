@@ -6,7 +6,7 @@ tasks:
     ## while workdir is optional; default being current (top level)
     #- run: [command, workdir]
     #- get: [what, from_source(dir, file or dict), to_destination (dict), optional_keywordarguments]
-    #    - set: [current.par, skf, ]
+    #- set: [current.par, test_dftbutils/skf, skdefs.template.py]
     #- run: [skgen, skf, ]
     #- run: [bs_dftb, Si, ]
     #- run: [bs_dftb, SiO2, ]

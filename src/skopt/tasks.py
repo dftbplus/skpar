@@ -1,17 +1,30 @@
 import logging
 import os, sys, subprocess
 from os.path import normpath, expanduser
+from os.path import join as joinpath
+from os.path import split as splitpath
 from subprocess import STDOUT
 from pprint import pprint, pformat
 from skopt.query import Query
 from skopt.taskdict import gettaskdict
 from skopt.parameters import update_parameters
 
+def islistofstr(arg, msg=None, dflt=None):
+    """Check an argument is a list of strings or a default type.
+    Return message + argument's value otherwise.
+    """
+    if arg is dflt or all([isinstance(item, str) for item in arg]):
+        return True
+    else:
+        if msg is None:
+            msg = "Expecting string or list of strings, not:"
+        errmsg = pformat(arg)
+        return "".join([msg, errmsg])
+    
 
 class RunTask (object):
     """
     """
-    
     def __init__(self, cmd, wd='.', inp=None, out='out.log', 
             err=subprocess.STDOUT, exedict=None, *args, **kwargs):
         self.logger = kwargs.get('logger', logging.getLogger(__name__))
@@ -94,31 +107,91 @@ class RunTask (object):
 
 
 class SetTask (object):
+    """Wrapper class to update files with new parameter values.
+
+    At least one file is output with iteration number and parameters
+    provided at the time of task execution.
+    The task initialisation defines where to write the parameters.
+    In addition to the default file, template may be provided.
+    For exact handling of file names and working directory check the 
+    docs of the function assigned to self.func.
     """
-    """
-    def __init__(self, parfile=None, wd='.', #parnames=None,
-            templatefiles=None, *args, **kwargs):
+    def __init__(self, parfile=None, wd='.', templates=None, *args, **kwargs):
+        """Create a task that would write parameters to specified file(s).
+
+        Args:
+            parfile (str): File name for the default file with parameters.
+            wd      (str): Working directory, where `parfile` file is written.
+                The full path to parfile is obtained by joining wd and parfile.
+                But the full path to `templates` depends on whether `templates`
+                contain a path component in them or not. If they do not, then
+                wd is prepended to them; typically, they should have a path.
+            templates (str, or list of strings): Template files, containing
+                placeholders of Python's old string-formatting style --
+                %(Name)Type, which are updated according to the parameters'
+                names and values.
+            parnames (str or list of string): This is accepted as a kwarg only
+                and is meant to supplement the `parameters` argument during
+                a call if `parameters` is merely a list of values (no names).
+            logger (logging.Logger): kwarg only; Message logger; defaults to
+                module logger at DEBUG level.
+        """
+        self.logger   = kwargs.get('logger', logging.getLogger(__name__))
+        # parnames may be None, string, or a list of strings
+        self.parnames = kwargs.get('parnames', None)
+        if isinstance(self.parnames, str): self.parnames = [self.parnames,]
+        assert islistofstr(self.parnames)
         self.func = update_parameters
-        self.wd = wd
-        self.parfile = parfile
-        self.templatefiles = templatefiles
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
-#        self.parnames = parnames
+        # setup parfile path
+        (path, name) = splitpath(parfile)
+        if path:
+            self.parfile = normpath(expanduser(parfile))
+        else:
+            self.parfile = normpath(expanduser(joinpath(wd, parfile)))
+        # templates may be None, string, or a list of strings
+        if isinstance(templates, str): templates = [templates, ]
+        assert islistofstr(templates)
+        if templates:
+            for ii, ftempl in enumerate(templates):
+                (path, name) = splitpath(ftempl)
+                if path:
+                    templates[ii] = normpath(expanduser(ftempl))
+                else:
+                    templates[ii] = normpath(expanduser(joinpath(wd, ftempl)))
+        self.templates = templates
+        # bunch all in kwargs
         self.args = args
         self.kwargs = kwargs
+        # update kwargs with the local modifications
+        self.kwargs['parfile'] = self.parfile
+        self.kwargs['parnames'] = self.parnames
+        self.kwargs['templates'] = self.templates
+        self.kwargs['logger'] = self.logger
+        self.kwargs['templates'] = self.templates
+        # report task initialisation
+        self.logger.debug(self.__repr__())
 
     def __call__(self, parameters, iteration=None):
-        self.logger.debug("Setting parameteres for iteration {} in {}.".
+        """Write the parameters to relevant files.
+
+        Args:
+            parameters (list): Parameter values or parameter objects
+            iteration (int or tuple of ints): Iteration number; may be
+                a tuple, e.g. (generation, individual)
+        """
+        self.logger.debug("Setting parameters for iteration {} in {}.".
                 format(iteration, self.parfile))
-        self.func(parameters, iteration, parfile=self.parfile, wd=self.wd,
-                templatefiles=self.templatefiles, *self.args, **self.kwargs)
+        self.func(parameters, iteration, *self.args, **self.kwargs)
 
     def __repr__(self):
         """Yield a summary of the task.
         """
         s = []
-        s.append("{:<15s}: {}".format("SetTask in", pformat(self.wd)))
-        s.append("{:<15s}: {}".format("param. file", pformat(self.parfile)))
+        s.append("{:<15s}: {}".format("SetTask via", pformat(self.func.__name__)))
+        s.append("{:<15s}: {}".format("Param. file", pformat(self.parfile)))
+        s.append("{:<15s}: {}".format("Templ. files", pformat(self.templates)))
+        if self.parnames:
+            s.append("{:<15s}: {}".format("Param. names", pformat(self.parnames)))
         s.append("\n")
         return "\n".join(s)
 
@@ -169,18 +242,21 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
 
     Args:
         spec (list): List of dictionaries, each dictionary being a,
-            specification of a task of a recognised type.
+            specification of a callable task.
 
-        exedict (dict): A dictionary of the user-accessible external 
-            executables commands.
-
-        parnames (list): A list of string names of the parameters.
-            This is the only point of communication between the
-            optimiser and the task for updating model parameters.
+        exedict (dict): A dictionary of name-aliased user-accessible 
+            external executables commands.
+        parnames (list): A list of parameter names. Note that typically
+            an optimiser has no knowledge of parameter meaning, or names.
+            But for various reasons, it is important to have the 
+            association between parameter names and parameter values.
+            This association is established before setting up the task(s)
+            that update model files with the parameter values, and 
+            `parnames` is the way to communicate that info to the 
+            relevant tasks.
 
     Returns:
-        list: a List of task object, each corresponding to a 
-        recognised task type.
+        list: A list of callable task object that can be executed in order.
     """
     logger = kwargs.get('logger', logging.getLogger(__name__))
     kwargs['logger'] = logger

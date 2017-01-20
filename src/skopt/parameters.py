@@ -20,8 +20,12 @@ import logging
 from os.path import normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
+import os.path
 DEFAULT_PARAMETER_FILE='current.par'
 
+logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(message)s')
+logger = logging.getLogger(__name__)
 
 def get_parameters(spec):
     """
@@ -146,10 +150,9 @@ def read_par_template(fileobj):
     including line breaking chars etc.
     fileobj is either a file ID or a filename (possibly including path).
     """
-    if isinstance(fileobj, str):
-        fileobj = open(fileobj)
-
-    return "".join(fileobj.readlines())
+    with open(fileobj, 'r') as fh:
+        ss = "".join(fh.readlines())
+    return ss
 
 def update_template(template, pardict):
     """Update a template string with parameter values in placeholders.
@@ -161,7 +164,9 @@ def update_template(template, pardict):
     Return the updated string.
     """
     assert isinstance(pardict, dict)
+    #logger.debug("Updating template according to {}".format(pardict))
     lines_in = template.split('\n')
+    #logger.debug(lines_in)
     lines_out = []
     for line in lines_in:
         if line.strip().startswith('#'):
@@ -171,26 +176,25 @@ def update_template(template, pardict):
             lines_out.append(line % pardict)
     return "\n".join(lines_out)
 
-def write_parameters(fileobj, template, parameters):
+def write_parameters(fileobj, template, parameters, parnames=None):
     """Update a template with actual parameter values and write to file.
 
     The `template` is a string with placeholders, which are updated
     from the `pardict` dictionary, and the result is written to `fileobj`.
+    Placeholders should be Python's old string formatting: %(Name)Type
     """
-    if isinstance(fileobj, str):
-        fileobj = open(fileobj, 'w')
     try:
         pardict = dict([(p.name, p.value) for p in parameters])
     except AttributeError:
-        logger.critical(('Cannot update logger. Ensure parameters are objects',
-                'with name and value attributes'))
-        raise
+        pardict = dict([(name, val) for (name, val) in zip(parnames, parameters)])
+        #logger.critical(('Cannot update parameters. Ensure parameters are objects',
+        #        'with name and value attributes'))
     updated = update_template(template, pardict)
     # nota bene: since template contains '\n', updated contains them too
-    fileobj.writelines(updated)
+    with open(fileobj, 'w') as fh:
+        fh.writelines(updated)
 
-def update_parameters(parameters, iteration=None, parfile=None, wd='.', 
-        templatefiles=None, parnames=None, *args, **kwargs):
+def update_parameters(parameters, iteration=None, *args, **kwargs):
     """Update relevant file(s) with new parameter values.
 
     ARGS:
@@ -201,58 +205,57 @@ def update_parameters(parameters, iteration=None, parfile=None, wd='.',
         parfile (string): Filename where the list of parameters is written
             in a very plain format (one or two column, as per the absence 
             or presence of parameter names.
-        templatefiles (list): List of ascii filenames containing placeholders
+        templates (list): List of ascii filenames containing placeholders
             for inserting parameter values. The place holders must follow
             the old string formatting of Python: $(ParameterName)ParameterType.
-        wd (string): Working directory, relative to SKOPTs invokation directory.
-            The full path to parfile is obtained by joining wd and parfile.
-            But the full path to templates depends on whether templatefiles
-            contain a path component in them or not. If they do not, then
-            wd is prepended to them; typically, they should have a path.
     """
-    logger = kwargs.get('logger', logging.getLogger(__name__))
+    parfile   = kwargs.get('parfile', DEFAULT_PARAMETER_FILE)
+    templates = kwargs.get('templates', None)
+    parnames  = kwargs.get('parnames', None)
+    logger    = kwargs.get('logger', logging.getLogger(__name__))
+    #logger.debug('Updating parameters')
+    #logger.debug(parameters)
+    #logger.debug(iteration)
+    #logger.debug(parfile)
+    #logger.debug(parnames)
+    #logger.debug(templates)
     # Update parameter file
-    if parfile is None:
-        parfile = normpath(expanduser(joinpath(wd, DEFAULT_PARAMETER_FILE)))
-    else:
-        parfile = normpath(expanduser(joinpath(wd, parfile)))
     parout = []
-    # Give priority to parnames, if supplied
-    if parnames is None:
-        try:
-            parnames  = [p.name  for p in parameters]
-        except AttributeError:
-            pass
-    else:
-        assert len(parameters) == len(parnames)
+    # Overwrite parnames with the names of the parameter objects, if available
+    try:
+        parnames  = [p.name  for p in parameters]
+    except AttributeError:
+        # parameters is a list of floats
+        assert all([isinstance(p, (float, int)) for p in parameters]), "{}".format(parameters)
+        # test consistency if parnames is given (may be None)
+        if parnames:
+            assert len(parameters) == len(parnames)
+        pass
+    # Prepare the values to write
     try:
         parvalues = [p.value for p in parameters]
     except AttributeError:
         parvalues = parameters
-    if parnames is None:
-        parout = ["{}".format(p) for p in parvalues]
-    else:
+    # Prepare the output and write
+    if parnames:
         parout = ["{:>20s}  {}".format(name, value) 
                 for (name, value) in zip(parnames, parvalues)]
+    else:
+        parout = ["{}".format(p) for p in parvalues]
     with open(parfile, 'w') as fp:
         if iteration is not None:
             fp.writelines('#{}\n'.format(iteration))
         fp.writelines('\n'.join(parout))
-    # Udpate (fill in) templates
-    if templatefiles:
-        for fetmpl in templatefiles:
-            # figure out if file has a path component, and preserve it;
-            # else, join wd and file
-            path, name = splitpath(fetmpl)
-            if path:
-                fin = normpath(expanduser(ftempl))
-            else:
-                fin = normpath(expanduser(joinpath(wd, ftempl)))
+    # Udpate (fill in) template files
+    if templates:
+        assert (parnames is not None)
+        for ftempl in templates:
+            fin = normpath(expanduser(ftempl))
             # remove 'template.' tag from filename to form destination
             # make sure you do this on the filename, not on the path!
-            path, name = plitpath(fin)
+            path, name = splitpath(fin)
             fout = normpath(joinpath(path, name.replace('template.','')))
             # read template and substitute values for placeholders
             # make sure you do not substitute in comments
             templ = read_par_template(fin)
-            write_parameters(fout, templ, parameters)
+            write_parameters(fout, templ, parvalues, parnames)

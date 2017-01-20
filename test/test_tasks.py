@@ -43,9 +43,9 @@ class TasksParsingTest(unittest.TestCase):
             # we should be getting 1 dict entry only!
             (tasktype, args), = tt.items()
             if tasktype.lower() == 'set':
-                tasklist.append(SetTask(*args, parnames=[], logger=logger))
+                tasklist.append(SetTask(*args, logger=logger))
             if tasktype.lower() == 'run':
-                tasklist.append(RunTask(*args, exedict={}, logger=logger))
+                tasklist.append(RunTask(*args, logger=logger))
             if tasktype.lower() == 'get':
                 func = gettaskdict[args[0]]
                 args[0] = func
@@ -162,36 +162,58 @@ class RunTaskTest(unittest.TestCase):
 class SetTaskTest(unittest.TestCase):
     """Does SetTask operate correctly?"""
 
-    def test_settask_init_and_run(self):
-        """Can we declare and execute a SetTask?"""
+    def test_settask_init_and_run_nonames(self):
+        """Can we declare and execute a SetTask without specifying parnames?"""
         parfile = "current.par"
         wd      = "test_optimise"
         tt = SetTask(parfile=parfile, wd=wd)
-        self.assertEqual(tt.parfile, parfile)
-        self.assertEqual(tt.wd, wd)
-        # change wd to . for the call test
-        tt.wd = "."
-        ff = os.path.join(tt.wd, tt.parfile)
+        self.assertEqual(tt.parfile, os.path.join(wd,parfile))
+        self.assertEqual(tt.parnames, None)
+        self.assertEqual(tt.templates, None)
+        fn = tt.parfile
         # test call with parameters being just a list of numbers
         params = np.array([1., 2.23, 5.])
         iteration = (13, 3) 
         tt(params, iteration)
-        _params = np.loadtxt(ff)
+        _params = np.loadtxt(fn)
         nptest.assert_array_equal(params, _params)
-        #
-        # test call with key-val pairs
+        os.remove(fn)
+
+    def test_settask_init_and_run_paramobjects(self):
+        """Can we declare and execute a SetTask, giving parameter objects?"""
+        parfile = "current.par"
+        wd      = "."
+        tt = SetTask(parfile=parfile, wd=wd)
         parnames  = ['a','b','c']
         parvalues = np.array([1., 2.23, 5.])
         params = [Parameter(name, value=val) for name, val in zip(parnames, parvalues)]
         iteration = 7
         tt(params, iteration)
         raw = np.loadtxt('current.par', dtype=[('keys', 'S15'), ('values', 'float')])
+        logger.debug(raw)
         _params = np.array([pair[1] for pair in raw])
         _names = [pair[0].decode("utf-8") for pair in raw]
         nptest.assert_array_equal(parvalues, _params)
         self.assertListEqual(parnames, _names)
         os.remove('current.par')
 
+    def test_settask_init_and_run_parnames(self):
+        """Can we declare and execute a SetTask, giving parnames at declaration?"""
+        parfile = "current.par"
+        wd      = "."
+        parnames  = ['a','b','c']
+        tt = SetTask(parfile=parfile, wd=wd, parnames=parnames)
+        parvalues = np.array([1., 2.23, 5.])
+        #params = [Parameter(name, value=val) for name, val in zip(parnames, parvalues)]
+        iteration = 7
+        tt(parvalues, iteration)
+        raw = np.loadtxt('current.par', dtype=[('keys', 'S15'), ('values', 'float')])
+        logger.debug(raw)
+        _params = np.array([pair[1] for pair in raw])
+        _names = [pair[0].decode("utf-8") for pair in raw]
+        nptest.assert_array_equal(parvalues, _params)
+        self.assertListEqual(parnames, _names)
+        os.remove('current.par')
 
 class GetTaskTest(unittest.TestCase):
     """Does GetTask operate correctly?"""
@@ -295,8 +317,8 @@ class SetAllTasksTest(unittest.TestCase):
         self.assertEqual(len(tasklist), 7)
         # Set Tasks
         tt = tasklist[0]
-        self.assertEqual(tt.wd, 'skf')
-        self.assertEqual(tt.parfile, 'current.par')
+        #self.assertEqual(tt.wd, 'skf')
+        self.assertEqual(tt.parfile, os.path.normpath('skf/current.par'))
         # Run Task
         tt = tasklist[1]
         self.assertEqual(tt.cmd, ['skgen',])

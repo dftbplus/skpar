@@ -53,6 +53,7 @@ class OptimiseTest(unittest.TestCase):
             pass
         # check task 0 (SetTask)
         names  = ['c0', 'c1', 'c2', 'c3']
+        # below we call a SetTask with list of parameter objects
         optimiser.evaluate.tasks[0](optimiser.parameters)
         raw = np.loadtxt(parfile, dtype=[('keys', 'S15'), ('values', 'float')])
         _params = np.array([pair[1] for pair in raw])
@@ -100,7 +101,8 @@ class OptimiseTest(unittest.TestCase):
         self.assertTrue(optimiser.optimise.toolbox.evaluate.func is evaluate)
         try:
             os.remove(parfile)
-            os.remove('model_poly3_out.dat')
+            # the following file is created by the model executable
+            os.remove(os.path.join(testfolder, 'model_poly3_out.dat'))
         except:
             pass
         optimiser()

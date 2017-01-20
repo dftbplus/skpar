@@ -1,7 +1,7 @@
 ---
 
 tasks:
-    - set: [current.par, test_optimise ]
+    - set: [current.par, test_optimise, template.parameters.py ]
     - run: [pythonspecial model_poly3.py, test_optimise ]
     - get: [get_model_data, test_optimise/model_poly3_out.dat, poly3, yval]
 
@@ -11,12 +11,16 @@ objectives:
         doc: 3-rd order polinomial values for some values of the argument
         models: poly3
         ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+        eval: [rms, relerr]
+        
 
 
 optimisation:
      
     algo: PSO   # particle swarm optimisation
     options:
+        #        npart: 4    # number of particles
+        #ngen : 5   # number of generations
         npart: 4    # number of particles
         ngen : 5   # number of generations
     parameters:

@@ -288,10 +288,18 @@ class PSO(object):
     pAcceleration = 2.9922
 
     def __init__(self, parameters, evaluate, npart=10, ngen=100, 
-                 objective_weights=(-1,), ErrTol=0.001):
+                 objective_weights=(-1,), ErrTol=0.001, *args, **kwargs):
         """
         Create a particle swarm
         """
+        self.logger = kwargs.get('logger', logging.getLogger(__name__))
+        self.logger.debug("Working with the following parameters")
+        # try to establish the names of the parameters for logging
+        try:
+            self.parnames = [p.name for p in parameters]
+        except AttributeError:
+            self.parnames = None
+        # try to establish the allowed parameter range
         try:
             parrange = [(p.minv, p.maxv) for p in parameters]
         except AttributeError:
@@ -310,7 +318,7 @@ class PSO(object):
         self.swarm = self.toolbox.swarm(npart)
         self.ngen = ngen
         self.ErrTol = ErrTol
-        # Provide with statistics collector and evolution logger
+        # Provide with statistics collector
         #  - fitness statistics
         fit_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
         fit_stats.register("Avg", np.mean)
@@ -367,14 +375,17 @@ class PSO(object):
 
         return self.swarm, self.stats_record
 
-    def report(self, logger = None):
-        if logger is None:
-            logger = logging.getLogger(__name__)
-        report_stats(self.stats_record, logger=logger)
-        logger.info("GBest iteration   : {}".format(self.swarm.gbest_iteration))
-        logger.info("GBest fitness     : {}".format(self.swarm.gbest.fitness.values))
+    def report(self):
+        report_stats(self.stats_record, logger=self.logger)
+        self.logger.info("GBest iteration   : {}".format(self.swarm.gbest_iteration))
+        self.logger.info("GBest fitness     : {}".format(self.swarm.gbest.fitness.values))
         gbestpars = self.swarm.gbest.renormalized
-        logger.info("GBest parameters  : {}".format(gbestpars))
+        if self.parnames:
+            self.logger.info("GBest parameters:")
+            self.logger.info("\n".join(["{:>20s}  {}".format(name, val) 
+                for (name, val) in zip(self.parnames, gbestpars)]))
+        else:
+            self.logger.info("GBest parameters  : {}".format(gbestpars))
 
     def __call__(self, *args, **kwargs):
         return self.optimise(*args, **kwargs)
