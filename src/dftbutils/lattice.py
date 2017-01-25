@@ -41,7 +41,7 @@ class Lattice(object):
         self.primv = lat.primv
         self.convv = lat.convv
         self.SymPts_k = lat.SymPts_k
-        self.standard_path = lat.standard_path
+        self.path = info.get('path', lat.standard_path)
         #
         self.reciprv = get_recipr_cell(self.primv, self.scale)
         self.SymPts = {}
@@ -540,7 +540,7 @@ def len_pathsegments(lattice, scale=None, path=None):
     (default for the lattice chosen if None) of a given _lattice_ object
     """
     if path is None:
-        path = lattice.standard_path
+        path = lattice.path
     if scale is None:
         scale = (lattice.constants[0]/(2.*pi))
     s = [path, ]
@@ -559,7 +559,7 @@ def get_dftbp_klines(lattice, delta=None, path=None):
     (default for the lattice chosen if None) of a given *lattice* object
     """
     if path is None:
-        path = lattice.standard_path
+        path = lattice.path #standard_path
     if delta is None:
         delta = 0.01 # reciprocal units
     s = ["DFTB kLines stanza:", ]

@@ -38,17 +38,18 @@ class LatticeTest(unittest.TestCase):
 
     def test_tetragonal(self):
         """Tetragonal (TET)"""
-        a = 1.0
-        c = 2.0
-        lat = Lattice({'type': 'TET', 'param': [a, c]})
+        a = 8.9385 #1.0
+        c = 12.9824 #2.0
+        lat = Lattice({'type': 'TET', 'param': [a, c], 'path': 'Gamma-M-X-Gamma-Z'})
         logger.debug(lat)
 
     def test_orthorombic(self):
         """Orthorombic (ORC)"""
-        a = 1.0
-        b = 2.0
-        c = 3.0
-        lat = Lattice({'type': 'ORC', 'param': [a, b, c]})
+        a = 9.0714 #1.0
+        b = 8.7683 #2.0
+        c = 12.8024 #3.0
+        #lat = Lattice({'type': 'ORC', 'param': [a, b, c], 'path': 'Gamma-S-X-Gamma-Z'})
+        lat = Lattice({'type': 'ORC', 'param': [a, b, c], 'path': 'Gamma-S-Y-Gamma-Z'})
         logger.debug(lat)
 
     def test_rhombohedral(self):
