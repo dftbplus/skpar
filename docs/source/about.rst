@@ -6,7 +6,7 @@
 About
 ==========
 
-`SKOPT` consists of a library and a command-line tool, intended to 
+SKOPT consists of a library and a command-line tool, intended to 
 automate the optimisation of parameters for the Density Functional
 Tight Binding (DFTB) theory.
 
@@ -15,7 +15,7 @@ Optimisation (PSO) engine based on the `DEAP`_ library for evolutionary
 algorithms.
 
 .. figure:: ../static/skopt.diagram.png
-        :scale: 75 %
+        :scale: 50
 
         Conceptual block diagram of SKOPT.
 

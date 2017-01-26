@@ -8,7 +8,7 @@ Quick links:
 
 .. list-table::
 
-  * - :mod:`Objectives <~skopt.objectives>`
+  * - :mod:`Objectives <skopt/objectives>`
     - :mod:`Tasks <~skopt.tasks>`
     - :mod:`Task Dictionary <~skopt.taskdict>`
     - :mod:`Evaluator <~skopt.evaluate>`

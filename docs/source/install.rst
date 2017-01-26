@@ -6,7 +6,7 @@
 Install
 ====================
 
-The latest release of `SKOPT` can be found on `Bitbucket`_.
+The latest release of SKOPT can be found on `Bitbucket`_.
 Download it, open the archive and go to the newly created directory.
 
 .. _Bitbucket: https://bitbucket.org/stanmarkov/skopt/downloads
@@ -20,7 +20,7 @@ Specifically, for local installation we recommend:
 
         python3 setup.py install --user --record installed.info
 
-This will try to install `SKOPT` into your local home directory, creating
+This will try to install SKOPT into your local home directory, creating
 
 .. code:: bash
 

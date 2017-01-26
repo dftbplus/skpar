@@ -7,41 +7,61 @@ Objectives
 ======================================================================
 
 Central to the optimisation problem are objectives. The problem is
-defined as a weighted multi-objective optimisation, where each objective 
-typically is composed of multiple sub-objectives itself, but upon
-evaluation, its fitness is a single scalar. Each objective is assigned
-a weight, corresponding to its relative significance.
-A good review of the mathematical formulation is found here [MOO-review]_.
+defined as a weighted multi-objective optimisation, where each 
+objective typically is composed of multiple sub-objectives itself. 
+Each objective is scalarized, meaning that it is evaluated to a single
+scalar that represents its own fitness. Each objective is assigned a 
+weight, corresponding to its relative significance; weights are 
+automatically normalised. A good review of the mathematical 
+formulation is found here [MOO-review]_.
 
 The declaration of an objective establishes a way for a direct 
 comparison between some reference data and some model data.
-With each data item is associated a weight, corresponding to
-the significance of this item relative to the rest of the items.
-These weights are regarded as sub-weights, and are used for 
-the scalarisation of a given objective.
+With each pair of data items from the reference and model data
+there is associated a weight (a normalised sub-weight)
+that corresponds to the significance of this item relative to the 
+rest of the items within the reference data object.
+These weights are used in the individual fitness evaluation of 
+each objective.
 
 
 Assumptions
 ======================================================================
 
-1) **Objective name** defines the object to be queried from the Model 
-   Database (MDB). Exception to this rule is an objective with 
-   key-value pairs as reference data -- the keys define the queries 
-   in that case, and the name of the objective is irrelevant.
+The following assumptions govern the declaration of objectives in
+the input YAML file for SKOPT:
 
-2) **Format of reference data** in combination with the **number of model
-   names** uniquely defines the type of objective. 
+1. **Reference data** is stated in the declaration of each objective
+   either explicitly, or implicitly, e.g. via filename.
+
+2. **Model data** is contained in a Model Database (MDB) which is
+   completely independent from the declaration of objectives. The
+   latter merely declares the name of the object to be queried from
+   the MDB.
+
+3. **Objective name** defines the object to be queried from the Model 
+   Database (MDB). Exception to this rule is an objective with 
+   key-value pairs as reference data -- in this case the keys define 
+   the queries, and the name of the objective is irrelevant.
+
+
+4. **Objective type** is deduced from *Format of reference data* in 
+   combination with the *number of model names* (from the MDB) that
+   are associated with the objective.
+
    The type of reference data could be:
 
-    * 1-D array: e.g. energy-volume relation of a solid
+    * 1-D array: e.g. the energy values of an energy-volume relation 
+      of a solid
 
-    * 2-D array: e.g. band-structure of a solid
+    * 2-D array: e.g. the band-structure of a solid (the set of 
+      eigenstates at different *k*-number.
 
     * key-value pairs: e.g. named physical quantities, like effective
-      masses, E-k points within the first Brilloin zone, etc.
+      masses, specific E-k points within the first Brilloin zone, etc.
 
 
-3) **Correspondence between model data and reference data** may be non 
+5. **Correspondence between model data and reference data** may be non 
    trivial when the data has the character of a band-structure, i.e. 
    is 2D array. In this case correspondence can be established via 
    *use*, and *align* clauses, as in the example YAML code below.
@@ -75,14 +95,14 @@ Assumptions
     arrays of identical shape.
     Naturally, sub-weight array is of the same shape.
 
-5) **Correspondence between sub-weights and data**, per data item, is
+6. **Correspondence between sub-weights and data**, per data item, is
    established **after** the application of ``use`` and ``align`` 
    clauses from the declaration of the objective.
    When selection for applying sub-weights is based on data values,
    the values considered are with respect to the new alignment, i.e.
    after the application of the ``align`` clause.
 
-6) **Index counting** starts from 1, and index ranges are inclusive of
+7. **Index counting** starts from 1, and index ranges are inclusive of
    both boundaries, i.e. FORTRAN-style is used.
 
 
