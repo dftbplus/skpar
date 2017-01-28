@@ -4,11 +4,11 @@ import logging
 import numpy as np
 from datetime import datetime
 from collections import OrderedDict
-# skopt
-from skopt.evaluate import Evaluator
-from skopt.pso import PSO, pso_dflts, pso_args, report_stats
-from skopt.parameters import get_parameters
 from deap.base import Toolbox
+# skopt
+from skopt.core.evaluate import Evaluator
+from skopt.core.pso import PSO, pso_dflts, pso_args, report_stats
+from skopt.core.parameters import get_parameters
 
 optengines = {'pso': PSO}
 

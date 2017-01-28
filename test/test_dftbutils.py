@@ -2,11 +2,11 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
-from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
-from dftbutils.queryDFTB import get_effmasses, get_special_Ek
-from dftbutils.queryDFTB import get_labels
-from dftbutils import queryDFTB as dftb
+from skopt.dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
+from skopt.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from skopt.dftbutils.queryDFTB import get_effmasses, get_special_Ek
+from skopt.dftbutils.queryDFTB import get_labels
+from skopt.dftbutils import queryDFTB as dftb
 from math import pi
 
 logging.basicConfig(level=logging.DEBUG)

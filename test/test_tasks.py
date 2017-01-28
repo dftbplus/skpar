@@ -6,11 +6,11 @@ from pprint import pprint, pformat
 from os.path import normpath, expanduser
 import numpy as np
 import numpy.testing as nptest
-from skopt.tasks import SetTask, RunTask, GetTask, set_tasks
-from skopt.parameters import Parameter
-from skopt.query import Query
 from subprocess import CalledProcessError
-from skopt.taskdict import gettaskdict
+from skopt.core.tasks import SetTask, RunTask, GetTask, set_tasks
+from skopt.core.parameters import Parameter
+from skopt.core.query import Query
+from skopt.core.taskdict import gettaskdict
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

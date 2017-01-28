@@ -3,10 +3,10 @@ import sys
 import os
 import argparse
 import logging
-from skopt.input import parse_input
-from skopt.evaluate import Evaluator, eval_objectives
-from skopt.optimise import Optimiser
-from skopt.query import Query
+from skopt.core.input import parse_input
+from skopt.core.evaluate import Evaluator, eval_objectives
+from skopt.core.optimise import Optimiser
+from skopt.core.query import Query
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
     logger = logging.getLogger('skopt')
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    console.setLevel(logging.DEBUG)
     # set a format which is simpler for console use
     formatter = logging.Formatter('%(levelname)-8s %(message)s')
     # tell the handler to use this format

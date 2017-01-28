@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from skopt import evaluate as ev
+from skopt.core import evaluate as ev
 
 class Objv(object):
     """Barebone objective"""

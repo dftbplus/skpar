@@ -21,6 +21,7 @@ from os.path import normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
 import os.path
+
 DEFAULT_PARAMETER_FILE='current.par'
 
 logging.basicConfig(level=logging.DEBUG)

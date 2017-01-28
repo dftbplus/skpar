@@ -14,7 +14,7 @@ from os.path import join as joinpath
 import logging
 import numpy as np
 from collections import defaultdict
-from dftbutils.lattice import getSymPtLabel
+from skopt.dftbutils.lattice import getSymPtLabel
 
 
 def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):

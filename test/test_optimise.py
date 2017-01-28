@@ -4,10 +4,10 @@ import numpy as np
 import numpy.testing as nptest
 import os
 from os.path import normpath, expanduser
-from skopt.input import parse_input
-from skopt.evaluate import Evaluator, eval_objectives, cost_RMS
-from skopt.optimise import Optimiser, get_optargs
-from skopt.query import Query
+from skopt.core.input import parse_input
+from skopt.core.evaluate import Evaluator, eval_objectives, cost_RMS
+from skopt.core.optimise import Optimiser, get_optargs
+from skopt.core.query import Query
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -61,8 +61,9 @@ class OptimiseTest(unittest.TestCase):
         nptest.assert_array_equal(params, _params)
         self.assertListEqual(names, _names)
         # check task 1 (RunTask)
-        exe = normpath(expanduser('~/anaconda3/python'))
-        self.assertListEqual(optimiser.evaluate.tasks[1].cmd, [exe, 'model_poly3.py'])
+        exe = 'python -v'.split()
+        #exe = normpath(expanduser('~/anaconda3/python'))
+        self.assertListEqual(optimiser.evaluate.tasks[1].cmd, exe + ['model_poly3.py'])
         self.assertEqual(optimiser.evaluate.tasks[1].wd, 'test_optimise')
         optimiser.evaluate.tasks[1]()
         # check task 2 (GetTask)

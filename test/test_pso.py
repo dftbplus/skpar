@@ -8,8 +8,8 @@ import matplotlib
 matplotlib.rcParams.update({'font.size': 20, 'font.family': 'sans'})
 import os, sys
 from deap import base
-from skopt.pso import PSO
-from skopt.pso import PSO, report_stats
+from skopt.core.pso import PSO
+from skopt.core.pso import PSO, report_stats
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

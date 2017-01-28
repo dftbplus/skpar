@@ -3,8 +3,8 @@ import logging
 import numpy as np
 import numpy.testing as nptest
 import yaml
-from skopt import objectives as oo
-from skopt.query import Query
+from skopt.core import objectives as oo
+from skopt.core.query import Query
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

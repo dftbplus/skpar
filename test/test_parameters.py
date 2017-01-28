@@ -5,8 +5,8 @@ import os.path
 import numpy as np
 import numpy.testing as nptest
 import yaml
-from skopt.parameters import get_parameters, update_template
-from skopt.parameters import write_parameters, update_parameters
+from skopt.core.parameters import get_parameters, update_template
+from skopt.core.parameters import write_parameters, update_parameters
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

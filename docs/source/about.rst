@@ -15,7 +15,7 @@ Optimisation (PSO) engine based on the `DEAP`_ library for evolutionary
 algorithms.
 
 .. figure:: ../static/skopt.diagram.png
-        :scale: 50
+        :width: 85%
 
         Conceptual block diagram of SKOPT.
 

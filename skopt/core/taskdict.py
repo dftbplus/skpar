@@ -1,6 +1,6 @@
 import numpy as np
-from dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
-from dftbutils.queryDFTB import get_effmasses, get_special_Ek
+from skopt.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from skopt.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 
 def get_model_data (src, dst, key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.

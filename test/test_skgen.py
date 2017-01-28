@@ -2,8 +2,8 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from dftbutils.parametersSKGEN import Parameter, update_template
-from dftbutils import queryDFTB as dftb
+from skopt.dftbutils.parametersSKGEN import Parameter, update_template
+from skopt.dftbutils import queryDFTB as dftb
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

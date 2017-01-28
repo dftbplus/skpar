@@ -8,12 +8,12 @@ from collections import OrderedDict
 import logging
 import os
 import sys
-from skopt.utils      import normalise
-from skopt.objectives import set_objectives
-from skopt.query      import Query
-from skopt.tasks      import set_tasks
-from skopt.optimise   import get_optargs
-from skopt import tasks
+from skopt.core.utils      import normalise
+from skopt.core.objectives import set_objectives
+from skopt.core.query      import Query
+from skopt.core.tasks      import set_tasks
+from skopt.core.optimise   import get_optargs
+from skopt.core import tasks
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

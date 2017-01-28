@@ -22,11 +22,14 @@ long_description  = open('README.txt').read()
 name         = 'skopt'
 # todo: try to regenerate ./skopt/__init__.py to include the version stated here
 version      = '0.2.0'
-package_dir  = {'': 'src',}
-packages     = ['skopt']
+
+package_dir  = {'skopt': 'skopt',}
+
+packages     = []
 for dirname, dirnames, filenames in os.walk('skopt'):
         if '__init__.py' in filenames:
             packages.append(dirname.replace('/', '.'))
+
 package_data = {}
 
 scripts=['bin/skopt']

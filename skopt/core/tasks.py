@@ -5,9 +5,9 @@ from os.path import join as joinpath
 from os.path import split as splitpath
 from subprocess import STDOUT
 from pprint import pprint, pformat
-from skopt.query import Query
-from skopt.taskdict import gettaskdict
-from skopt.parameters import update_parameters
+from skopt.core.query import Query
+from skopt.core.taskdict import gettaskdict
+from skopt.core.parameters import update_parameters
 
 def islistofstr(arg, msg=None, dflt=None):
     """Check an argument is a list of strings or a default type.
@@ -51,7 +51,7 @@ class RunTask (object):
             except AttributeError:
                 _inp = inp
             self.cmd.extend(_inp)
-        self.outfile = out
+        self.outfile = normpath(expanduser(out))
         self.err = err
 
     def __call__(self):

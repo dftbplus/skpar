@@ -2,9 +2,9 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from dftbutils import lattice
-from dftbutils.lattice import Lattice
-from dftbutils.querykLines import get_klines, greekLabels
+from skopt.dftbutils import lattice
+from skopt.dftbutils.lattice import Lattice
+from skopt.dftbutils.querykLines import get_klines, greekLabels
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format=' %(message)s')

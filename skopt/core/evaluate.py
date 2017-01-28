@@ -2,8 +2,8 @@
 """
 import logging
 import numpy as np
-from skopt.utils import get_logger, normalise
-from skopt.utils import flatten, flatten_two
+from skopt.core.utils import get_logger, normalise
+from skopt.core.utils import flatten, flatten_two
 
 DEFAULT_GLOBAL_COST_FUNC = "rms"
 

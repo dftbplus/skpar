@@ -1,7 +1,7 @@
 import unittest
 import logging
-from skopt.input import parse_input
-from skopt.taskdict import gettaskdict
+from skopt.core.input import parse_input
+from skopt.core.taskdict import gettaskdict
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

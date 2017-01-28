@@ -5,14 +5,17 @@ Classes and functions related to the:
     * setting the objectives for the optimizer, and,
     * evaluation of objectives.
 """
+from os.path import normpath, expanduser
+from os.path import join as joinpath
+from os.path import split as splitpath
 import numpy as np
 import logging
 import yaml
 from pprint import pprint, pformat
-from skopt.utils import get_logger, normalise
-from skopt.query import Query
+from skopt.core.utils import get_logger, normalise
+from skopt.core.query import Query
+from skopt.core.evaluate import costf, errf
 
-from skopt.evaluate import costf, errf
 DEFAULT_COST_FUNC = "rms"
 DEFAULT_ERROR_FUNC = "abs"
 
@@ -608,7 +611,7 @@ def get_refdata(data):
     if isinstance(data, dict):
         if 'file' in data.keys():
             # `data` contains an instruction where/how to obtain values
-            file = data['file']
+            file = normpath(expanduser(data['file']))
             # actual data in file -> load it
             # set default loader_args, assuming 'column'-organised data
             loader_args = {} #{'unpack': False}

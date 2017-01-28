@@ -8,7 +8,7 @@ import logging
 from collections import OrderedDict
 import numpy as np
 from math import pi
-from dftbutils.lattice import getSymPtLabel
+from skopt.dftbutils.lattice import getSymPtLabel
 
 
 # relevant fundamental constants
