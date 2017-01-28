@@ -209,7 +209,8 @@ class GetTask (object):
             self.src = dbref
         else:
             # assume it is a directory or file, and `func` will handle it
-            self.src = source
+            # watch out for the ~/ in the filename!!!
+            self.src = normpath(expanduser(source))
         self.dst_name = destination
         self.dst  = Query.add_modelsdb(destination)
         self.args = args

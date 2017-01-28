@@ -1,3 +1,2 @@
 include HOW_TO_RUN.txt
 include INSTALL.txt
-include src/__init__.py

@@ -1,0 +1,74 @@
+tasks:
+    - get: [get_dftbp_bs, ~/Dropbox/projects/skf-dftb/perovskite/paper-DW/tet--114/bs, tet-114,
+            {latticeinfo: {type: 'TET', param: [8.76, 51.939]}}]
+    - get: [get_dftbp_bs, ~/Dropbox/projects/skf-dftb/perovskite/paper-DW/tet--114--dw/bs, tet-114-dw,
+            {latticeinfo: {type: 'TET', param: [8.76, 51.939]}}]
+    # below we omit the destination, and results will update the source dictionary
+    - get: [get_dftbp_meff, tet-114,    {directions: ['Gamma-M', 'Gamma-X', 'Gamma-Z'], Erange: 0.005}]
+      #    - get: [get_dftbp_meff, tet-114-dw, {directions: ['Gamma-M', 'Gamma-X', 'Gamma-Z'], Erange: 0.005}]
+    # note the use of the 'align: 'Evb'', which is to align the Ek with the 0 energy of the reference data
+    - get: [get_dftbp_Ek  , tet-114,    {sympts: ['M', 'Gamma', 'X', 'Z']}]
+    - get: [get_dftbp_Ek  , tet-114-dw, {sympts: ['M', 'Gamma', 'X', 'Z']}]
+
+
+# Individual objectives
+objectives:
+
+    - Egap:
+        doc: Band-gap of tetragonal w/o domain wall
+        models: tet-114
+        ref: 1.6
+        weight: 4.0
+        eval: [rms, relerr]
+
+    - Egap:
+        doc: Band-gap of tetragonal with domain wall
+        models: tet-114-dw
+        ref: 1.5
+        weight: 4.0
+        eval: [rms, relerr]
+
+    - effective_masses:
+        doc: Effective masses without domain wall
+        models: tet-114
+        ref: 
+            file: ~/Dropbox/projects/skf-dftb/perovskite/2015-06-12--skopt/MAPbI3-tet-socgw.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt : 0.0                # changing the default (from 1.) to 0. allows us to consider 
+                me_GX: 1.0                # only select entries; alternatively, set select entries
+                me_GM: 1.0                # to zero effectively excludes them from consideration
+                me_GZ: 1.0                # to zero effectively excludes them from consideration
+                mh_GX: 1.0                # only select entries; alternatively, set select entries
+                mh_GM: 1.0                # to zero effectively excludes them from consideration
+                mh_GZ: 1.0                # to zero effectively excludes them from consideration
+        weight: 1.0
+        eval: [rms, abserr]
+
+        #    - effective_masses:
+        #        doc: Effective masses *** with *** domain wall
+        #        models: tet-114-dw
+        #        ref: 
+        #            file: ~/Dropbox/projects/skf-dftb/perovskite/2015-06-12--skopt/MAPbI3-tet-socgw.dat
+        #            loader_args: 
+        #                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+        #                                            #           use the dictionary formulation of dtype
+        #                    names: ['keys', 'values']
+        #                    formats: ['S15', 'float']
+        #        options:
+        #            subweights: 
+        #                dflt : 0.0                # changing the default (from 1.) to 0. allows us to consider 
+        #                me_GX: 1.0                # only select entries; alternatively, set select entries
+        #                me_GM: 1.0                # to zero effectively excludes them from consideration
+        #                me_GZ: 1.0                # to zero effectively excludes them from consideration
+        #                mh_GX: 1.0                # only select entries; alternatively, set select entries
+        #                mh_GM: 1.0                # to zero effectively excludes them from consideration
+        #                mh_GZ: 1.0                # to zero effectively excludes them from consideration
+        #        weight: 1.0
+        #        eval: [rms, abserr]
+
