@@ -3,7 +3,8 @@ import logging
 import yaml
 import os
 from pprint import pprint, pformat
-from os.path import normpath, expanduser
+from os.path import abspath, normpath, expanduser
+from os.path import join as joinpath
 import numpy as np
 import numpy.testing as nptest
 from subprocess import CalledProcessError
@@ -57,7 +58,7 @@ class TasksParsingTest(unittest.TestCase):
         for ii, tt in enumerate(tasklist[1:4]):
             self.assertTrue(isinstance(tt, RunTask))
             self.assertListEqual(tt.cmd, [cmd[ii]])
-            self.assertEqual(tt.wd, wd[ii])
+            self.assertEqual(tt.wd, abspath(expanduser(wd[ii])))
         src = ['Si', 'SiO2', 'Si/bs']
         dst = ['Si', 'SiO2', 'Si']
         for ii, tt in enumerate(tasklist[4:]):
@@ -70,11 +71,78 @@ class TasksParsingTest(unittest.TestCase):
 class RunTaskTest(unittest.TestCase):
     """Check if we can create and execute tasks."""
 
+    def test_inittask_exe_nopath(self):
+        """Can we initialise stating the command directly"""
+        # Executable assumed on the path
+        t1 = RunTask(cmd='python')
+        self.assertEqual(t1.wd, abspath(expanduser('.')))
+        self.assertEqual(t1.cmd, ['python'])
+        t1 = RunTask(cmd='python', wd='other')
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, ['python'])
+        t1 = RunTask(cmd='python -v', wd='other')
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, ['python', '-v'])
+        t1 = RunTask(cmd=['python', '-v'], wd='other')
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, ['python', '-v'])
+
+    def test_inittask_exe_withpath(self):
+        """Can we initialise stating the command directly"""
+        # Executable assumed on the path
+        t1 = RunTask(cmd='./my/python')
+        self.assertEqual(t1.wd, abspath(expanduser('.')))
+        self.assertEqual(t1.cmd, [os.path.abspath('./my/python')])
+        # string command
+        t1 = RunTask(cmd='~/my/python -v')
+        self.assertEqual(t1.cmd, [os.path.abspath(os.path.expanduser('~/my/python')), '-v'])
+        # list command
+        t1 = RunTask(cmd=['./my/python', '-v'])
+        self.assertEqual(t1.cmd, [os.path.abspath('./my/python'), '-v'])
+
+    def test_inittask_exedict_nopath(self):
+        """Can we initialise stating the command directly"""
+        # Executable assumed on the path, but is aliased
+        t1 = RunTask(cmd='python', exedict={'python': 'python3'})
+        self.assertEqual(t1.wd, abspath(expanduser('.')))
+        self.assertEqual(t1.cmd, ['python3'])
+        #
+        t1 = RunTask(cmd='python -v', wd='other', exedict={'python': 'python3'})
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, ['python3', '-v'])
+        #
+        t1 = RunTask(cmd='python', wd='other', exedict={'python': 'python3 -v'})
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, ['python3', '-v'])
+        #
+        t1 = RunTask(cmd='python -v', wd='other', exedict={'python': 'python3 -c'})
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, ['python3', '-c', '-v'])
+
+    def test_inittask_exedict_withpath(self):
+        """Can we initialise stating the command directly"""
+        # Executable assumed on the path, but is aliased
+        t1 = RunTask(cmd='python', exedict={'python': '~/anaconda/python3'})
+        self.assertEqual(t1.wd, abspath(expanduser('.')))
+        self.assertEqual(t1.cmd, [os.path.abspath(os.path.expanduser('~/anaconda/python3'))])
+        #
+        t1 = RunTask(cmd='python -v', wd='other', exedict={'python': '~/anaconda/python3'})
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, [os.path.abspath(os.path.expanduser('~/anaconda/python3')), '-v'])
+        #
+        t1 = RunTask(cmd='python', wd='other', exedict={'python': '~/anaconda/python3 -v'})
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, [os.path.abspath(os.path.expanduser('~/anaconda/python3')), '-v'])
+        #
+        t1 = RunTask(cmd='python -v', wd='other', exedict={'python': '~/anaconda/python3 -c'})
+        self.assertEqual(t1.wd, abspath(expanduser('other')))
+        self.assertEqual(t1.cmd, [os.path.abspath(os.path.expanduser('~/anaconda/python3')), '-c', '-v'])
+
     def test_passtask(self):
         """Can we declare and execute a task successfully"""
         t1 = RunTask(cmd='python', wd='test_tasks', inp='pass.py')
         self.assertListEqual(t1.cmd,['python', 'pass.py'])
-        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertEqual(t1.wd, abspath(expanduser('test_tasks')))
         self.assertTrue(isinstance(t1.logger,logging.Logger))
         logger.debug(t1)
         t1()
@@ -84,7 +152,7 @@ class RunTaskTest(unittest.TestCase):
         """Can we declare task without input file and execute a task successfully"""
         t1 = RunTask(cmd='python pass.py', wd='test_tasks')
         self.assertListEqual(t1.cmd,['python', 'pass.py'])
-        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertEqual(t1.wd, abspath(expanduser('test_tasks')))
         self.assertTrue(isinstance(t1.logger,logging.Logger))
         logger.debug(t1)
         t1()
@@ -102,7 +170,7 @@ class RunTaskTest(unittest.TestCase):
         (ttype, args), = tt.items()
         t1 = taskmapper[ttype](*args)
         self.assertListEqual(t1.cmd,['python', 'pass.py'])
-        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertEqual(t1.wd, abspath(expanduser('test_tasks')))
         self.assertTrue(isinstance(t1.logger,logging.Logger))
         logger.debug (t1)
         t1()
@@ -153,7 +221,7 @@ class RunTaskTest(unittest.TestCase):
         t1 = taskmapper[ttype](*args, **kwargs)
         exe = normpath(expanduser('~/anaconda3/python'))
         self.assertListEqual(t1.cmd,[exe, 'pass.py'])
-        self.assertEqual(t1.wd, 'test_tasks')
+        self.assertEqual(t1.wd, abspath(expanduser('test_tasks')))
         self.assertTrue(isinstance(t1.logger,logging.Logger))
         t1()
         self.assertEqual(t1.out, "Running to pass!\n")
@@ -322,16 +390,16 @@ class SetAllTasksTest(unittest.TestCase):
         # Run Task
         tt = tasklist[1]
         self.assertEqual(tt.cmd, ['skgen',])
-        self.assertEqual(tt.outfile, 'out.log')
-        self.assertEqual(tt.wd, 'skf')
+        self.assertEqual(tt.outfile, joinpath(abspath(expanduser('skf')), 'out.log'))
+        self.assertEqual(tt.wd, abspath(expanduser('skf')))
         tt = tasklist[2]
         self.assertEqual(tt.cmd, ['bs_dftb',])
-        self.assertEqual(tt.outfile, 'out.log')
-        self.assertEqual(tt.wd, 'Si')
+        self.assertEqual(tt.outfile, joinpath(abspath(expanduser('Si')), 'out.log'))
+        self.assertEqual(tt.wd, abspath(expanduser('Si')))
         tt = tasklist[3]
         self.assertEqual(tt.cmd, ['bs_dftb',])
-        self.assertEqual(tt.outfile, 'out.log')
-        self.assertEqual(tt.wd, 'SiO2')
+        self.assertEqual(tt.outfile, joinpath(abspath(expanduser('SiO2')), 'out.log'))
+        self.assertEqual(tt.wd, abspath(expanduser('SiO2')))
         # GetTasks
         tt = tasklist[4]
         self.assertEqual(tt.func.__name__, 'get_dftbp_data')

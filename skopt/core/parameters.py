@@ -232,17 +232,29 @@ def update_parameters(parameters, iteration=None, *args, **kwargs):
         if parnames:
             assert len(parameters) == len(parnames)
         pass
+    except TypeError:
+        assert parameters is None
+        parnames = None
+        pass
     # Prepare the values to write
     try:
         parvalues = [p.value for p in parameters]
     except AttributeError:
         parvalues = parameters
+    except TypeError:
+        assert parameters is None
+        parvalues = None
+        pass
     # Prepare the output and write
     if parnames:
         parout = ["{:>20s}  {}".format(name, value) 
                 for (name, value) in zip(parnames, parvalues)]
     else:
-        parout = ["{}".format(p) for p in parvalues]
+        try:
+            parout = ["{}".format(p) for p in parvalues]
+        except TypeError:
+            assert parvalues is None
+            parout = ""
     with open(parfile, 'w') as fp:
         if iteration is not None:
             fp.writelines('#{}\n'.format(iteration))

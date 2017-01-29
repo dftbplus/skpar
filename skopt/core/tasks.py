@@ -1,6 +1,6 @@
 import logging
 import os, sys, subprocess
-from os.path import normpath, expanduser
+from os.path import abspath, normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
 from subprocess import STDOUT
@@ -28,30 +28,43 @@ class RunTask (object):
     def __init__(self, cmd, wd='.', inp=None, out='out.log', 
             err=subprocess.STDOUT, exedict=None, *args, **kwargs):
         self.logger = kwargs.get('logger', logging.getLogger(__name__))
-        self.wd = wd
+        # handle the path properly!
+        self.wd = abspath(expanduser(wd))
         try:
+            # should work if cmd is a string
             _cmd = cmd.split()
         except AttributeError:
             # if cmd is a list of strings
             _cmd = cmd
+        # separate executable from arguments
         exe  = _cmd[0]
         # args will be empty list if there are no arguments
         args = _cmd[1:]
         # remap the executable; accept even a command with args
         if exedict is not None:
-            self.cmd = exedict.get(exe, exe)
-            self.cmd = normpath(expanduser(self.cmd))
-            self.cmd = self.cmd.split()
-        else:
-            self.cmd = exe.split()
+            true_cmd  = exedict.get(exe, exe).split()
+            exe = true_cmd[0]
+            args = true_cmd[1:] + args
+        # We must analyse if there is a path component to the exe,
+        # and if so, make it absolute; alternatively, we assume the
+        # exe is on the PATH
+        if splitpath(exe)[0]:
+            exe = abspath(expanduser(exe))
+        # make the command into a list, in preparation for subprocess
+        self.cmd = exe.split()
+        # add the command arguments to the list
         self.cmd.extend(args)
+        # deal with input and output files, if any
         if inp is not None:
             try:
                 _inp = inp.split()
             except AttributeError:
                 _inp = inp
             self.cmd.extend(_inp)
-        self.outfile = normpath(expanduser(out))
+        if out is not None:
+            self.outfile = joinpath(self.wd, out)
+        else:
+            self.outfile = None
         self.err = err
 
     def __call__(self):
@@ -61,7 +74,7 @@ class RunTask (object):
         topdir = os.getcwd()
         # Go to task working directory
         try:
-            os.chdir(os.path.abspath(self.wd))
+            os.chdir(self.wd)
         except:
             self.logger.critical("Cannot change to working directory {}".format(self.wd))
             raise
@@ -72,9 +85,13 @@ class RunTask (object):
             self.out = subprocess.check_output(self.cmd, 
                                           universal_newlines=True, 
                                           stderr=subprocess.STDOUT)
-            with open(self.outfile, 'w') as fp:
-                fp.write(self.out)
-            self.logger.debug("Complete: output is in {}".format(self.outfile))
+            try:
+                with open(self.outfile, 'w') as fp:
+                    fp.write(self.out)
+                self.logger.debug("Done.  : output is in {}.\n".format(self.outfile))
+            except TypeError:
+                # self.outfile is None
+                self.logger.debug("Done.  : outfile was None; output discarded.\n")
             # return to caller's directory
             os.chdir(topdir)
         except subprocess.CalledProcessError as exc:
@@ -90,7 +107,9 @@ class RunTask (object):
             raise
         except OSError:
             self.logger.critical("Abnormal termination -- the OS could not handle the command of:")
+            self.logger.critical("If the command is a script, make sure there is a shebang!")
             self.logger.critical(self.__repr__())
+            self.logger.debug(os.getcwd())
             # go back to top dir
             os.chdir(topdir)
             raise
@@ -103,7 +122,7 @@ class RunTask (object):
         s.append("{:<15s}: {}".format("command", pformat(' '.join(self.cmd))))
         s.append("{:<15s}: {}".format("out/err", pformat(self.outfile)))
         s.append("\n")
-        return "\n".join(s)
+        return "\n" + "\n".join(s)
 
 
 class SetTask (object):

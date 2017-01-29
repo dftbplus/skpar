@@ -125,6 +125,17 @@ class UpdateParametersTest(unittest.TestCase):
         os.remove(fcurr)
         os.remove(ftempl[0])
 
+    def test_updateparameters_None(self):
+        "Can we handle None for parameters and iteration?"
+        fcurr      = 'curr.par'
+        parameters = None
+        iteration  = None
+        # update_parameters expects 2 posargs and kwargs
+        update_parameters(parameters, iteration, parfile=fcurr)
+        with open(fcurr, 'r') as fh:
+            lines = fh.readlines()
+        assert len(lines) == 0
+        os.remove(fcurr)
 
 if __name__ == '__main__':
     unittest.main()

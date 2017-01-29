@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import numpy.testing as nptest
 import os
-from os.path import normpath, expanduser
+from os.path import abspath, normpath, expanduser
 from skopt.core.input import parse_input
 from skopt.core.evaluate import Evaluator, eval_objectives, cost_RMS
 from skopt.core.optimise import Optimiser, get_optargs
@@ -64,7 +64,7 @@ class OptimiseTest(unittest.TestCase):
         exe = 'python -v'.split()
         #exe = normpath(expanduser('~/anaconda3/python'))
         self.assertListEqual(optimiser.evaluate.tasks[1].cmd, exe + ['model_poly3.py'])
-        self.assertEqual(optimiser.evaluate.tasks[1].wd, 'test_optimise')
+        self.assertEqual(optimiser.evaluate.tasks[1].wd, abspath(expanduser('test_optimise')))
         optimiser.evaluate.tasks[1]()
         # check task 2 (GetTask)
         optimiser.evaluate.tasks[2]()
