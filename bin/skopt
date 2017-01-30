@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-import sys
 import os
 import argparse
-import logging
-from skopt.core.input import parse_input
-from skopt.core.evaluate import Evaluator, eval_objectives
-from skopt.core.optimise import Optimiser
-from skopt.core.query import Query
+from skopt.core.skopt import SKOPT
 
 
 def main():
+
     # argument parsing at start
     # -------------------------------------------------------------------
     parser = argparse.ArgumentParser(
@@ -19,70 +15,27 @@ def main():
             "skopt_input", type=str, default="skopt_in.yaml", action="store", 
             help="YAML input file: objectives, tasks, executables, optimisation options."
             )
+    parser.add_argument(
+            '-v', '--verbose', dest='verbose', default=False, action='store_true',
+            help="Verbose console output (include  full log as in ./skopt.debug.log)"
+            )
+    parser.add_argument(
+            '-n', '--dry_run', dest='dry_run', default=False, action='store_true',
+            help="Do not run; Only report the setup (tasklist, objectives, optimisation)."
+            )
+    parser.add_argument(
+            '-e', '--evaluate_only', dest='evaluate_only', default=False, action='store_true',
+            help="Do not optimise, but execute the task list and evaluate fitness."
+            )
     args = parser.parse_args()
 
+    skopt = SKOPT(infile=args.skopt_input, verbose=args.verbose)
 
-    # Project work directory
-    # -------------------------------------------------------------------
-    workdir = os.getcwd()
-
-    # Logging: console(INFO) and debug(DEBUG) file
-    # Logging level may be controlled via command argument in the future
-    # -------------------------------------------------------------------
-    # Default logging is set so that skopt.debug.log gets all DEBUG
-    # messages and above. At the same time console gets INFO and above.
-    logging.basicConfig(level=logging.DEBUG,
-            format='%(name)s %(levelname)-8s %(message)s',
-            datefmt='%m-%d %H:%M',
-            filename=os.path.join(workdir,'skopt.debug.log'),
-            filemode='w')
-    logger = logging.getLogger('skopt')
-    # define a Handler which writes INFO messages or higher to the sys.stderr
-    console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter('%(levelname)-8s %(message)s')
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    logging.getLogger('skopt').addHandler(console)
-    # question: do we have to do this mambo for all modules?
-    # if we pass the logger, then we will not have %(name)s of the module,
-    # but 'skopt' instead, and that will carry almost no info, i.e. redundant
-
-
-    # Main part
-    # -------------------------------------------------------------------
-    # Do we really need to flush the modeldb?
-    logger.info('Initialising ModelDataBase.')
-    Query.flush_modelsdb()
-
-    # parse input file
-    filename = args.skopt_input
-    logger.info('Parsing input file {}'.format(filename))
-    tasks, objectives, optimisation = parse_input(filename)
-
-    # instantiate the evaluator machinery
-    logger.info('Instantiating Evaluator')
-    evaluate   = Evaluator(objectives, tasks)
-
-    # instantiate the optimiser
-    if optimisation is not None:
-        algo, options, parameters = optimisation
-        logger.info('Instantiating optimiser')
-        optimiser  = Optimiser(algo, parameters, evaluate, **options)
-
-        # run the optimiser
-        logger.info('Starting optimisation')
-        optimiser()
-        # issue final report
-        optimiser.report()
-        logger.info('Done.')
+    if not args.dry_run:
+        skopt(evalonly=args.evaluate_only)
     else:
-        fitness = evaluate(None)
-        logger.debug("Individual objective fitness: {}".format(evaluate.objvfitness))
-        logger.debug("Global fitness: {}".format(fitness))
-
+        skopt.logger.warning('DRY RUN: reporting setup only!')
+        skopt.logger.info(skopt)
 
 
 if __name__ == "__main__":

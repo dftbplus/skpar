@@ -103,9 +103,11 @@ def setup_logger(name, filename, verbosity=logging.INFO):
     fh = logging.FileHandler(filename)
     fh.setLevel(logging.DEBUG)
     # message formatting
-    formatter = logging.Formatter('%(levelname)7s: %(message)s')
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
+    fileformat = logging.Formatter('%(name)23s - %(levelname)7s:\n%(message)s')
+    consformat = logging.Formatter('%(levelname)7s:\n%(message)s')
+    fh.setFormatter(fileformat)
+    ch.setFormatter(consformat)
+    # add the configured handlers
     logger.addHandler(fh)
     logger.addHandler(ch)
     return logger
