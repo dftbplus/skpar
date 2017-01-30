@@ -20,8 +20,6 @@ import logging
 from collections import OrderedDict
 import re
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format='%(message)s')
 logger = logging.getLogger(__name__)
 
 class Parameter(object):
@@ -175,7 +173,7 @@ def stripall(ss):
         return [re.sub(r'\s*', '', s) for s in ss]
 
 
-def parse_par_template(pardefs, log=logging.getLogger(__name__)):
+def parse_par_template(pardefs):
     """
     Take the input pardefs string and return a list of substings,
     each of which conveys the info related to a single parameter.
@@ -229,7 +227,7 @@ def parse_par_template(pardefs, log=logging.getLogger(__name__)):
     parstr = stripall(parstr)
 
     if parstr == []:
-        log.warning("The given parameter template contains no parameter definitions")
+        logger.warning("The given parameter template contains no parameter definitions")
     else:
         found = re.findall(outpattern, reduced_pardefs)
         assert len(found) == len(parstr), "ERROR: given parameter string was incorrectly parsed."
@@ -240,12 +238,11 @@ def parse_par_template(pardefs, log=logging.getLogger(__name__)):
     return reduced_pardefs, parameters
 
 
-def read_parameters(fileobj, log=logging.getLogger(__name__)):
+def read_parameters(fileobj):
     """
     encapsulates reading the file containing the skdefs.template
     and parameter info, and the parsing of the parameter info;
     :param fileobj: fileobj or a string filename
-    :param log: logger for messages from the parser of fileobj
     :return: a tuple, consisting of
             0) a string (skdefs_template_out), which is the template
             with format placeholders for the values of the parameters,
@@ -253,7 +250,7 @@ def read_parameters(fileobj, log=logging.getLogger(__name__)):
             1) an OrderedDict of Par.Name,Par.Value
             2) an OrderedDict of Par.Name,(Par.min, Par.max)
     """
-    par_template_out, parameters = parse_par_template(read_par_template(fileobj), log)
+    par_template_out, parameters = parse_par_template(read_par_template(fileobj))
     pardict = OrderedDict([(p.name, p.value) for p in parameters])
     parrange = OrderedDict([(p.name, (p.minv, p.maxv)) for p in parameters])
     return par_template_out, pardict, parrange
@@ -265,14 +262,14 @@ def update_pardict(pardict, values):
     return pardict
 
 
-def report_parameters(iteration, pardict, log, tag=''):
+def report_parameters(iteration, pardict, tag=''):
     """
     """
-    log.info('')
-    log.info('{0}Iteration {1}'.format(tag, iteration))
-    log.info('============================================================')
+    logger.info('')
+    logger.info('{0}Iteration {1}'.format(tag, iteration))
+    logger.info('============================================================')
     for key,val in list(pardict.items()):
-        log.info('\t{name:<15s}:\t{val:n}'.format(name=key,val=val))
+        logger.info('\t{name:<15s}:\t{val:n}'.format(name=key,val=val))
 
 
 def write_parameters_old(par_template, pardict, fileobj):
@@ -322,4 +319,4 @@ if __name__ == "__main__":
     # no matter how many times we have the same parameter defined.
     skdefs, skpar, skparrange = read_parameters("./example SKOPT/test_skdefs.template")
     write_parameters(skdefs, skpar, "./example SKOPT/test_skdefs.py")
-    report_parameters(None, skpar, log)
+    report_parameters(None, skpar)

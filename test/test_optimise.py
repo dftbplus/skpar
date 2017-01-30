@@ -61,7 +61,7 @@ class OptimiseTest(unittest.TestCase):
         nptest.assert_array_equal(params, _params)
         self.assertListEqual(names, _names)
         # check task 1 (RunTask)
-        exe = 'python -v'.split()
+        exe = 'python'.split()
         #exe = normpath(expanduser('~/anaconda3/python'))
         self.assertListEqual(optimiser.evaluate.tasks[1].cmd, exe + ['model_poly3.py'])
         self.assertEqual(optimiser.evaluate.tasks[1].wd, abspath(expanduser('test_optimise')))

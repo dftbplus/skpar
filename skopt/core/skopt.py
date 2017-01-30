@@ -2,7 +2,7 @@
 import os
 import logging
 from pprint import pformat
-from skopt.core.utils    import setup_logger
+from skopt.core.utils    import get_logger
 from skopt.core.input    import parse_input
 from skopt.core.evaluate import Evaluator
 from skopt.core.optimise import Optimiser
@@ -16,7 +16,7 @@ class SKOPT(object):
         # setup logger
         # -------------------------------------------------------------------
         loglevel    = logging.DEBUG if verbose else logging.INFO
-        self.logger = setup_logger(name='skopt', filename='skopt.debug.log',  
+        self.logger = get_logger(name='skopt', filename='skopt.debug.log',  
                                    verbosity=loglevel)
 
         # Project work directory
@@ -63,8 +63,4 @@ class SKOPT(object):
 
     def __repr__(self):
         ss = []
-        for item in self.evaluator.tasks:
-            ss.append(item.__repr__())
-        for item in self.evaluator.objectives:
-            ss.append(item.__repr__())
         return "\n".join(ss)

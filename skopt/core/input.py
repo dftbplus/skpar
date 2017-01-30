@@ -8,16 +8,14 @@ from collections import OrderedDict
 import logging
 import os
 import sys
-from skopt.core.utils      import normalise
+from skopt.core.utils      import normalise, get_logger
 from skopt.core.objectives import set_objectives
 from skopt.core.query      import Query
 from skopt.core.tasks      import set_tasks
 from skopt.core.optimise   import get_optargs
 from skopt.core import tasks
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format='%(message)s')
-logger = logging.getLogger(__name__)
+module_logger = get_logger('skopt.input')
 
 def get_input_yaml(filename):
     """Read yaml input; report exception for non-existent file.
@@ -27,8 +25,8 @@ def get_input_yaml(filename):
         try:
             spec = yaml.load(fp)
         except yaml.YAMLError as exc:
-            # this should go to a logger...?
-            print (exc)
+            module_logger.error(exc)
+            raise
     return spec
 
 def parse_input(filename):
@@ -51,8 +49,8 @@ def parse_input(filename):
     # the interpretation of the input spec requires prior interpretation 
     # of other spec. Parsing of the input should be independent of subsequent
     # setup stuff, and these typically are separate.
-    #logger.debug("Parse input parameters: {}".format(parameters))
-    #logger.debug("Parse input parnames  : {}".format(parnames))
+    #module_logger.debug("Parse input parameters: {}".format(parameters))
+    #module_logger.debug("Parse input parnames  : {}".format(parnames))
     tasks      = set_tasks      (spec['tasks'], exedict, parnames)
     objectives = set_objectives (spec['objectives'])
     return tasks, objectives, optargs

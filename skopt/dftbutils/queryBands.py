@@ -7,6 +7,8 @@ import os
 import numpy as np
 from collections import OrderedDict
 
+logger = logging.getLogger(__name__)
+
 class BandsOutput (OrderedDict):
     """
     Dictionary with the bands data
@@ -18,7 +20,7 @@ class BandsOutput (OrderedDict):
             super(BandsOutput,self).__init__()
             
     @classmethod
-    def fromfile(cls, fp, Enumeration=True, log=logging.getLogger('__name__')):
+    def fromfile(cls, fp, Enumeration=True):
         """
         """
         fname = isinstance(fp, str)
@@ -27,7 +29,7 @@ class BandsOutput (OrderedDict):
             
         tagvalues = []
         
-        log.debug("\tReading bandstructure from {0}.".format(fp.name))
+        logger.debug("\tReading bandstructure from {0}.".format(fp.name))
         bands = np.loadtxt(fp,dtype=float)
         
         if fname:
@@ -38,7 +40,7 @@ class BandsOutput (OrderedDict):
             bands = np.delete(bands,0,1) # removing the kpoint-index, we are left with the Energy points only
             
         nk,nb = bands.shape
-        log.debug("\tBandstructure consists of {0} bands sampled over {1} k-points.".format(nb,nk))
+        logger.debug("\tBandstructure consists of {0} bands sampled over {1} k-points.".format(nb,nk))
         
         tagvalues.append(("Bands",bands))
         # these two are redundant, actually, since nk,nE = bands.shape is cheaper than writing separate queries
@@ -55,8 +57,7 @@ class Bands(object):
     
     def __init__ ( self, workdir='.', prefix='bands', postfix='', 
                     SeparateSpins = False, Enumeration = True, 
-                    nElectrons=0, SOC=False,
-                    log=logging.getLogger('__name__') ):
+                    nElectrons=0, SOC=False):
         """
         Read the output file(s) from bands
         TODO: spin separation (separate spins = true)
@@ -65,17 +66,17 @@ class Bands(object):
         the number of electrons and whether the BS is calculated with
         spin-orbit coupling or not. So these are necessary input parameters.
         """
-        self.log = log
+        self.logger = logger
         if SeparateSpins:
-            log.critical("Output of dp_bands cannot be handled if spin channels are separted")
+            logger.critical("Output of dp_bands cannot be handled if spin channels are separted")
             sys.exit(1)
         if not Enumeration:
-            log.warning("Enumeration=False not tested! Carefully evaluate results before moving further!")
+            logger.warning("Enumeration=False not tested! Carefully evaluate results before moving further!")
             sys.exit(1)
             
         self.workdir = workdir
         self.datafile = os.path.join(self.workdir,prefix+"_tot.dat"+postfix)
-        self.data = BandsOutput.fromfile(self.datafile,Enumeration,self.log)
+        self.data = BandsOutput.fromfile(self.datafile, Enumeration)
         if nElectrons:
             self.indexVBtop(nElectrons,SOC)
             self.getEgap()

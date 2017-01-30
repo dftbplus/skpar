@@ -1,8 +1,69 @@
 """
 """
-import os
 import numpy as np
 import logging
+
+def configure_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
+    """Get parent logger: logging INFO on the console and DEBUG to file.
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    # may need this if running within ipython notebook, to avoid duplicates
+    logger.propagate = False
+    # console handler with a higher log level
+    ch = logging.StreamHandler()
+    ch.setLevel(verbosity)
+    # file handler with full debug info
+    fh = logging.FileHandler(filename, mode='w')
+    fh.setLevel(logging.DEBUG)
+    # message formatting
+    fileformat = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
+    consformat = logging.Formatter('%(levelname)7s: %(message)s')
+    fh.setFormatter(fileformat)
+    ch.setFormatter(consformat)
+    # add the configured handlers
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
+
+def get_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
+    """Return a named logger with file and console handlers.
+
+    Get a `name`-logger. Check if it is(has) a parent logger.
+    If parent logger is not configured, configure it, and if a child logger
+    is needed, return the child.
+    The check for parent logger is based on `name`: a child if it contains '.',
+    i.e. looking for 'parent.child' form of `name`.
+    A parent logger is configured by defining a console handler at `verbosity`
+    level, and a file handler at DEBUG level, writing to `filename`.
+    """
+    parent = name.split('.')[0]
+    parent_logger = logging.getLogger(parent)
+    if not parent_logger.handlers:
+        configure_logger(parent, filename, verbosity)
+    return logging.getLogger(name)
+
+def normalise(a):
+    """Normalise the given array so that sum of its elements yields 1.
+
+    Args:
+        a (array): input array
+
+    Returns:
+        a/norm (array): The norm is the sum of all elements across all dimensions.
+    """
+    norm = np.sum(np.asarray(a))
+    return np.asarray(a)/norm
+
+def is_monotonic(x):
+    dx = np.diff(x)
+    return np.all(dx <= 0) or np.all(dx >= 0)
+
+def normaliseWeights(weights):
+    """
+    normalise weights so that their sum evaluates to 1
+    """
+    return np.asarray(weights)/np.sum(np.asarray(weights))
 
 def flatten (dd):
     """
@@ -58,99 +119,3 @@ def flatten_two (d1, d2):
                 '\n\tcannot be flattened simultaneously.'.
                 format(type(d1),d1,type(d2),d2))
             yield d1, d2
-
-def subpath (wd,*pathfragments):
-    return os.path.join(wd,*pathfragments)
-
-
-def is_monotonic(x):
-    dx = np.diff(x)
-    return np.all(dx <= 0) or np.all(dx >= 0)
-
-
-def normalise(a):
-    """Normalise the given array so that sum of its elements yields 1.
-
-    Args:
-        a (array): input array
-
-    Returns:
-        a/norm (array): The norm is the sum of all elements across all dimensions.
-    """
-    norm = np.sum(np.asarray(a))
-    return np.asarray(a)/norm
-
-def normaliseWeights(weights):
-    """
-    normalise weights so that their sum evaluates to 1
-    """
-    return np.asarray(weights)/np.sum(np.asarray(weights))
-
-def setup_logger(name, filename, verbosity=logging.INFO):
-    """Return a named logger with file and console handlers.
-
-    Get a `name`-logger and define a console handler at INFO level,
-    and a file handler at DEBUG level, writing to `filename`.
-    """
-    # set up logging
-    # -------------------------------------------------------------------
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    # console handler with a higher log level
-    ch = logging.StreamHandler()
-    ch.setLevel(verbosity)
-    # file handler with full debug info
-    fh = logging.FileHandler(filename)
-    fh.setLevel(logging.DEBUG)
-    # message formatting
-    fileformat = logging.Formatter('%(name)23s - %(levelname)7s:\n%(message)s')
-    consformat = logging.Formatter('%(levelname)7s:\n%(message)s')
-    fh.setFormatter(fileformat)
-    ch.setFormatter(consformat)
-    # add the configured handlers
-    logger.addHandler(fh)
-    logger.addHandler(ch)
-    return logger
-
-def get_logger(logger=None):
-    """
-    One-liner to attempt and set a logger for an object.
-    """
-    if logger is None:
-        logger = logging.getLogger(__name__)
-    else:
-        logger = logger
-    return logger
-    
-
-if __name__ == "__main__":
-
-    import numpy as np
-    from collections import OrderedDict
-
-    bands1 = np.array([[1., 2., 3.],[4., 5., 6.]])
-    bands2 = np.array([[1.1,2.2,3.3],[4.4,5.5,6.6]])
-    bands3 = np.array([[7,8,9],[10,11,12]])
-    bands4 = np.array([[71,81,91],[10,101,102]])
-
-    d1 = OrderedDict({ 'SKFgen':{},
-            'Si':{'Egap':1.1, 'bands':bands1,},
-            'SiO2':{'Egap':9.0, 'bands':bands3} })
-    d2 = OrderedDict({  'SKFgen':{},
-            'Si':{'Egap':1.12, 'Etot':300, 'bands':bands2,},
-            'SiO2':{'Egap':8.9, 'Etot':900, 'bands':bands4} })
-    print(list(flatten(d1)))
-    print (d1)
-
-
-    #for data in flatten(d1,d2):
-    #    print data
-    ref,calc = list(zip(*list(flatten_two(d1,d2))))
-    print (ref)
-    print (calc)
-
-    d3 = OrderedDict({  'SKFgen':{},
-            'Si':{'Egap':1.12, 'Etot':300, 'bands':1./3.,},
-            'SiO2':{'Egap':8.9, 'Etot':900, 'bands':bands4} })
-    # uncomment for assertion test
-    # ref1,cal1 = zip(*list(flatten_two(d1,d3)))

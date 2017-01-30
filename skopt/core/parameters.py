@@ -21,19 +21,18 @@ from os.path import normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
 import os.path
+from skopt.core.utils import get_logger
 
 DEFAULT_PARAMETER_FILE='current.par'
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format='%(message)s')
-logger = logging.getLogger(__name__)
+module_logger = get_logger('skopt.parameters')
 
 def get_parameters(spec):
     """
     """
     params=[]
     for pardef in spec:
-        logging.debug(pardef)
+        # module_logger.debug(pardef)
         try:
             (pname, pdef), = pardef.items()
         except AttributeError:
@@ -50,9 +49,9 @@ def get_parameters(spec):
             except TypeError:
                 # pdef not iterable; assume it is a single float
                 parstring = " ".join([pname, str(pdef)])
-        logging.debug(parstring)
+        # module_logger.debug(parstring)
         newpar = Parameter(parstring)
-        logging.debug(newpar)
+        # module_logger.debug(newpar)
         params.append(newpar)
     return params
 
@@ -96,7 +95,7 @@ class Parameter(object):
         # take away spaces, check format consistency and get type
         assert isinstance(parameterstring, str)
         words = parameterstring.split()
-        logging.debug(len(words))
+        #module_logger.debug(len(words))
         if len(words) > 1:
             if words[-1] in list(Parameter.typedict.keys()):
                 self.ptype = Parameter.typedict[words[-1]]
@@ -165,9 +164,9 @@ def update_template(template, pardict):
     Return the updated string.
     """
     assert isinstance(pardict, dict)
-    #logger.debug("Updating template according to {}".format(pardict))
+    #module_logger.debug("Updating template according to {}".format(pardict))
     lines_in = template.split('\n')
-    #logger.debug(lines_in)
+    #module_logger.debug(lines_in)
     lines_out = []
     for line in lines_in:
         if line.strip().startswith('#'):
@@ -188,7 +187,7 @@ def write_parameters(fileobj, template, parameters, parnames=None):
         pardict = dict([(p.name, p.value) for p in parameters])
     except AttributeError:
         pardict = dict([(name, val) for (name, val) in zip(parnames, parameters)])
-        #logger.critical(('Cannot update parameters. Ensure parameters are objects',
+        #module_logger.critical(('Cannot update parameters. Ensure parameters are objects',
         #        'with name and value attributes'))
     updated = update_template(template, pardict)
     # nota bene: since template contains '\n', updated contains them too
@@ -213,7 +212,7 @@ def update_parameters(parameters, iteration=None, *args, **kwargs):
     parfile   = kwargs.get('parfile', DEFAULT_PARAMETER_FILE)
     templates = kwargs.get('templates', None)
     parnames  = kwargs.get('parnames', None)
-    logger    = kwargs.get('logger', logging.getLogger(__name__))
+    logger    = module_logger
     #logger.debug('Updating parameters')
     #logger.debug(parameters)
     #logger.debug(iteration)

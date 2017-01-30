@@ -13,8 +13,6 @@ from fractions import Fraction
 import logging
 from pprint import pprint, pformat
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format=' %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -399,7 +397,7 @@ class MCLC(object):
             phi = psi - ( 3./4. - psi ) * (self.a / self.c) * np.cos(self.angle_rad)
             ksi = ( 2 + (self.a/self.c) *  np.cos(self.angle_rad) ) / ( 2 * np.sin(self.angle_rad) )**2
             eta = 1./2. - 2 * ksi * (self.c/self.a) *  np.cos(self.angle_rad)
-            logger.debug ((psi, phi, ksi, eta))
+            #logger.debug ((psi, phi, ksi, eta))
             self.SymPts_k =\
                 { 'Gamma': (0., 0., 0.),
                     'N' : (0., 1./2., 0.),
@@ -457,7 +455,7 @@ def get_recipr_cell (A,scale):
         B.append( scale * np.cross(A[i1],A[i2]) / volume )
     return B
 
-def getSymPtLabel(kvec, lattice, logger):
+def getSymPtLabel(kvec, lattice):
     """Return the symbol corresponding to a given k-vector, if named.
 
     This routine returns the symbol of a symmetry point that is 
@@ -591,56 +589,3 @@ get_lattice = {
         'MCL': MCL,
         'MCLC': MCLC,
         }
-
-
-if __name__ == "__main__":
-
-    a = 5.431
-    lat = CUB(a)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-    a, c = 4.916, 5.4054
-    lat = HEX(a,c)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-#    a, c = 5.431, 59.50225 
-#    test_TET(a,c)
-
-
-    a, b, c = 8.77, 9.06, 12.80
-    lat = ORC(a, b, c)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-    a, alpha = 5.32208613808, 55.8216166097
-    lat = RHL(a, alpha)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-    # GaO2 
-    a, b, c, beta = 12.23, 3.04, 5.8, 103.70
-    lat = MCLC(a, b, c, angle=beta)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-    # HfO2-m (mP)
-    a, b, c, alpha = 5.17500, 5.17500, 5.29100, 80.78
-    lat = MCL(a, b, c, angle=alpha)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-    # HfO2-t (mP)
-    a, c = 5.15, 5.29
-    lat = TET(a, c)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-
-    # HfO2-c (cF)
-    a = 5.08
-    lat = FCC(a, c)
-    repr_lattice(lat)
-    get_dftbp_klines(lat)
-    
-    getSymPtLabel([0.5, 0.25, 0.75], FCC(5.08), log=None)

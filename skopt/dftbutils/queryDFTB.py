@@ -8,8 +8,6 @@ from collections import OrderedDict
 from skopt.dftbutils.lattice import Lattice, getSymPtLabel
 from skopt.dftbutils.querykLines import get_klines
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format='%(message)s')
 logger = logging.getLogger(__name__)
 
 # relevant fundamental constants

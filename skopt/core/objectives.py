@@ -19,9 +19,7 @@ from skopt.core.evaluate import costf, errf
 DEFAULT_COST_FUNC = "rms"
 DEFAULT_ERROR_FUNC = "abs"
 
-logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format='%(name)s %(levelname)-8s %(message)s')
-logger = logging.getLogger(__name__)
+module_logger = get_logger('skopt.objectives')
 
 def parse_weights_keyval(spec, data, normalised=True):
     """Parse the weights corresponding to key-value type of data.
@@ -278,11 +276,10 @@ class Objective(object):
             spec (dict): Specification of the objective. Mandatory fields
                 are [models, ref], optional keys are [weight, doc,
                 options, model_options]
-            logger (obj): Python logging.logger
 
         Returns: None
         """
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
+        self.logger = module_logger
         # mandatory fields
         self.objtype = spec['type']
         self.query_key = spec['query']
@@ -354,8 +351,7 @@ class Objective(object):
         s.append("{:<15s}: {:s} / {:s}".
                 format("Cost/Err. func.", self.costf.__name__, self.errf.__name__))
         s.append("{:<15s}: {}".format("Weight", pformat(self.weight)))
-        s.append("\n")
-        return "\n".join(s)
+        return "\n"+"\n".join(s)
 
 
 class ObjValues(Objective):

@@ -22,4 +22,4 @@ optimisation:
         - c3:  0.0499   0.0501
 
 executables:
-    mypy: 'python -v'
+    mypy: 'python'

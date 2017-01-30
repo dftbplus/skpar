@@ -35,7 +35,7 @@ def main():
         skopt(evalonly=args.evaluate_only)
     else:
         skopt.logger.warning('DRY RUN: reporting setup only!')
-        skopt.logger.info(skopt)
+        skopt.logger.info(skopt.evaluator)
 
 
 if __name__ == "__main__":

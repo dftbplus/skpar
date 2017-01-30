@@ -16,6 +16,7 @@ import numpy as np
 from collections import defaultdict
 from skopt.dftbutils.lattice import getSymPtLabel
 
+logger = logging.getLogger(__name__)
 
 def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     """
@@ -38,8 +39,6 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     symmetry k-points, e.g. (see for 'Gamma' above): 
         {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
     """
-    logger = kwargs.get('logger', logging.getLogger(__name__))
-
     kLines_dftb = list()
 
     if workdir is not None:
@@ -56,7 +55,7 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
                         extraline = next(fh)
                     words = extraline.split()[:4]
                     nk, k = int(words[0]), [float(w) for w in words[1:]]
-                    kLabel = getSymPtLabel(k, lattice, logger=logger)
+                    kLabel = getSymPtLabel(k, lattice)
                     if kLabel:
                         kLines_dftb.append((kLabel, nk))
                     if len(words)>4 and words[4] == "}":

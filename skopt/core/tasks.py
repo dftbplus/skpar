@@ -8,6 +8,10 @@ from pprint import pprint, pformat
 from skopt.core.query import Query
 from skopt.core.taskdict import gettaskdict
 from skopt.core.parameters import update_parameters
+from skopt.core.utils import get_logger
+
+#module_logger = logging.getLogger('skopt.tasks')
+module_logger = get_logger('skopt.tasks')
 
 def islistofstr(arg, msg=None, dflt=None):
     """Check an argument is a list of strings or a default type.
@@ -26,8 +30,9 @@ class RunTask (object):
     """
     """
     def __init__(self, cmd, wd='.', inp=None, out='out.log', 
-            err=subprocess.STDOUT, exedict=None, *args, **kwargs):
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
+                 err=subprocess.STDOUT, exedict=None, *args, **kwargs):
+        #self.logger = kwargs.get('logger', logging.getLogger(__name__))
+        self.logger = module_logger
         # handle the path properly!
         self.wd = abspath(expanduser(wd))
         try:
@@ -121,7 +126,6 @@ class RunTask (object):
         s.append("{:<15s}: {}".format("RunTask in", pformat(self.wd)))
         s.append("{:<15s}: {}".format("command", pformat(' '.join(self.cmd))))
         s.append("{:<15s}: {}".format("out/err", pformat(self.outfile)))
-        s.append("\n")
         return "\n" + "\n".join(s)
 
 
@@ -155,7 +159,8 @@ class SetTask (object):
             logger (logging.Logger): kwarg only; Message logger; defaults to
                 module logger at DEBUG level.
         """
-        self.logger   = kwargs.get('logger', logging.getLogger(__name__))
+        #self.logger   = kwargs.get('logger', logging.getLogger(__name__))
+        self.logger = module_logger
         # parnames may be None, string, or a list of strings
         self.parnames = kwargs.get('parnames', None)
         if isinstance(self.parnames, str): self.parnames = [self.parnames,]
@@ -185,7 +190,7 @@ class SetTask (object):
         self.kwargs['parfile'] = self.parfile
         self.kwargs['parnames'] = self.parnames
         self.kwargs['templates'] = self.templates
-        self.kwargs['logger'] = self.logger
+        #self.kwargs['logger'] = self.logger
         self.kwargs['templates'] = self.templates
         # report task initialisation
         self.logger.debug(self.__repr__())
@@ -211,15 +216,15 @@ class SetTask (object):
         s.append("{:<15s}: {}".format("Templ. files", pformat(self.templates)))
         if self.parnames:
             s.append("{:<15s}: {}".format("Param. names", pformat(self.parnames)))
-        s.append("\n")
-        return "\n".join(s)
+        return '\n'+'\n'.join(s)
 
 
 class GetTask (object):
     """Wrapper class to declare tasks w/ arguments but calls w/o args"""
     def __init__(self, func, source, destination, *args, **kwargs):
         self.func = func
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
+        #self.logger = kwargs.get('logger', logging.getLogger(__name__))
+        self.logger = module_logger
         assert isinstance (source, str)
         self.src_name = source
         dbref = Query.get_modeldb(source)
@@ -253,8 +258,7 @@ class GetTask (object):
             self.src_name, "to", self.dst_name))
         s.append("{:<10s}: {}".format("args", pformat(self.args)))
         s.append("{:<10s}: {}".format("kwargs", pformat(self.kwargs)))
-        s.append("\n")
-        return "\n".join(s)
+        return '\n'+'\n'.join(s)
 
 
 def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
@@ -278,8 +282,9 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
     Returns:
         list: A list of callable task object that can be executed in order.
     """
-    logger = kwargs.get('logger', logging.getLogger(__name__))
-    kwargs['logger'] = logger
+    # logger = kwargs.get('logger', logging.getLogger(__name__))
+    logger = module_logger
+    # kwargs['logger'] = logger
     #
     tasklist = []
     # the spec list has definitions of different tasks
@@ -287,7 +292,7 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
         (tasktype, taskargs), = item.items()
         if 'set' == tasktype.lower():
             try: 
-                tasklist.append(SetTask(*taskargs, parnames=parnames, logger=logger))
+                tasklist.append(SetTask(*taskargs, parnames=parnames)) #, logger=logger))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
@@ -295,7 +300,7 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
                 raise
         if 'run' == tasktype.lower():
             try: 
-                tasklist.append(RunTask(*taskargs, exedict=exedict, logger=logger))
+                tasklist.append(RunTask(*taskargs, exedict=exedict)) #, logger=logger))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')

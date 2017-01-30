@@ -10,6 +10,7 @@ import numpy as np
 from math import pi
 from skopt.dftbutils.lattice import getSymPtLabel
 
+logger = logging.getLogger(__name__)
 
 # relevant fundamental constants
 Eh = 27.2114        # [eV] Hartree energy
@@ -49,7 +50,7 @@ def meff(band, kline):
 
 def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None, 
                  Erange=0.008, forceErange=False, ib0=0, nb=1, 
-                 usebandindex=False, log = logging.getLogger(__name__)):
+                 usebandindex=False):
     """
     Calculate parabolic effective mass at the specified *extrtype* of 
     given *bands*, calculated along two points in k-space defined by a
@@ -69,9 +70,6 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     :param meff_name: the name to be featured in the log 
     :param Erange: Energy range [eV] over which to fit the parabola 
                    [dflt=8meV], i.e. 'depth' of the assumed parabolic well.
-    :param log: logger handler; if dflt (None), then module name will feature
-                as the source of the message, but logging must be configured
-                elsewhere
 
     :return meff: the value of the parabolic effective mass [m_0]
                   at the *extrtype* of the given E-kline,
@@ -115,20 +113,10 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     try: 
         fextr = extrdict[extrtype]
     except KeyError:
-        # this message has to go through regardless the logger is configured or not
         errmsg = ('Incorrect extremum type ({0}) for calc_masseff. '.format(extrtype),
                   '"min" or "max" supported only.')
-        if log is not None:
-            log.critical(errmsg)
-        else:
-            print (errmsg)
-        sys.exit(2)
-
-    # check logger
-    if log is None:
-        # this get's a logger, but unless logger is configured
-        # somewhere, it outputs nothing
-        log = logging.getLogger(__name__)
+        logger.critical(errmsg)
+        raise
 
     # check how many bands we have to deal with
     try:
@@ -140,7 +128,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         bands = np.array(bands) # we need an array from here onwards
 
     if nE < nb:
-        log.warning("Too many effective masses demanded ({0})."
+        logger.warning("Too many effective masses demanded ({0})."
                     "\tWill fit only the first {1} masses, as per the available bands".format(nb, nE))
         nb = nE
 
@@ -156,7 +144,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     meff_data = OrderedDict([])       # permits list-like extraction of data too
 
     for ib in range(nb):
-        log.debug('Fitting effective mass {}.'.format(meff_id(ib)))
+        logger.debug('Fitting effective mass {}.'.format(meff_id(ib)))
         # set the references for the current band
         band = bands[ib0 + ib]
 
@@ -184,7 +172,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
             _Erng += Erng 
             krange = np.where(abs(band-extr)<=_Erng)[0]
         if _Erng > Erng:
-            log.warning("Erange pushed from {:.3f} to {:.3f} eV, to "\
+            logger.warning("Erange pushed from {:.3f} to {:.3f} eV, to "\
                         "encompass {:d} E-k points including the extremum".
                         format(Erng, _Erng, len(krange)))
         # We have a problem if the band wiggles and we get an inflection point
@@ -198,7 +186,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         #           range, e.g. 1 or 2 points, especially for coarser sampling.
         #           So, where we want to NOT check for monotonic, we use the
         #           override to impose the Erange
-#        log.debug("nlow, nhigh {} {}".format(min(krange), max(krange)))
+#        logger.debug("nlow, nhigh {} {}".format(min(krange), max(krange)))
         if not forceErange:
             nlow  = min(krange)
             while not is_monotonic(band[np.where(krange<iextr)]) and iextr - nlow >= 5:
@@ -212,23 +200,23 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         nhigh = max(krange)
 
         if nhigh-iextr < 4 and iextr != nk-1:
-            log.warning('Too few points ({0}) to the right of extremum: Poor {1} fit likely.'.
+            logger.warning('Too few points ({0}) to the right of extremum: Poor {1} fit likely.'.
                         format(nhigh - iextr, meff_id(ib)))
-            log.warning("\tCheck if extremum is at the end of k-line; "
+            logger.warning("Check if extremum is at the end of k-line; "
                         "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
         if iextr-nlow < 4 and iextr != 0:
-            log.warning("Too few points ({0}) to the left of extremum: Poor {1} fit likely.".
+            logger.warning("Too few points ({0}) to the left of extremum: Poor {1} fit likely.".
                         format(iextr - nlow, meff_id(ib)))
-            log.warning("\tCheck if extremum is at the end of k-line; "
+            logger.warning("\tCheck if extremum is at the end of k-line; "
                         "else enlarge Erange (now {0} eV) or finer resolve k-line.".format(_Erng))
 
-        log.debug("Fitting {id:8s} at {ee:8.3f} [eV], {relpos:.2f}, nlow/nhigh {nl:>6d}/{nh:>6d}".
+        logger.debug("Fitting {id:8s} at {ee:8.3f} [eV], {relpos:.2f}, nlow/nhigh {nl:>6d}/{nh:>6d}".
                 format(id=meff_id(ib), relpos=extr_relpos, ee=extr, nl=nlow, nh=nhigh))
 
         mass = meff(band[krange]/Eh, kline[krange]*aB)  # transform to atomic units
         
         meff_data[meff_id(ib, usebandindex)] = (mass, extr, extr_relpos)
-        log.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {relpos:.2f}".format(
+        logger.debug("Fitted {id:8s}:{mass:8.3f} [m0] at {ee:8.3f} [eV], {relpos:.2f}".format(
                  id=meff_id(ib, usebandindex), mass=mass, relpos=extr_relpos, ee=extr))
     return meff_data
 
@@ -253,7 +241,7 @@ def expand_meffdata(meff_data):
 
 
 def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04, 
-                  usebandindex=False, forceErange=False, log=None):
+                  usebandindex=False, forceErange=False):
     """Return a dictionary with effective masses for the given *carriers* for 
     the first *nb* *bands* in the VB and CB, along the given *paths*, as well 
     as the values of the extrema and their position along the directions in 
@@ -296,7 +284,7 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04,
             meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
                                     meff_tag=direction, Erange=Erange,
                                     forceErange=forceErange, nb=nb,
-                                    usebandindex=usebandindex, log=log)
+                                    usebandindex=usebandindex)
             masses.update(expand_meffdata(meff_data))
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
@@ -310,7 +298,7 @@ def get_effmasses(bsdata, directions, carriers='both', nb=1, Erange=0.04,
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
                                     meff_tag=direction, Erange=Erange, 
                                     forceErange=forceErange, nb=nb,
-                                    usebandindex=usebandindex, log=log)
+                                    usebandindex=usebandindex)
             masses.update(expand_meffdata(meff_data))
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
@@ -372,7 +360,7 @@ def get_Eatk(bsdata, sympts):
     return Eatk
     
 
-def get_tagged_Eatk(bsdata, sympts, extract={'cb': [0, ], 'vb': [0, ]}, log=None):
+def get_tagged_Eatk(bsdata, sympts, extract={'cb': [0, ], 'vb': [0, ]}):
     """
     """
     def shorten (label):

@@ -3,8 +3,9 @@
 import logging
 import numpy as np
 from skopt.core.utils import get_logger, normalise
-from skopt.core.utils import flatten, flatten_two
 from skopt.core.tasks import SetTask
+
+module_logger = get_logger('skopt.evaluate')
 
 DEFAULT_GLOBAL_COST_FUNC = "rms"
 
@@ -85,7 +86,7 @@ class Evaluator (object):
     """   
     def __init__(self, objectives, tasks, costf=costf[DEFAULT_GLOBAL_COST_FUNC],
                  utopia = None,
-                 verbose=False, logger=logging.getLogger(__name__), **kwargs):
+                 verbose=False, **kwargs):
         self.objectives = objectives
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasks = tasks
@@ -96,7 +97,7 @@ class Evaluator (object):
             assert len(utopia) == len(objectives), (len(utopia), len(objectives))
             self.utopia = utopia
         self.verbose = verbose
-        self.logger = logger
+        self.logger = module_logger
     
     def evaluate(self, parameters, iteration=None):
         """Evaluate the global fitness of a given point in parameter space.
@@ -130,7 +131,7 @@ class Evaluator (object):
             try:
                 task()
             except:
-                self.logger.critical('\nEvaluation FAILED at task {}:\n{}'.format(kk+1, task))
+                self.logger.critical('Evaluation FAILED at task {}:\n{}'.format(kk+1, task))
                 raise
         # Evaluate individual fitness for each objective
         self.objvfitness = eval_objectives(self.objectives)
@@ -141,3 +142,19 @@ class Evaluator (object):
 
     def __call__(self, parameters, iteration=None):
         return self.evaluate(parameters, iteration)
+
+    def __repr__(self):
+        ss = []
+        ss.append('Evaluator:')
+        ss.append('\n-- Tasks:')
+        ss.append('--------------------')
+        for item in self.tasks:
+            ss.append(item.__repr__())
+        ss.append('\n-- Objectives:')
+        ss.append('--------------------')
+        for item in self.objectives:
+            ss.append(item.__repr__())
+        ss.append('\n-- Cost Func.:')
+        ss.append('--------------------')
+        ss.append(self.costf.__name__)
+        return '\n'.join(ss)

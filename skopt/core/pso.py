@@ -60,12 +60,15 @@ The swarm is declared, created and let to evolve with the help of the ``PSO`` cl
 import random
 import operator
 import sys
-import logging
 import numpy as np
 
 from deap import base
 from deap import creator
 from deap import tools
+
+from skopt.core.utils import get_logger
+
+module_logger = get_logger('skopt.pso')
 
 def declareTypes(weights):
     """
@@ -198,7 +201,7 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
 
 # init arguments: 
 pso_init_args = ["npart", "objectives", "parrange", "evaluate"]
-pso_optinit_args   = ["logger", 'ngen', 'ErrTol'] 
+pso_optinit_args   = ['ngen', 'ErrTol'] 
 
 # call arguments
 pso_call_args      = []
@@ -221,10 +224,7 @@ def pso_args(**kwargs):
             errormsg = "PSO missing obligatory argument {0}\n".format(arg)+\
                 "Please define at least:\n{0}\n".format(pso_obligatory_args)+\
                 "PSO supports also:\n{0}\n".format(pso_optional_args)
-            try:
-                kwargs['logger'].critical(errormsg)
-            except KeyError:
-                print (errormsg)
+            module_logger.critical(errormsg)
             sys.exit(1)
     for arg in list(set(pso_optinit_args + pso_optcall_args)):
         try: 
@@ -240,11 +240,10 @@ def pso_args(**kwargs):
     return init_args, call_args, init_optional_args, call_optional_args
 
 
-def report_stats(stats, logger=None):
+def report_stats(stats):
     """
     """
-    if logger is None:
-        logger = logging.getLogger(__name__)
+    logger = module_logger
     statsHeader = "".join([
     '{0:>5s}'.format('Gen.'),
     '{0:>10s}'.format('Min.'),
@@ -292,7 +291,7 @@ class PSO(object):
         """
         Create a particle swarm
         """
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
+        self.logger = module_logger
         self.logger.debug("Working with the following parameters")
         # try to establish the names of the parameters for logging
         try:
@@ -376,13 +375,13 @@ class PSO(object):
         return self.swarm, self.stats_record
 
     def report(self):
-        report_stats(self.stats_record, logger=self.logger)
+        report_stats(self.stats_record)
         self.logger.info("GBest iteration   : {}".format(self.swarm.gbest_iteration))
         self.logger.info("GBest fitness     : {}".format(self.swarm.gbest.fitness.values))
         gbestpars = self.swarm.gbest.renormalized
         if self.parnames:
-            self.logger.info("GBest parameters:")
-            self.logger.info("\n".join(["{:>20s}  {}".format(name, val) 
+            self.logger.info("GBest parameters:\n"+
+                "\n".join(["{:>20s}  {}".format(name, val) 
                 for (name, val) in zip(self.parnames, gbestpars)]))
         else:
             self.logger.info("GBest parameters  : {}".format(gbestpars))
