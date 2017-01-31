@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+import argparse
+from skopt.dftbutils.runBS import set_bands_parser
+
+def main():
+
+    # argument parsing 
+    # -------------------------------------------------------------------
+    parser = argparse.ArgumentParser(
+            description="Wrapper of DFTB+ for chaining several calculation "
+                        "in a single command"
+            )
+    parser.add_argument(
+            '-v', '--verbose', dest='verbose', default=False, action='store_true',
+            help="Verbose console output"
+            )
+    parser.add_argument(
+            '-n', '--dry_run', dest='dry_run', default=False, action='store_true',
+            help="Do not run; Only report the setup, i.e. tasklist."
+            )
+    subparsers = parser.add_subparsers(title="Available sub-commands:",
+                                       help="")
+
+    # Band-structure calculation
+    parser_bands = subparsers.add_parser('bands',
+            parents=[], help='Calculate bandstructure')
+    set_bands_parser(parser_bands)
+
+    args = parser.parse_args()
+
+    # func is set in the appropriate subparser
+    args.func(args)
+
+if __name__ == "__main__":
+    main()

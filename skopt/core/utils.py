@@ -26,7 +26,7 @@ def configure_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
     logger.addHandler(ch)
     return logger
 
-def get_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
+def get_logger(name, filename=None, verbosity=logging.INFO):
     """Return a named logger with file and console handlers.
 
     Get a `name`-logger. Check if it is(has) a parent logger.
@@ -38,6 +38,8 @@ def get_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
     level, and a file handler at DEBUG level, writing to `filename`.
     """
     parent = name.split('.')[0]
+    if filename is None:
+        filename = parent+'.debug.log'
     parent_logger = logging.getLogger(parent)
     if not parent_logger.handlers:
         configure_logger(parent, filename, verbosity)
