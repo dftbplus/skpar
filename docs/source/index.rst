@@ -8,16 +8,8 @@ Welcome to SKOPT's documentation!
 
 SKOPT is an optimisation framework written in the Python_ programming
 language. It is primarily aimed at the optimisation of parameters for
-the Density Functional Tight-Binding (DFTB) theory, and the generation
-of the corresponding Slater-Koster Files (.skf) typically used in 
-`DFTB+`_, Lodestar_ and other programs implementing DFTB, and distributed
-via dftb.org_.
-
-
-Recent developments should allow optimisation of Slater-Koster tables for
-Empirical Tight-Binding (ETB) and parameters for Classical Molecular 
-Dynamics (CMD) potentials as well.
-
+the Density Functional Tight-Binding (DFTB) theory, as implemented
+`DFTB+`_, Lodestar_ and other programs.
 
 SKOPT is realeased under the `MIT License`_.
 
@@ -32,7 +24,7 @@ SKOPT is realeased under the `MIT License`_.
 News
 ====
    
-   * SKOPT version 0.1.0 released in January 2017!
+   * SKOPT version 0.1.0 released: February 2017.
 
 Contents
 ==================
@@ -42,9 +34,9 @@ Contents
 
    about
    install
-   tutorials
+   tutorials/tutorials
    commands
-   modules
+   skopt/skopt
    license
    contributors
 

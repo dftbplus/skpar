@@ -246,5 +246,5 @@ Objective Types
 Details of the ``objectives`` module
 ======================================================================
 
-.. automodule:: skopt.objectives
+.. automodule:: skopt.core.objectives
     :members:

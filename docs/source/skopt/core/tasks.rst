@@ -4,5 +4,5 @@
 
 Tasks
 =======
-.. automodule:: skopt.tasks
+.. automodule:: skopt.core.tasks
     :members:
