@@ -36,7 +36,7 @@ Contents
    install
    tutorials/tutorials
    commands
-   skopt/skopt
+   skopt
    develop
    license
    contributors

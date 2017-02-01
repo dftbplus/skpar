@@ -1,8 +1,7 @@
-.. index:: Evaluate
-
 .. _evaluate:
 
-Tasks
-=======
+=====================================
+Evaluate
+=====================================
 .. automodule:: skopt.core.evaluate
     :members:

@@ -2,13 +2,15 @@
 
 .. _about:
 
-==========
+====================
 Development
-==========
+====================
+
+Further development of SKOPT is along the following lines.
 
 External Model Database
 ----------------------------------------------------------------------
-Development of SKOPT aims to completely decouple the core of the optimisation 
+The aims is to completely decouple the core of the optimisation 
 engine from the application specifics. To achieve this:
 
     * the internal model database dictionary must be taken out of the core 

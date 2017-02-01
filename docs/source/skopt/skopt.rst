@@ -1,22 +1,40 @@
+.. index:: sub-packages and modules
+
 .. _skopt:
 
-=======
-Modules
-=======
+=====================================
+Subpackages and Modules
+=====================================
 
-Quick links:
+SKOPT currently includes the following sub-packages:
+
+    * :mod:```core`` <skopt.core>` -- the core set of modules realising the optimiser
+
+    * :mod:```dftbutils`` <skopt.dftbutils>` -- the modules related to a DFTB model
+    
+Quick links to the ``core``-modules:
 
 .. list-table::
 
-  * - :mod:`Objectives <core.objectives>`
-    - :mod:`Tasks <core.tasks>`
-    - :mod:`Task Dictionary <core.taskdict>`
-    - :mod:`Evaluator <core.evaluate>`
-    - :mod:`Parameter handler <core.parameters>`
-    - :mod:`Optimiser <core.optimise>`
-    - :mod:`PSO <core.pso>`
+  * - :mod:`Objectives <skopt.core.objectives>`
+    - :mod:`Task Dictionary <skopt.core.taskdict>`
+    - :mod:`Tasks <skopt.core.tasks>`
+    - :mod:`Evaluator <skopt.core.evaluate>`
+  * - :mod:`Parameters <skopt.core.parameters>`
+    - :mod:`Optimiser <skopt.core.optimise>`
+    - :mod:`PSO <skopt.core.pso>`
     -
 
+Quick links to the ``dftbutils``-modules:
+
+.. list-table::
+
+  * - :mod:`Query DFTB <skopt.dftbutils.queryDFTB>`
+    - :mod:`Qeury k-Lines <skopt.dftbutils.querykLines>`
+    - :mod:`Query Bands <skopt.dftbutils.queryBands>`
+  * - :mod:`Bands Analysis <skopt.dftbutils.bandstructure>`
+    - :mod:`One-step Bands Calculation <skopt.dftbutils.runDFTB>`
+    - :mod:`Lattice <skopt.dftbutils.lattice>`
 
 .. seealso::
 

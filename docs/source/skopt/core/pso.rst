@@ -1,8 +1,7 @@
-.. index:: PSO
-
 .. _pso:
 
-Tasks
-=======
+=====================================
+Particle Swarm Optimiser
+=====================================
 .. automodule:: skopt.core.pso
     :members:

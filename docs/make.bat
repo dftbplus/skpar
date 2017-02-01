@@ -5,7 +5,7 @@ REM Command file for Sphinx documentation
 REM if "%SPHINXBUILD%" == "" (
 REM 	set SPHINXBUILD=sphinx-build
 REM )
-set SPHINXBUILD=~/anaconda3/scripts/sphinx-build
+set SPHINXBUILD=%homedrive%\%HOMEPATH%/anaconda3/scripts/sphinx-build
 set BUILDDIR=build
 set ALLSPHINXOPTS=-d %BUILDDIR%/doctrees %SPHINXOPTS% source
 set I18NSPHINXOPTS=%SPHINXOPTS% source
@@ -56,7 +56,7 @@ goto sphinx_ok
 
 :sphinx_python
 
-set SPHINXBUILD=python -m sphinx.__init__
+set SPHINXBUILD=~/anaconda3/scripts/python -m sphinx.__init__
 %SPHINXBUILD% 2> nul
 if errorlevel 9009 (
 	echo.

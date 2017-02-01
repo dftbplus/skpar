@@ -1,6 +1,6 @@
 .. index:: contributors
 
-.. _contributors
+.. _contributors:
 
 ===============
 Contributors
