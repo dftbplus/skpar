@@ -37,6 +37,7 @@ Contents
    tutorials/tutorials
    commands
    skopt/skopt
+   develop
    license
    contributors
 

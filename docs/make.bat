@@ -2,9 +2,10 @@
 
 REM Command file for Sphinx documentation
 
-if "%SPHINXBUILD%" == "" (
-	set SPHINXBUILD=sphinx-build
-)
+REM if "%SPHINXBUILD%" == "" (
+REM 	set SPHINXBUILD=sphinx-build
+REM )
+set SPHINXBUILD=~/anaconda3/scripts/sphinx-build
 set BUILDDIR=build
 set ALLSPHINXOPTS=-d %BUILDDIR%/doctrees %SPHINXOPTS% source
 set I18NSPHINXOPTS=%SPHINXOPTS% source
