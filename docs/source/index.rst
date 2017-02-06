@@ -34,9 +34,10 @@ Contents
 
    about
    install
-   tutorials/tutorials
    commands
-   skopt
+   reference
+   tutorials/tutorials
+   modules
    develop
    license
    contributors

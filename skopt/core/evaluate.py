@@ -70,19 +70,23 @@ errf = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 
 
 class Evaluator (object):
-    """
-    __Evaluator__
+    """**Evaluator**
 
     The evaluator is the only thing visible to the optimiser.  
     It has several things to do:  
 
     1. Accept a list (or dict?) of parameter values (or key-value pairs),
        and an iteration number (or a tuple: (generation,particle_index)).
+
     2. Update tasks (and underlying models) with new parameter values.
+
     3. Execute the tasks to obtain model data with the new parameters.
-    5. Evaluate fitness for individual objectives.
-    6. Evaluate global fitness (cost) and return the value. It may be 
+
+    4. Evaluate fitness for individual objectives.
+
+    5. Evaluate global fitness (cost) and return the value. It may be 
        good to also return the max error, to be used as a stopping criterion.
+
     """   
     def __init__(self, objectives, tasks, costf=costf[DEFAULT_GLOBAL_COST_FUNC],
                  utopia = None,

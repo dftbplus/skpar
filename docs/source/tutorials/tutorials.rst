@@ -43,7 +43,6 @@ The corresponding yaml file, `test_optimise.yaml`_ reads:
 
     .. code:: yaml
 
-
         tasks:
             - set: [current.par, test_optimise, template.parameters.py ]
             - run: [mypy model_poly3.py, test_optimise ]
@@ -120,7 +119,7 @@ data items.
 
 The corresponding ``skopt_in.yaml`` is below, with comment annotations:
 
-.. code:: bash
+.. code:: yaml
 
     executables:
         skgen: ./skf/skgen-opt.sh   # script yielding an skf set
@@ -132,11 +131,12 @@ The corresponding ``skopt_in.yaml`` is below, with comment annotations:
         # - set: [parmeter_file, working_directory, optional_template_file(s)]
         # - run: [command, working_directory]
         # - get: [what, from_sourse(dir, file or dict), to_destination(dict), optional_kwargs]
+        #        `what` is essentially a function name (see Get-Tasks dictionary)
         # ------------------------------------------------------------------------------
         - set: [current.par, skf, skf/skdefs.template.py]   # update ./skf/skdefs.py
         - run: [skgen, skf]                                 # generate SKF-set
         - run: [bands, Si-diam]                             # run dftb+ and dp_bands in Si-diam
-        - get: [get_dftbp_bs, Si-diam/bs, Si.bs,            # get BS data in Si.bs model DB
+        - get: [get_dftbp_bs, Si-diam/bs, Si.bs,            # get BS data and put in Si.bs model DB
                 {latticeinfo: {type: 'FCC', param: 5.431}}] # must know the lattice for what follows
         - get: [get_dftbp_meff, Si.bs,                      # get electron effective masses
                 {carriers: 'e', directions: ['Gamma-X'],    # note: destination is ommitted,
@@ -151,29 +151,30 @@ The corresponding ``skopt_in.yaml`` is below, with comment annotations:
 
     objectives:
         - Egap:                            # item to be queried from model database
-            doc: Band-gap of Si (diamond)
-            models: Si.bs                  # model name matches destination of get-tasks
-            ref: 1.12
-            weight: 4.0                    # relatively importance of this objective
-            eval: [rms, relerr]            # RMS of relative error defines the fitness
+            doc: Band-gap of Si (diamond)  # doc-string for report purposes (optional)
+            models: Si.bs                  # model name must match destination of a get-tasks
+            ref: 1.12                      # explicit reference data in for this objective
+            weight: 4.0                    # relative importance of this objective 
+                                           # objective weight in the overall cost function
+            eval: [rms, relerr]            # objective function: RMS of relative error
 
         - effective_masses:                # items to be queried here will be defined by
             doc: Effective masses, Si      # explicit keys, since the reference data consists
             models: Si.bs                  # of key-value pairs
             ref: 
-                file: ./ref/meff-Si.dat    # the data is loaded via numpy.loadtxt()
+                file: ./ref/meff-Si.dat    # the reference data is loaded via numpy.loadtxt()
                 loader_args:               
                     dtype:                 # NOTABENE: yaml cannot read in tuples, so we must
                                            #           use the dictionary formulation of dtype
                         names: ['keys', 'values']
                         formats: ['S15', 'float']
             options:
-                subweights: 
+                subweights:                # individual data items have sub-weight within an objective
                     dflt   : 0.1           # changing the default (from 1.) to 0. allows us to consider 
                     me_GX_0: 1.0           # only select entries; alternatively, set select entries
                     me_Xt_0: 0.0           # to zero effectively excludes them from consideration
-            weight: 1.0
-            eval: [rms, abserr]
+            weight: 1.0                    # objective weight in the overall cost function
+            eval: [rms, abserr]            # objective function: RMS of absolute error
 
         - special_Ek:
             doc: Eigenvalues at k-points of high symmetry
@@ -195,7 +196,7 @@ The corresponding ``skopt_in.yaml`` is below, with comment annotations:
 
 
     optimisation:
-        algo: PSO                          # particle swarm optimisation
+        algo: PSO                          # algorithm: particle swarm optimisation
         options:
             npart: 2                       # number of particles
             ngen : 2                       # number of generations
