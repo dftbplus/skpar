@@ -81,46 +81,6 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     output = kLines, kLinesDict
     return output
 
-def rmEquivkPts (bands, kLines, equivpts):
-    """
-    Given a band-structure (bands), a path in k-space (kLines) and a list of tupples 
-    representing equivalent points in the Brilloin Zone (equivpts), this routine looks for
-    the k-point pairs of the sort (n,n+1) and checks if they correspond to a pair of
-    equivalent points. If yes, then the latter point is removed from the bands and
-    the kLines, and the label of the former point is changed ot 'Lbl1|Lbl2'.
-    """
-    maskbands = np.ones(bands.shape[0], dtype=bool)
-    maskkLines = np.ones(len(kLines),dtype=bool)
-    klabels, kindexes = list(zip(*kLines))
-    newkLines = kLines
-    sortedpairedindexes = []
-
-    for ii, pair in enumerate(equivpts):
-        pairedindexes = [ (j,j+1) for j,ix in enumerate(kindexes[:-1]) 
-                         if kindexes[j]+1 == kindexes[j+1] and   # two consec. indexes
-                             ( pair       == klabels[j:j+2] or  # are labeled with equiv.pts
-                               pair[::-1] == klabels[j:j+2] ) ] 
-#        print pairedindexes
-        sortedpairedindexes.extend(pairedindexes)
-    sortedpairedindexes.sort(key = lambda tup : tup[0])
-#    print sortedpairedindexes
-    
-    for jj,ix in enumerate(sortedpairedindexes):
-#        print jj,ix
-        newlbl = '{0}|{1}'.format(klabels[ix[0]],klabels[ix[1]])
-        newkLines[ix[0]] = (newlbl,kindexes[ix[0]]-jj)
-#        print newkLines[ix[1]+1:]
-        newkLines[ix[1]+1:] = [(l,i-1) for l,i in newkLines[ix[1]+1:]]
-#        print newkLines[ix[1]+1:]
-        maskbands[kindexes[ix[1]]] = False
-        maskkLines[ix[1]]=False
-            
-    newbands = bands[maskbands,]
-    newkLines = [kpt for j,kpt in enumerate(newkLines) if maskkLines[j]] 
-    
-    return newbands, newkLines
-
-
 def greekLabels(kLines):
     """
     Check if Gamma is within the kLines and set the label to its latex formulation.

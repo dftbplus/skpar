@@ -30,16 +30,17 @@ class BandsOutput (OrderedDict):
         tagvalues = []
         
         logger.debug("\tReading bandstructure from {0}.".format(fp.name))
-        bands = np.loadtxt(fp,dtype=float)
+        bands = np.loadtxt(fp,dtype=float, unpack=True)
         
         if fname:
             fp.close()
             
         if Enumeration:
-            k = bands[:,0].astype(int)
-            bands = np.delete(bands,0,1) # removing the kpoint-index, we are left with the Energy points only
+            k = bands[0].astype(int)
+            #bands = np.delete(bands,0,1) # removing the kpoint-index, we are left with the Energy points only
+            bands = bands[1:] # removing the kpoint-index, we are left with the Energy points only
             
-        nk,nb = bands.shape
+        nb, nk = bands.shape
         logger.debug("\tBandstructure consists of {0} bands sampled over {1} k-points.".format(nb,nk))
         
         tagvalues.append(("Bands",bands))
@@ -108,7 +109,7 @@ class Bands(object):
         nVBtop = self.data['Index of top VB']
         if E0 is not None:
             if E0 == 'VB top' or E0 == 'VBtop':
-                E0 = max(self.data['Bands'][:,nVBtop]) 
+                E0 = max(self.data['Bands'][nVBtop]) 
         else:
             E0 = 0
         shiftedbands = self.data['Bands'] - E0
@@ -120,7 +121,7 @@ class Bands(object):
         Return the highest occupied level (HOMO)
         """
         nVBtop = self.data['nVBtop']
-        return  max(self.data['Bands'][:, nVBtop])
+        return  max(self.data['Bands'][nVBtop])
 
 
     def getEgap (self):
@@ -129,8 +130,8 @@ class Bands(object):
         """
         nVBtop = self.data['nVBtop']
         nCBbot = nVBtop + 1
-        Ecbbot = min(self.data['Bands'][:, nCBbot])
-        Evbtop = max(self.data['Bands'][:, nVBtop])
+        Ecbbot = min(self.data['Bands'][nCBbot])
+        Evbtop = max(self.data['Bands'][nVBtop])
         Egap = Ecbbot - Evbtop
         self.data['Egap'] = Egap
         self.data['Ecbbot'] = Ecbbot

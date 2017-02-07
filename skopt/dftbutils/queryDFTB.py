@@ -138,15 +138,16 @@ class BandsOut (dict):
         if fname:
             fp = open(fp, "r")
         values = {}
-        bands = np.loadtxt(fp, dtype=float)
+        bands = np.loadtxt(fp, dtype=float, unpack=True)
         if enumeration:
-            k = bands[:,0].astype(int)
+            k = bands[0].astype(int)
             # removing the kpoint-index, we get a 2D array of energies
-            bands = np.delete(bands,0,1)
+            #bands = np.delete(bands,0,1)
+            bands = bands[1:]
         if fname:
             fp.close()
         # post process
-        nk, nb = bands.shape
+        nb, nk = bands.shape
         values['bands'] = bands
         values['nkpts'] = nk
         values['nbands'] = nb
@@ -183,8 +184,8 @@ class Bandstructure(dict):
             ivbtop = int(data['neo']) - 1
         else:
             ivbtop = int(data['neo']/2.) - 1
-        evb = max(data['bands'][:, ivbtop])
-        ecb = min(data['bands'][:, ivbtop + 1])
+        evb = max(data['bands'][ivbtop])
+        ecb = min(data['bands'][ivbtop + 1])
         egap = ecb - evb
         data['Egap'] = egap
         data['Ecb']  = ecb
@@ -449,7 +450,7 @@ def get_effmasses(source, destination, directions=None,
     the *paths*.
     """
     masses = OrderedDict()
-    bands  = np.transpose(source['bands'])
+    bands  = source['bands']
     nE, nk = bands.shape
     ivbtop = source['ivbtop']
     try:
@@ -564,7 +565,7 @@ def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, *args, **kwar
 def get_Ek(bsdata, sympts):
     """
     """
-    bands      = np.transpose(bsdata['bands'])
+    bands      = bsdata['bands']
     kLinesDict = bsdata['kLinesDict']
     Ek = OrderedDict()
 # wrap this in try:except, and catch label not in kLinesDict

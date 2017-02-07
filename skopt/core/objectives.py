@@ -341,13 +341,21 @@ class Objective(object):
         s.append("{:<15s}: {}".format("Query", pformat(self.query_key)))
         s.append("{:<15s}: {}".format("Models", pformat(self.model_names)))
         if hasattr(self, 'model_weights'):
-            s.append("{:<15s}: {}".format("Model weights", pformat(self.model_weights)))
-        s.append ("{:<15s}: {}".format("Reference data", pformat(self.ref_data)))
+            s.append("{:<15s}: {}".format("Model weights", 
+                    np.array2string(self.model_weights, precision=3, 
+                        suppress_small=True, max_line_width=100)))
+        s.append ("{:<15s}: {}".format("Reference data", 
+                    np.array2string(self.ref_data, precision=3,
+                        suppress_small=True, max_line_width=100)))
         if hasattr(self, 'subweights'):
-            s.append("{:<15s}: {}".format("Sub-weights", pformat(self.subweights)))
+            s.append("{:<15s}: {}".format("Sub-weights", 
+                    np.array2string(self.subweights, precision=3,
+                        suppress_small=True, max_line_width=100)))
         #s.append ("Options:\n{}".format(pformat(self.options)))
         if hasattr(self, 'model_data'):
-            s.append ("Model data: {}".format(pformat(self.model_data)))
+            s.append ('{:<15s}: {}'.format("Model data",
+                    np.array2string(self.model_data, 
+                        precision=3, suppress_small=True, max_line_width=100)))
         s.append("{:<15s}: {:s} / {:s}".
                 format("Cost/Err. func.", self.costf.__name__, self.errf.__name__))
         s.append("{:<15s}: {}".format("Weight", pformat(self.weight)))
