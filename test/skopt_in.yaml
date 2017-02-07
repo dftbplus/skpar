@@ -25,6 +25,7 @@ objectives:
         models: Si/bs
         ref: 
             file: ./reference_data/fakebands.dat # 
+            loader_args: {unpack: True} # transpose file data, so that band-index = array-row-index
             process:       # eliminate unused columns, like k-pt enumeration
                 # indexes and ranges below refer to file, not array, 
                 # i.e. independent of 'unpack' loader argument
@@ -63,6 +64,7 @@ objectives:
         models: Si/bs
         ref: 
             file: ./reference_data/fakebands.dat # 
+            loader_args: {unpack: True}
             process:       
                 rm_columns: 1              # filter k-point enumeration, and bands, potentially
         options:

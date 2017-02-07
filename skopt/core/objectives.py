@@ -364,15 +364,22 @@ class ObjValues(Objective):
         if self.ref_data.ndim == 2 and self.ref_data.shape == (1,nmod):
             self.ref_data = self.ref_data.reshape((nmod,))
         shape = self.ref_data.shape
-        if self.options is not None and 'subweights' in self.options.keys():
+        # default options
+        subweights = None
+        self.normalised = True
+        # check if user had specified any options
+        if self.options is not None:
+            subweights = self.options.get('subweights', None)
             self.normalised = self.options.get('normalise', True)
-            self.subweights = parse_weights(self.options['subweights'], 
-                    nn=nmod, normalised=self.normalised,
+
+        if subweights is not None:
+            self.subweights = parse_weights(subweights, nn=nmod, 
+                    normalised=self.normalised,
                     # these are optional, and generic enough
                     ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
             assert self.subweights.shape == shape, (self.subweights.shape, shape)
         else:
-            self.subweight = np.ones(shape)
+            self.subweights = np.ones(shape)
         
     def get(self):
         """
@@ -394,9 +401,16 @@ class ObjKeyValuePairs(Objective):
         # NOTABENE: we will replace self.ref_data, trimming the 
         #           items with null weight
         nn = len(self.ref_data)
-        normalised = self.options.get('normalise', True)
-        ww = parse_weights_keyval(self.options['subweights'], data=self.ref_data,
-                                    normalised=normalised)
+        # default options
+        subweights = None
+        normalised = True
+        if self.options is not None:
+            subweights = self.options.get('subweights', np.ones(self.ref_data.shape))
+            normalised = self.options.get('normalise', True)
+
+        # we call parse_weights even with default subweights, which effectively
+        # normalises according to 'nomalised'
+        ww = parse_weights_keyval(subweights, data=self.ref_data, normalised=normalised)
         # eliminate ref_data items with zero subweights
         mask = np.where(np.invert(np.isclose(ww, np.zeros(ww.shape))))
         self.query_key = [k.decode() for k in self.ref_data['keys'][mask]]
@@ -436,12 +450,12 @@ def get_subset_ind(rangespec):
         subset.extend(range(*rr))
     return np.array(subset)
 
-def get_refval(bands, refpt, ff={'min': np.min, 'max': np.max}):
+def get_refval(bands, align, ff={'min': np.min, 'max': np.max}):
     """Return a reference (alignment) value selected from a 2D array.
     
     Args:
         bands (2D numpy array): data from which to obtain a reference value.
-        refpt: specifier that could be (band-index, k-point), or
+        align: specifier that could be (band-index, k-point), or
                 (band-index, function), e.g. (3, 'min'), or ('7, 'max')
         ff (dict): Dictionary mapping strings names to functions that can
                 operate on an 1D array.
@@ -449,12 +463,15 @@ def get_refval(bands, refpt, ff={'min': np.min, 'max': np.max}):
     Returns:
         value (float): the selected value
     """
-    iband = refpt[0] - 1  
+    assert isinstance(align[0], int), '"align" must be (int,int) or (int, "min" or "max").'
+    # Transform indexing to python-style, counting from 0, assuming 
+    # 'align' came from user specification, fortran-compatible, counting from 1
+    iband = align[0] - 1  
     try:
-        ik = refpt[1] - 1
+        ik = align[1] - 1
         value = bands[iband,ik]
     except TypeError:
-        value = ff[refpt[1]](bands[iband])
+        value = ff[align[1]](bands[iband])
     return value
 
 
@@ -464,51 +481,61 @@ class ObjBands(Objective):
     def __init__(self, spec, **kwargs):
         super().__init__(spec, **kwargs)
         assert isinstance(self.model_names, str),\
-            'ObjBands accepts only one model, but models is not a string'
+            'ObjBands accepts only one model => model_names must be a string, but it is not.'
 
-        # Procss .options:
-        # if options is not defined, NameError will result
-        # if options is None (default, actually), TypeError will result
-        # if options is missing a key we try, KeyError will result
-        # Start with 'use_*' clauses
-        try:
-            rangespec = self.options.get('use_ref')
-            subset_ind = get_subset_ind(rangespec)
-            # This returns a new array, and the old ref_data
-            # is lost from here on. Do we care?
+        # Process .options and set defaults, in case options is None, or key not present
+        if self.options is not None:
+            rangespec_ref = self.options.get('use_ref', None)
+            rangespec_mod = self.options.get('use_model', None)
+            align_ref     = self.options.get('align_ref', None)
+            align_model   = self.options.get('align_model', None)
+            subwspec      = self.options.get('subweights', None)
+            self.normalised = self.options.get('normalised', True)
+        else:
+            rangespec_ref = None
+            rangespec_mod = None
+            align_ref     = None
+            align_model   = None
+            subwspec      = None
+            self.normalised = True
+
+        # Handle 'use_*' option first, because it leads to exclusion of data
+        # NOTABENE: both use_ref and use_model assume that a band-index
+        #           corresponds to a row-index in the corresponding array
+        if rangespec_ref is not None:
+            # Parse the subset index definition
+            subset_ind = get_subset_ind(rangespec_ref)
+            # Extract only the ref_data corresponding to the subset index
+            # This returns a new array; the old ref_data is lost from here on. Do we care?
             self.ref_data = self.ref_data[subset_ind]
-            # since we re-shape self.ref_data, we must reshape 
+            # Since we re-shape self.ref_data, we must reshape 
             # the corresponding subweights too.
+            # Note that user spec of subweigths is not parsed yet!
             self.subweights = np.ones(self.ref_data.shape)
-        except (TypeError, KeyError):
-            pass
-        # once the ref_data is trimmed, its reference value may be changed
-        try:
-            align_pnt = self.options.get('align_ref')
-            shift = get_refval(self.ref_data, align_pnt)
+
+        # Once the ref_data is trimmed, its reference value may be changed
+        # so try to parse 'align_ref' option.
+        if align_ref is not None:
+            shift = get_refval(self.ref_data, align_ref)
             self.ref_data -= shift
-        except (TypeError, KeyError):
-            pass
-        # Make up a mask to trim model_data 
+
+        # Make up a mask to trim model_data if there is use_model
         # Note that the mask is only for dim_0, i.e. to
         # be applied on the bands, over all k-pts, so it
         # is only one one-dimensional array.
-        try:
-            rangespec = self.options.get('use_model')
-            self.subset_ind = get_subset_ind(rangespec)
-        except (TypeError, KeyError):
+        if rangespec_mod is not None:
+            # Parse the subset index and record it.
+            # Remember that we must apply it at run time after model data acquisition
+            self.subset_ind = get_subset_ind(rangespec_mod)
+        else:
             self.subset_ind = None
+
         # Prepare to shift the model_data values if required
         # The actual shift is applied in the self.get() method
-        try:
-            self.align_model = self.options.get('align_model')
-        except (TypeError, KeyError):
-            pass
+        self.align_model = align_model
 
         shape = self.ref_data.shape
-        if self.options is not None and 'subweights' in self.options.keys():
-            subwspec = self.options.get('subweights')
-            self.normalised = self.options.get('normalise', True)
+        if subwspec is not None:
             self.subweights = parse_weights(subwspec, refdata=self.ref_data, 
                     normalised=self.normalised, 
                     # the following are optional, and generic enough
@@ -520,19 +547,23 @@ class ObjBands(Objective):
                     ikeys=['indexes','Ekpts'], rikeys=['bands', 'iband'], rfkeys=['values'])
             assert self.subweights.shape == shape
         else:
-            # KeyError if there is no 'use_ref'
-            # TypeError if options == None (default)
-            self.subweight = np.ones(shape)
+            if self.normalised:
+                self.subweights = np.ones(shape)/self.ref_data.size
+            else:
+                self.subweights = np.ones(shape)
         
     def get(self):
-        """
+        """Return the value of the objective function.
         """
         # query data base
         self.model_data = self.query()
         # apply mask
+        # NOTABENE: assumed is that model data is an array in which
+        #           a band corresponds to a row
         if self.subset_ind is not None:
             self.model_data = self.model_data[self.subset_ind]
-        # apply shift
+        # apply shift: since model_data is not known in advance
+        #              the shift cannot be precomputed!
         if self.align_model is not None:
             shift = get_refval(self.model_data, self.align_model)
             self.model_data -= shift

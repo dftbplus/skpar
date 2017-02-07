@@ -5,6 +5,8 @@ import numpy.testing as nptest
 import yaml
 from skopt.core import objectives as oo
 from skopt.core.query import Query
+from skopt.core.evaluate import relerr
+np.set_printoptions(precision=3, formatter={'float_kind':lambda x: "%.2f" % x})
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -565,7 +567,8 @@ class ObjectiveTypesTest(unittest.TestCase):
                 doc: Valence Band, Si
                 models: Si/bs
                 ref: 
-                    file: ./reference_data/fakebands.dat # 
+                    file: ./reference_data/fakebands.dat 
+                    loader_args: {unpack: True}
                     process:       # eliminate unused columns, like k-pt enumeration
                         # indexes and ranges below refer to file, not array, 
                         # i.e. independent of 'unpack' loader argument
@@ -573,10 +576,12 @@ class ObjectiveTypesTest(unittest.TestCase):
                         # rm_rows   : [[18,36], [1,4]] # filter k-points if needed for some reason
                         # scale     : 1                # for unit conversion, e.g. Hartree to eV, if needed
                 options:
-                    use_ref: [[1, 4]]                # fortran-style index-bounds of bands to use
-                    use_model: [[1, 4]]
-                    align_ref: [4, max]              # fortran-style index of band and k-point,
-                    align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
+                    use_ref: [[2, 4]]                # fortran-style index-bounds of bands to use
+                    use_model: [[1, 3]]              # model has lesser number of bands
+                    # Alignment works after data has been masked by use_* clause, and therefore
+                    # the indexes below do not correspond to original but masked array
+                    align_ref: [3, max]              # fortran-style index of band and k-point,
+                    align_model: [3, max]            # or a function (e.g. min, max) instead of k-point
                     normalise: false
                     subweights: 
                         # NOTABENE:
@@ -593,10 +598,10 @@ class ObjectiveTypesTest(unittest.TestCase):
                         dflt: 1
                         values: # [[range], subweight] for E-k points in the given range of energy
                         # notabene: the range below is with respect to the alignment value
-                            - [[-0.3, 0.], 3.0]
+                            - [[-0.2, 0.], 3.5]
                         bands: # [[range], subweight] of bands indexes; fortran-style
                             - [[2, 3], 1.5]   # two valence bands below the top VB
-                            - [4 , 3.5]       # emphasize the reference band
+                            - [4 , 3.0]       # emphasize the reference band
                         # not supported yet     ipoint:
                 weight: 1.0
             """
@@ -606,18 +611,20 @@ class ObjectiveTypesTest(unittest.TestCase):
         mnm  = 'Si/bs'
         mww = [1]
         oww  = 1
-        ref  = np.loadtxt('reference_data/fakebands.dat')
-        ref  = ref[:, 1:][:4] # remove 1st col of file, consider first 4 bands only
-        shift = -0.4
+        ref  = np.loadtxt('reference_data/fakebands.dat', unpack=True)
+        ref  = ref[2:5] # remove 1st col of file(k-pt enum.), consider first 3 bands from 2nd
+        shift = -0.4 # this is the top of the VB (cf: fakebands.dat)
         ref -= shift
         shape = ref.shape
-        # recall that we apply the mask to the bands (hence only indexes of the 
-        # 0-th dimension are needed
-        subset_ind = np.array([0,1,2,3])
+        # we have use_model => only a subset of bands is needed
+        subset_ind = np.array([0,1,2])
+        # subweights
         subw  = np.ones(shape)
-        subw[1:3] = 1.5
-        subw[ref > -0.3] = 3.
-        subw[3] = 3.5
+        subw[1:2] = 1.5
+        subw[2] = 3.0
+        # subweights on value are the last one to be applied
+        subw[ref > -0.2] = 3.5
+        subw = subw/np.sum(subw)
         db1 = {}
         Query.flush_modelsdb()
         Query.add_modelsdb('Si/bs', db1)
@@ -632,10 +639,10 @@ class ObjectiveTypesTest(unittest.TestCase):
         nptest.assert_array_equal(objv.subset_ind, subset_ind, verbose=True)
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
         # check the __call__()
-        data = np.loadtxt("reference_data/fakebands.dat")
-        db1['bands'] = data[:, 1:]
+        data = np.loadtxt("reference_data/fakebands-2.dat", unpack=True)
+        db1['bands'] = data[1:]
         mdat, rdat, weights = objv.get()
-        nptest.assert_array_equal(mdat, ref, verbose=True)
+        nptest.assert_array_almost_equal(mdat, ref, decimal=2, verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
         
@@ -708,6 +715,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
                 models: A
                 ref: 
                     file: ./reference_data/fakebands.dat
+                    loader_args: {unpack: False}
                     process:
                         rm_columns: 1
                 options:
@@ -720,9 +728,14 @@ class EvaluateObjectivesTest(unittest.TestCase):
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
+        self.assertAlmostEqual(1., np.sum(objv.subweights))
+        #logger.debug(objv.ref_data)
+        #logger.debug(objv.subweights)
         db1['bands'] = objv.ref_data * 1.1
+        cost = np.sqrt(np.sum(objv.subweights*relerr(objv.ref_data, db1['bands'])**2))
+        #logger.debug(cost)
         # evaluate
-        self.assertAlmostEqual(0.932737905309, objv())
+        self.assertAlmostEqual(cost, objv())
 
 
 if __name__ == '__main__':
