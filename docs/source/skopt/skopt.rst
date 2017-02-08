@@ -20,10 +20,10 @@ Quick links to the ``core``-modules:
     - :mod:`Task Dictionary <skopt.core.taskdict>`
     - :mod:`Tasks <skopt.core.tasks>`
     - :mod:`Evaluator <skopt.core.evaluate>`
-  * - :mod:`Parameters <skopt.core.parameters>`
     - :mod:`Optimiser <skopt.core.optimise>`
     - :mod:`PSO <skopt.core.pso>`
-    -
+
+...  * - :mod:`Parameters <skopt.core.parameters>`
 
 Quick links to the ``dftbutils``-modules:
 
@@ -51,7 +51,8 @@ List of all modules:
    core/tasks
    core/taskdict
    core/evaluate
-   core/parameters
    core/input
    core/optimise
    core/pso
+
+...   core/parameters

@@ -8,7 +8,7 @@ Development
 
 Further development of SKOPT is along the following lines.
 
-External Model Database
+External Model and Reference Database
 ----------------------------------------------------------------------
 The aims is to completely decouple the core of the optimisation 
 engine from the application specifics. To achieve this:
@@ -19,7 +19,9 @@ engine from the application specifics. To achieve this:
       can be application specific, and its setup may be still driven by
       the input YAML file of SKOPT;
     * an external task-manager is needed to wrap the executables that yield
-      model data and make them store that data in the external model database.
+      model data and make them store that data in the external model database;
+    * support for reference databases should complement the current mechanism
+      through which the declaration of objectives is realised.
 
 A conceptual block-diagram of the intended development is shown below.
 
@@ -43,5 +45,3 @@ The executables embodying the model are computationally very intense but are
 typically parallelised. 
 However, much gain may be obtained by parallelising the evaluation of individuals
 within the population (e.g. per particle, when PSO algorithm is used).
-
-

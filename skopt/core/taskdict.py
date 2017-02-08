@@ -9,7 +9,7 @@ def get_model_data (src, dst, key, *args, **kwargs):
     write the data to `dst` dictionary under `key`. No interpretation or
     manipulation of the data is done.
 
-    May be load arguemnts could be supported in the future, but 
+    May be load arguments could be supported in the future, but 
     currently the optional positional and keyword arguments are ignored.
     """
     assert isinstance(src, str), \

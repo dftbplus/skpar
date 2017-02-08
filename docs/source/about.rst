@@ -11,6 +11,8 @@ parameters for the Density Functional Tight Binding (DFTB) theory.
 It allows a flexible and simultaneous use of diverse reference data,
 e.g. from DFT calculations or experimentally obtained physical quantities.
 
+.. _`Fig. 1`:
+
 .. figure:: ../static/skopt.diagram.png
         :width: 80%
 
@@ -74,6 +76,8 @@ define as a minimum:
     4. Aliases to complex commands involving external executables
 
 The optimisation loop realised by SKOPT is shown in Fig. 2.
+
+.. _`Fig. 2`:
 
 .. figure:: ../static/optimisation.flowchart.png
         :width: 70%
