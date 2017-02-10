@@ -132,18 +132,18 @@ class BandsOutTest(unittest.TestCase):
     """Check if we can read bands_tot.dat from dp_bands."""
 
     ff1 = 'reference_data/fakebands.dat'
-    fake_bands = np.loadtxt(ff1)
+    fake_bands = np.loadtxt(ff1, unpack=True)
     # eliminate column 1, which enumerates the kpoints
-    fake_bands = fake_bands[:, 1:]
-    fake_nk, fake_nb = fake_bands.shape
+    fake_bands = fake_bands[1:]
+    fake_nb, fake_nk = fake_bands.shape
 
     ff2 = 'test_dftbutils/bs/bands_tot.dat'
-    ref_bands = np.loadtxt(ff2)
-    ref_bands = ref_bands[:, 1:]
-    ref_nk, ref_nb = ref_bands.shape
+    ref_bands = np.loadtxt(ff2, unpack=True)
+    ref_bands = ref_bands[1:]
+    ref_nb, ref_nk = ref_bands.shape
     ref_ivbtop = 15 # data is from SiO2 (2*4e(Si)  + 4*8e(O) = 32e)
-    ref_Ev = np.max(ref_bands[:, ref_ivbtop])
-    ref_Ec = np.min(ref_bands[:, ref_ivbtop+1])
+    ref_Ev = np.max(ref_bands[ref_ivbtop])
+    ref_Ec = np.min(ref_bands[ref_ivbtop+1])
     ref_Eg = ref_Ec - ref_Ev
     ref_Ef = 0.9931
 

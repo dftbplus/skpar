@@ -36,8 +36,7 @@ class BandsOutput (OrderedDict):
             fp.close()
             
         if Enumeration:
-            k = bands[0].astype(int)
-            #bands = np.delete(bands,0,1) # removing the kpoint-index, we are left with the Energy points only
+            # k = bands[0].astype(int)
             bands = bands[1:] # removing the kpoint-index, we are left with the Energy points only
             
         nb, nk = bands.shape
