@@ -6,13 +6,8 @@
 Welcome to SKOPT's documentation!
 =================================
 
-SKOPT is an optimisation framework written in the Python_ programming
-language. It is primarily aimed at the optimisation of parameters for
-the Density Functional Tight-Binding (DFTB) theory, as implemented
-`DFTB+`_, Lodestar_ and other programs.
-
-SKOPT is realeased under the `MIT License`_.
-
+SKOPT is a parameter-optimisation framework for the 
+Density Functional Tight-Binding (DFTB) theory.
 
 .. _Python: http://www.python.org
 .. _`DFTB+`: http://www.dftb-plus.info/

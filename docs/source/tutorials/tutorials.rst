@@ -1,10 +1,14 @@
+.. index:: tutorials
+
 .. _tutorials:
 
 ===============
 Tutorials
 ===============
 
-Conceptual overview (polynomial fitting)
+.. _`tutorial-1`:
+
+Tutorial 1 -- Polynomial Fitting
 =============================================================
 This example covers the basic structure and content of the
 input file. The input file, e.g. ``skopt_optimise.yaml``, would
@@ -68,7 +72,7 @@ root-mean-squared relative deviations, as stated after ``eval:``.
 At each iteration do:
 
     1. Set the environment by writing the parameters to ``current.par`` and 
-        substitute values in ``template.paramete.py`` to ``parameters.py``, 
+        substitute values in ``template.parameters.py`` to ``parameters.py``, 
         both files in ``./test_optimise`` folder. (Note that 
         ``parameters.py`` is not used by the model in this case.)
     2. Run the command ``mypy`` in the ``./test_optimise`` folder with
@@ -87,8 +91,10 @@ using 4-particle swarm, evolving it for 5 generations.
 Whenever a run-task requires ``mypy`` command, use ``python`` instead.
 
 
-Optimisation of electronic parameters in DFTB
-==================================================
+.. _`tutorial-bs-exp`:
+
+Tutorial 2 -- Optimisation of electronic parameters in DFTB
+============================================================
 
 Fitting to experimental data
 --------------------------------------------------
@@ -105,7 +111,7 @@ The corresponding ``skopt_in.yaml`` is below, with comment annotations:
     :language: yaml
 
 
-.. _`tutorial_dft_bs`:
+.. _`tutorial-bs-dft`:
 
 Fitting to DFT and experimental data
 --------------------------------------------------
@@ -134,6 +140,8 @@ The corresponding ``skopt_in.yaml`` is below, with comment annotations:
     :language: yaml
 
 
+
+.. _`tutorial-3`:
 
 Opitmisation of repulsive potentials for DFTB
 ==================================================

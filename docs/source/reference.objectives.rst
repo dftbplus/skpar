@@ -1,41 +1,218 @@
-.. _objectives:
+.. index:: objectives
+
+.. _reference.objectives:
 
 ======================================================================
 Objectives
 ======================================================================
+Central to the optimisation problem are objectives. The problem is
+defined as a weighted multi-objective optimisation, where each 
+objective typically is associatedd with multiple data items itself. 
+Each objective is scalarized, meaning that it is evaluated to a 
+single scalar that represents its own cost or fitness. 
+Each objective is assigned a weight, corresponding to its relative 
+significance; weights are automatically normalised. A good review 
+of the mathematical formulation is found here [MOO-review]_.
 
-Declaration of Objectives
+The declaration of an objective establishes a way for a direct 
+comparison between some reference data and some model data.
+With each pair of items from the reference and model data
+there is associated a weight, referred to as sub-weight
+that corresponds to the significance of this item relative to the 
+rest of the item-pairs associated with an objective.
+These sub-weights are used in the scalarisation of the objective,
+and are also normalised.
+
+Overview of Objectives Declaration
 ======================================================================
 
-The declaration of objectives in the input file of SKOPT consists of
+The declaration of an objective in the input file of SKOPT consists of
 the following elements:
 
 .. code-block:: yaml
 
     objectives:
-        - query_item:
-            doc: Doc-string of the objective (optional)
-            ref: Reference data or instruction to obtain it (mandatory)
-            models: Name of models having query_item (mandatory)
-            weight: Weights of the objective (dftt: ones)
-            eval: How to evaluate the individual objective (optional)
+        - query: # a name selected by the end-user
+            doc: "Doc-string of the objective (optional)"
+            models: 
+                # Name of models having query_item in their database (mandatory)
+            ref: 
+                # Reference data or instruction on obtaining it (mandatory)
+            options:
+                # Options for interpretation of reference/model data (optional)
+            weight: 
+                # Weight of the objective (dflt: one)
+            eval: 
+                # How to evaluate the objective (dflt: [rms, abserr]
+
+An example of the simplest objective declaration -- the band-gap
+of bulk Si in equilibrium diamond lattice -- may look like that:
+
+.. code-block:: yaml
+
+    - Egap:
+        doc: 'Si-diam-100: band-gap'
+        models: Si.diam.100
+        ref: 1.12
+        weight: 5.0
+        eval: [rms, relerr]
+
+.. seealso::
+
+   * :ref:`tutorials`
+
+Details of Objective Declaration
+======================================================================
+
+Query Label (:code:`query`)
+----------------------------------------------------------------------
+:code:`query` is just a label given by the user. SKOPT does not interpret
+these labels but uses them to query the model database in order to
+obtain model data. Therefore, the only condition that must be met
+is that the label must be available in the database(s) of the 
+model(s) that are listed after :code:`models`.
+
+It is the responsibility of the Get-Tasks to satisfy this condition.
+Recall that a get-task yields certain items (key-value pairs) in the
+dictionary that embodies the model database accessed as a destination 
+of the task.
+
+Certain get-tasks allow the user to define the key of the item, and
+this key can be used as a query-label when declaring an objective.
+Example of that is shown in :ref:`Tutorial 1 <tutorial-1>`, where
+the simple :code:`get_model_data` task is used, and the query label 
+is ``yval``.
+
+Other tasks yield a fixed number of items -- examples are the 
+get-tasks provided by the ``dftbutils`` package.
+Please, consult their documentation to know which items are 
+available as query-labels: :ref:`get-functions`.
+
+There is one case however, in which the above significance of 
+:code:`query` is disregarded, and the specified label becomes irrelevant. 
+This is the case where the reference data of an objective is itself a
+dictionary of key-value pairs (or results in such upon acquisition 
+from a file). This case is automatically recognised by SKOPT and the 
+user need not do anything special. 
+The query-label in this case can be something generic.
+Example of such an objective can be found in 
+:ref:`Tutorial 2 <tutorial-bs-exp>`, with queries labeled as
+:code:`effective_masses` or :code:`special_Ek`.
 
 
+Doc-string (:code:`doc`)
+----------------------------------------------------------------------
+This is an optional description -- preferably very brief, which would
+be used in reporting the individual fitness of the objective, and
+also as a unique identifier of the objective.
+If not specified, SKOPT will assign it a random number.
 
-Further, the declarations must adhere to the following rules:
 
-1. **Reference data** is stated in the declaration of each objective
-   either explicitly, or implicitly, e.g. via filename.
+Model Name(s) (:code:`models`)
+----------------------------------------------------------------------
+This is a single name, or a list of names given by the user, and is
+a mandatory field. A model name given here must be available in the
+model database. 
+This is established by the definition of a get-task -- the available
+model names are those that are seen by SKOPT as destinations of 
+declared :ref:`get_tasks`).
 
-2. **Model data** is contained in a Model Database (MDB) which is
-   completely independent from the declaration of objectives. The
-   latter merely declares the name of the object to be queried from
-   the MDB.
+Beyond a single model name and a list of model names, SKOPT supports
+also a list of pairs -- [model-name, model-factor].
+In such a definition, the data of each model is scaled by the 
+model-factor, and a summation over all models is done, prior to 
+comparison with reference data.
 
-3. **Objective name** defines the object to be queried from the Model 
-   Database (MDB). Exception to this rule is an objective with 
-   key-value pairs as reference data -- in this case the keys define 
-   the queries, and the name of the objective is irrelevant.
+So, the three (nonequivalent) ways in which models can be specified is:
+
+.. code-block:: yaml
+
+    objectives:
+        - query:
+            # other fields
+            models: name
+            # or
+            models: [name1, name2, name3..., nameN]
+            # or
+            models:
+                - [name1, factor1]
+                - [name2, factor2]
+                # ...
+                - [nameN, factorN]
+
+
+Reference Data (:code:`ref`)
+----------------------------------------------------------------------
+Reference data could be either explicitly provided, e.g.:
+:code:`ref: [1.5, 23.4]`, or obtained from a file.
+The latter gives flexibility, but is correspondingly more complicated.
+
+Loading data from file is invoked by:
+
+.. code-block:: yaml
+
+    objectives:
+        - query
+            # other fields in the declaration
+            ref:
+                file: filename
+                # optional
+                loader_args: {key:value-pairs}
+                # optional
+                process:
+                    # processing options
+
+SKOPT loads data via `Numpy loadtxt() function`_, and the optional
+arguments of this function could be specified by the user via
+``loader_args``
+
+.. _`Numpy loadtxt() function`: https://docs.scipy.org/doc/numpy-1.12.0/reference/generated/numpy.loadtxt.html
+
+Typical loader-arguments are:
+
+    * :code:`unpack: True` -- transposes the input data; 
+      mandatory when loading band-structure produced from 
+      ``dp_bands`` or ``vasputils``
+
+    * :code:`dtype: {names: ['keys', 'values'], formats: ['S15', 'float']}` -- loads string-float pairs; 
+      mandatory when the reference data file consists of key-value pairs per line.
+
+The ``process`` options are interpreted only for 2D array data, and are
+as follows:
+    
+    * :code:`rm_columns: index, list_of_indices, or, range_specification`
+    * :code:`rm_rows:    index, list_of_indices, or, range_specification`
+    * :code:`scale:      scale_factor`
+
+The indexes apply to the rows and columns of the file, and are therefore 
+independent of the loader arguments (i.e. prior to potential transpose 
+of the data). The indexes and index ranges are Fortran-style -- counting 
+from 1, and inclusive of boundaries.
+
+Examples:
+
+.. code-block:: yaml
+
+    process:
+        rm_columns: 1                # filter k-point enumeration, and bands, potentially
+        rm_rows   : [[18,36], [1,4]] # filter k-points if needed for some reason
+        scale     : 27.21            # for unit conversion, e.g. Hartree to eV, if needed
+
+
+Objective Weight: (:code:`weight`)
+----------------------------------------------------------------------
+This is a scalar, corresponding to the relative significance of the 
+objective compared to the other objectives. Objective weights are
+automatically normalised so that there sum is one.
+
+Evaluation function : (:code:`eval`)
+----------------------------------------------------------------------
+Each objective is scalarised by a cost function that can be optionally
+modified here. Currently only Root-Mean-Squared Deviation is supported,
+but one may choose whether absolute or relative deviations are used.
+The field is optional and defaults to RMS of absolute deviations.
+
+
 
 
 4. **Objective type** is deduced from *Format of reference data* in 
@@ -236,8 +413,17 @@ Objective Types
                 "Survey of multi-objective optimization methods for engineering"
 
 
-Details of the ``objectives`` module
+Types of objectives
 ======================================================================
 
-.. automodule:: skopt.core.objectives
-    :members:
+Types of reference data
+======================================================================
+
+Queries
+======================================================================
+
+Weights and sub-weights
+======================================================================
+
+
+

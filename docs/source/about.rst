@@ -21,7 +21,7 @@ e.g. from DFT calculations or experimentally obtained physical quantities.
 Conceptual Overview
 ==============================
 
-The conceptual diagram of SKOPT is shown in Fig. 1, where the relation betweenn
+The conceptual diagram of SKOPT is shown in Fig. 1, where the relation between
 the following entities is suggested:
 
     * **Model** -- a collection of executables outside SKOPT
