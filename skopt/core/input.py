@@ -29,7 +29,7 @@ def get_input_yaml(filename):
             raise
     return spec
 
-def parse_input(filename):
+def parse_input(filename, verbose=False):
     """Parse input filename and return the setup
 
     Currently only yaml input is supported.
@@ -52,5 +52,5 @@ def parse_input(filename):
     #module_logger.debug("Parse input parameters: {}".format(parameters))
     #module_logger.debug("Parse input parnames  : {}".format(parnames))
     tasks      = set_tasks      (spec['tasks'], exedict, parnames)
-    objectives = set_objectives (spec['objectives'])
+    objectives = set_objectives (spec['objectives'], verbose=verbose)
     return tasks, objectives, optargs

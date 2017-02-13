@@ -85,7 +85,7 @@ class RunTask (object):
             raise
         # Try to execute the task
         try:
-            self.logger.debug("Running {} in {}...".format(self.cmd, self.wd))
+            self.logger.debug("Running {} in {}...".format(self.cmd, os.path.relpath(self.wd)))
             # capture the output/error if any, for eventual checks
             self.out = subprocess.check_output(self.cmd, 
                                           universal_newlines=True, 
@@ -93,7 +93,7 @@ class RunTask (object):
             try:
                 with open(self.outfile, 'w') as fp:
                     fp.write(self.out)
-                self.logger.debug("Done.  : output is in {}.\n".format(self.outfile))
+                self.logger.debug("Done.  : output is in {}.\n".format(os.path.relpath(self.outfile)))
             except TypeError:
                 # self.outfile is None
                 self.logger.debug("Done.  : outfile was None; output discarded.\n")
@@ -123,9 +123,9 @@ class RunTask (object):
         """Yield a summary of the task.
         """
         s = []
-        s.append("{:<15s}: {}".format("RunTask in", pformat(self.wd)))
-        s.append("{:<15s}: {}".format("command", pformat(' '.join(self.cmd))))
-        s.append("{:<15s}: {}".format("out/err", pformat(self.outfile)))
+        s.append("{:9s}{:<15s}: {}".format("","RunTask in", os.path.relpath(self.wd)))
+        s.append("{:9s}{:<15s}: {}".format("","command", pformat(' '.join(self.cmd))))
+        s.append("{:9s}{:<15s}: {}".format("","out/err", os.path.relpath(self.outfile)))
         return "\n" + "\n".join(s)
 
 
@@ -193,7 +193,7 @@ class SetTask (object):
         #self.kwargs['logger'] = self.logger
         self.kwargs['templates'] = self.templates
         # report task initialisation
-        self.logger.debug(self.__repr__())
+        # self.logger.debug(self.__repr__())
 
     def __call__(self, parameters, iteration=None):
         """Write the parameters to relevant files.
@@ -204,18 +204,19 @@ class SetTask (object):
                 a tuple, e.g. (generation, individual)
         """
         self.logger.debug("Setting parameters for iteration {} in {}.".
-                format(iteration, self.parfile))
+                format(iteration, os.path.relpath(self.parfile)))
         self.func(parameters, iteration, *self.args, **self.kwargs)
 
     def __repr__(self):
         """Yield a summary of the task.
         """
         s = []
-        s.append("{:<15s}: {}".format("SetTask via", pformat(self.func.__name__)))
-        s.append("{:<15s}: {}".format("Param. file", pformat(self.parfile)))
-        s.append("{:<15s}: {}".format("Templ. files", pformat(self.templates)))
+        s.append("{:9s}{:<15s}: {}".format("", "SetTask via", pformat(self.func.__name__)))
+        s.append("{:9s}{:<15s}: {}".format("", "Param. file", os.path.relpath(self.parfile)))
+        s.append("{:9s}{:<15s}: {}".format("", "Templ. files", 
+            " ".join(["{}".format(os.path.relpath(ff)) for ff in self.templates])))
         if self.parnames:
-            s.append("{:<15s}: {}".format("Param. names", pformat(self.parnames)))
+            s.append("{:9s}{:<15s}: {}".format("", "Param. names", pformat(self.parnames)))
         return '\n'+'\n'.join(s)
 
 
@@ -252,12 +253,12 @@ class GetTask (object):
         """Yield a summary of the task.
         """
         s = []
-        s.append("{:<10s}: {} ".format("GetTask", self.func.__name__))
-        s.append("{:<10s}: {} ".format("func", self.func))
-        s.append("{:<10s}: {:<15s} {:<10s} {:<15s}".format("from", 
-            self.src_name, "to", self.dst_name))
-        s.append("{:<10s}: {}".format("args", pformat(self.args)))
-        s.append("{:<10s}: {}".format("kwargs", pformat(self.kwargs)))
+        s.append("{:9s}{:<15s}: {} ".format("", "GetTask", self.func.__name__))
+        s.append("{:9s}{:<15s}: {} ".format("", "func", self.func))
+        s.append("{:9s}{:<15s}: {:<15s} {:>10s} {:s}".format("", "from", 
+            os.path.relpath(self.src_name), "to :", os.path.relpath(self.dst_name)))
+        s.append("{:9s}{:<15s}: {}".format("", "args", pformat(self.args)))
+        s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
         return '\n'+'\n'.join(s)
 
 

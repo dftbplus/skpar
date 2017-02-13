@@ -89,8 +89,7 @@ class Evaluator (object):
 
     """   
     def __init__(self, objectives, tasks, costf=costf[DEFAULT_GLOBAL_COST_FUNC],
-                 utopia = None,
-                 verbose=False, **kwargs):
+                 utopia = None, verbose=False, **kwargs):
         self.objectives = objectives
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasks = tasks
@@ -102,7 +101,16 @@ class Evaluator (object):
             self.utopia = utopia
         self.verbose = verbose
         self.logger = module_logger
-    
+        # report all tasks and objectives
+        if self.verbose:
+            self.msg = self.logger.info
+        else:
+            self.msg = self.logger.debug
+        for item in tasks:
+            self.msg(item)
+        for item in objectives:
+            self.msg(item)
+
     def evaluate(self, parameters, iteration=None):
         """Evaluate the global fitness of a given point in parameter space.
 
@@ -127,6 +135,8 @@ class Evaluator (object):
                 self.logger.warning('Omitting task 1 due to None parameters:')
                 self.logger.debug(task)
             else:
+                self.msg('Iteration : {}'.format(iteration))
+                self.msg('Parameters: {:s}'.format(", ".join(["{:.6f}".format(p) for p in parameters])))
                 task(parameters, iteration)
             jj = 1
         # Get new model data by executing the rest of the tasks
@@ -142,6 +152,7 @@ class Evaluator (object):
         ref = self.utopia
         # evaluate global fitness
         cost = self.costf(ref, self.objvfitness, self.weights)
+        self.msg('{:<15s}: {}\n'.format('Overall cost', cost))
         return np.atleast_1d(cost)
 
     def __call__(self, parameters, iteration=None):

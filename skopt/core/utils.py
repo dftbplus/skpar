@@ -57,6 +57,13 @@ def normalise(a):
     norm = np.sum(np.asarray(a))
     return np.asarray(a)/norm
 
+def arr2s(aa, precision=3, suppress_small=True, max_line_width=90):
+    """Helper for compact string representation of numpy arrays.
+    """
+    ss = np.array2string(aa, precision=precision,
+                suppress_small=suppress_small, max_line_width=max_line_width)
+    return ss
+
 def is_monotonic(x):
     dx = np.diff(x)
     return np.all(dx <= 0) or np.all(dx >= 0)

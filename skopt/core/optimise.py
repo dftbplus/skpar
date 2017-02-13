@@ -41,6 +41,16 @@ class Optimiser(object):
         except KeyError:
             print("Unsupported optimisation algorithm {}".format(algo))
             sys.exit(2)
+        self.verbose = kwargs.get('verbose', False)
+        self.logger = module_logger
+        # report all tasks and objectives
+        if self.verbose:
+            log = self.logger.info
+        else:
+            log = self.logger.debug
+        log("Algorithm: {}".format(algo))
+        for item in parameters:
+            log(item)
 
     def __call__(self, **kwargs):
         output = self.optimise(**kwargs)

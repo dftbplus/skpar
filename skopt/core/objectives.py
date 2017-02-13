@@ -12,7 +12,7 @@ import numpy as np
 import logging
 import yaml
 from pprint import pprint, pformat
-from skopt.core.utils import get_logger, normalise
+from skopt.core.utils import get_logger, normalise, arr2s
 from skopt.core.query import Query
 from skopt.core.evaluate import costf, errf
 
@@ -280,6 +280,11 @@ class Objective(object):
         Returns: None
         """
         self.logger = module_logger
+        self.verbose = kwargs.get('verbose', False)
+        if self.verbose:
+            self.msg = self.logger.info
+        else:
+            self.msg = self.logger.debug
         # mandatory fields
         self.objtype = spec['type']
         self.query_key = spec['query']
@@ -325,8 +330,21 @@ class Objective(object):
     def evaluate(self):
         """Evaluate objective, i.e. fitness of the current model against the reference."""
         model, ref, weights = self.get()
-        fitness = self.costf(ref, model, weights, self.errf)
-        return fitness
+        self.fitness = self.costf(ref, model, weights, self.errf)
+        self.summarise()
+        return self.fitness
+
+    def summarise(self):
+        s = []
+        s.append("{:<15s}: {}".format("Objective:", pformat(self.doc)))
+        s.append ("{:9s}{:<15s}: {}".format("", "Reference data", 
+                np.array2string(self.ref_data, precision=3,
+                    suppress_small=True, max_line_width=100)))
+        s.append ('{:9s}{:<15s}: {}'.format("", "Model data",
+                np.array2string(self.model_data, precision=3, 
+                    suppress_small=True, max_line_width=100)))
+        s.append ('{:9s}{:<15s}: {}'.format("", "Cost", self.fitness))
+        self.msg("\n".join(s))
         
     def __call__(self):
         """Executes self.evaluate().
@@ -337,28 +355,24 @@ class Objective(object):
         """Yield a summary of the objective.
         """
         s = []
-        s.append("{:<15s}: {}".format("Objective:", pformat(self.doc)))
-        s.append("{:<15s}: {}".format("Query", pformat(self.query_key)))
-        s.append("{:<15s}: {}".format("Models", pformat(self.model_names)))
+        s.append("{:9s}{:<15s}: {}".format("", "Objective:", pformat(self.doc)))
+        s.append("{:9s}{:<15s}: {}".format("", "Query", self.query_key))
+        s.append("{:9s}{:<15s}: {}".format("", "Models", pformat(self.model_names)))
         if hasattr(self, 'model_weights'):
-            s.append("{:<15s}: {}".format("Model weights", 
-                    np.array2string(self.model_weights, precision=3, 
-                        suppress_small=True, max_line_width=100)))
-        s.append ("{:<15s}: {}".format("Reference data", 
-                    np.array2string(self.ref_data, precision=3,
-                        suppress_small=True, max_line_width=100)))
+            s.append("{:9s}{:<15s}: {}".format("", "Model weights", 
+                    arr2s(self.model_weights)))
+        s.append ("{:9s}{:<15s}: {}".format("", "Reference data", 
+                arr2s(self.ref_data)))
         if hasattr(self, 'subweights'):
-            s.append("{:<15s}: {}".format("Sub-weights", 
-                    np.array2string(self.subweights, precision=3,
-                        suppress_small=True, max_line_width=100)))
+            s.append("{:9s}{:<15s}: {}".format("", "Sub-weights", 
+                    arr2s(self.subweights)))
         #s.append ("Options:\n{}".format(pformat(self.options)))
-        if hasattr(self, 'model_data'):
-            s.append ('{:<15s}: {}'.format("Model data",
-                    np.array2string(self.model_data, 
-                        precision=3, suppress_small=True, max_line_width=100)))
-        s.append("{:<15s}: {:s} / {:s}".
-                format("Cost/Err. func.", self.costf.__name__, self.errf.__name__))
-        s.append("{:<15s}: {}".format("Weight", pformat(self.weight)))
+        if hasattr(self, 'Model_data'):
+            s.append ('{:9s}{:<15s}: {}'.format("", "Model data",
+                    arr2s(self.model_data)))
+            s.append("{:9s}{:<15s}: {:s} / {:s}".
+                format("", "Cost/Err. func.", self.costf.__name__, self.errf.__name__))
+            s.append("{:9s}{:<15s}: {}".format("", "Weight", pformat(self.weight)))
         return "\n"+"\n".join(s)
 
 
@@ -721,7 +735,7 @@ def get_refdata(data):
                 print ('`data` should be np.array, list, value, or dict, but it is not.')
                 raise
 
-def get_objective(spec):
+def get_objective(spec, **kwargs):
     """Return an instance of an objective, as defined in the input spec.
 
     Args:
@@ -745,11 +759,11 @@ def get_objective(spec):
         nmod = len(m_names)
     spec['type'] = spec.get('type', get_type(nmod, spec['ref_data']))
     #   print (spec['type'], spec['query'])
-    objv = objectives_mapper.get(spec['type'], ObjValues)(spec)
+    objv = objectives_mapper.get(spec['type'], ObjValues)(spec, **kwargs)
     #print (objv)
     return objv
 
-def set_objectives(spec):
+def set_objectives(spec, **kwargs):
     """Parse user specification of Objectives, and return a list of Objectives for evaluation.
 
     Args:
@@ -763,6 +777,7 @@ def set_objectives(spec):
     objectives = []
     # the spec list has definitions of different objectives
     for item in spec:
-        objectives.append(get_objective(item))
+        objv = get_objective(item, **kwargs)
+        objectives.append(objv)
     return objectives
 

@@ -31,18 +31,18 @@ class SKOPT(object):
 
         # parse input file
         self.logger.info('Parsing input file {}'.format(infile))
-        tasks, objectives, optimisation = parse_input(infile)
+        tasks, objectives, optimisation = parse_input(infile, verbose=verbose)
 
         # instantiate the evaluator machinery
         self.logger.info('Instantiating Evaluator')
-        self.evaluator   = Evaluator(objectives, tasks)
+        self.evaluator   = Evaluator(objectives, tasks, verbose=verbose)
 
         # instantiate the optimiser
         if optimisation is not None:
             self.do_optimisation = True
             algo, options, parameters = optimisation
-            self.logger.info('Instantiating optimiser')
-            self.optimiser  = Optimiser(algo, parameters, self.evaluator, **options)
+            self.logger.info('Instantiating Optimiser')
+            self.optimiser  = Optimiser(algo, parameters, self.evaluator, verbose=True, **options)
         else:
             self.do_optimisation = False
 
