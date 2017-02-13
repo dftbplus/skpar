@@ -11,8 +11,9 @@ objective typically is associatedd with multiple data items itself.
 Each objective is scalarized, meaning that it is evaluated to a 
 single scalar that represents its own cost or fitness. 
 Each objective is assigned a weight, corresponding to its relative 
-significance; weights are automatically normalised. A good review 
-of the mathematical formulation is found here [MOO-review]_.
+significance; weights are automatically normalised. 
+Marler and Arora provide a good review on multi-objective
+optimisation [MOO-review]_.
 
 The declaration of an objective establishes a way for a direct 
 comparison between some reference data and some model data.
@@ -104,18 +105,18 @@ Doc-string (:code:`doc`)
 ----------------------------------------------------------------------
 This is an optional description -- preferably very brief, which would
 be used in reporting the individual fitness of the objective, and
-also as a unique identifier of the objective.
-If not specified, SKOPT will assign it a random number.
+also as a unique identifier of the objective (complementary to its
+index in the list of objectives).
+If not specified, SKOPT will assign the following doc-string automatically:
+``doc: "model_name: query_item"``.
 
 
 Model Name(s) (:code:`models`)
 ----------------------------------------------------------------------
 This is a single name, or a list of names given by the user, and is
 a mandatory field. A model name given here must be available in the
-model database. 
-This is established by the definition of a get-task -- the available
-model names are those that are seen by SKOPT as destinations of 
-declared :ref:`get_tasks`).
+model database. For this to happen, the model must appear as a 
+*destination* of a Get-Task declaration (see :ref:`get_tasks`).
 
 Beyond a single model name and a list of model names, SKOPT supports
 also a list of pairs -- [model-name, model-factor].
@@ -123,14 +124,14 @@ In such a definition, the data of each model is scaled by the
 model-factor, and a summation over all models is done, prior to 
 comparison with reference data.
 
-So, the three (nonequivalent) ways in which models can be specified is:
+Therefore, the three (nonequivalent) ways in which models can be specified are:
 
 .. code-block:: yaml
 
     objectives:
         - query:
             # other fields
-            models: name
+            models: name   # or [name, ]
             # or
             models: [name1, name2, name3..., nameN]
             # or
@@ -177,14 +178,14 @@ Typical loader-arguments are:
     * :code:`dtype: {names: ['keys', 'values'], formats: ['S15', 'float']}` -- loads string-float pairs; 
       mandatory when the reference data file consists of key-value pairs per line.
 
-The ``process`` options are interpreted only for 2D array data, and are
-as follows:
+The ``process`` options are interpreted only for 2D array data (ignored
+otherwise), and are as follows:
     
     * :code:`rm_columns: index, list_of_indices, or, range_specification`
     * :code:`rm_rows:    index, list_of_indices, or, range_specification`
     * :code:`scale:      scale_factor`
 
-The indexes apply to the rows and columns of the file, and are therefore 
+**NOTABENE:** The indexes apply to the rows and columns of the file, and are therefore 
 independent of the loader arguments (i.e. prior to potential transpose 
 of the data). The indexes and index ranges are Fortran-style -- counting 
 from 1, and inclusive of boundaries.
@@ -212,94 +213,59 @@ modified here. Currently only Root-Mean-Squared Deviation is supported,
 but one may choose whether absolute or relative deviations are used.
 The field is optional and defaults to RMS of absolute deviations.
 
+Options : (:code:`options`)
+----------------------------------------------------------------------
+Options depend on the type of objective.
+One common option is ``subweights``, which allows the user to specify
+the relative importance of each data-item in the reference data.
+These sub-weights are used in the cost-function representing the
+individual objective. 
 
+For details, see the sub-weights associated with different 
+:ref:`types of objectives` below.
 
-
-4. **Objective type** is deduced from *Format of reference data* in 
-   combination with the *number of model names* (from the MDB) that
-   are associated with the objective.
-
-   The type of reference data could be:
-
-    * 1-D array: e.g. the energy values of an energy-volume relation 
-      of a solid
-
-    * 2-D array: e.g. the band-structure of a solid (the set of 
-      eigenstates at different *k*-number.
-
-    * key-value pairs: e.g. named physical quantities, like effective
-      masses, specific E-k points within the first Brilloin zone, etc.
-
-
-5. **Correspondence between model data and reference data** may be non 
-   trivial when the data has the character of a band-structure, i.e. 
-   is 2D array. In this case correspondence can be established via 
-   *use*, and *align* clauses, as in the example YAML code below.
-   These clauses should be in the 'options' block of the declaration of
-   an objective, as indicated.
-
-    * `use_ref` or `use_model` (retain only enumerated bands)
-
-      Example::
-          .. code:: yaml
-
-            options:
-                use_ref: [[1, 4]]         # fortran-style index-bounds of bands to use
-                use_model: [[1, 4]]
-                align_ref: [4, 105]       # fortran-style index of band and k-point,
-                align_model: [4, max]     # or a function (e.g. min, max) instead of k-point
-
-   A *filter* clause may be added in the future.:
-
-    * 'filter' (remove enumerated entries)
-
-      Example::
-          .. code:: yaml
-
-            filter:
-                columns: 1                # e.g. filter k-point enumeration, and bands, potentially
-                rows   : [18,36], [1,4]   # filter k-points if needed for some reason
- 
-
-    In any case, the final comparison (model vs objective) is over
-    arrays of identical shape.
-    Naturally, sub-weight array is of the same shape.
-
-6. **Correspondence between sub-weights and data**, per data item, is
-   established **after** the application of ``use`` and ``align`` 
-   clauses from the declaration of the objective.
-   When selection for applying sub-weights is based on data values,
-   the values considered are with respect to the new alignment, i.e.
-   after the application of the ``align`` clause.
-
-7. **Index counting** starts from 1, and index ranges are inclusive of
-   both boundaries, i.e. FORTRAN-style is used.
+.. _`types of objectives`:
 
 
 Objective Types
 ======================================================================
 
-**1) Single reference value, single model (underlying class: `ObjValues`)** 
+There are five types of objectives -- the type is deduced from the
+combination of *format of the reference data* and *number of model names*.
+
+The type of reference data could be:
+
+    * 1-D array: e.g. the energy values of an energy-volume relation 
+      of a solid
+
+    * 2-D array: e.g. the band-structure of a solid (the set of 
+      eigenstates at different *k*-number).
+
+    * key-value pairs: e.g. named physical quantities, like effective
+      masses, specific E-k points within the first Brilloin zone, etc.
+
+
+1) Single reference item, single model
 -----------------------------------------------------------------------------------------
 
     Example::
-        .. code:: yaml
+        .. code-block:: yaml
 
-            objectives:
-                - band_gap:
-                    doc: "Band gap of Si (diamond)"
-                    models: Si/bs
-                    ref: 1.12
-                    weight: 3.0
+            - band_gap:
+                ref: 1.12
+                models: Si/bs
 
-**2) Single reference value, multiple models (underlying class: `ObjWeightedSum`)**
+2) Single reference item, multiple models
 -----------------------------------------------------------------------------------------
 
-    There are multiple models, each weighted individually and queried
-    for a single-valued item. Reference data is a single value.
+    All of the models are queried individually for the same query-item, and the result
+    is scaled by the non-normalised model-weights or model factors, prior to performing
+    summation over the data, to produce a single scalar.
+    Reference data is a single value too.
 
     Example::
-        .. code:: yaml
+
+        .. code-block:: yaml
 
             - Etot:
                 doc: "heat of formation, SiO2"
@@ -308,15 +274,17 @@ Objective Types
                     - [Si/scc, -0.5] 
                     - [O2/scc, -1]
                 ref: 1.8 
-                weight: 1.2
 
-**3) Multiple reference values, multiple models (underlying class: `ObjValues`)**
+3) Multiple reference items, multiple models
 -----------------------------------------------------------------------------------------
 
     A single query per model is performed, over several models.
 
+    The admitted option is ``subweights`` -- a list of floats, being normalised 
+    weighting coefficients in the cost function of the objective.
+
     Example::
-        .. code:: yaml
+        .. code-block:: yaml
 
             - Etot:
                 models: [Si/scc-1, Si/scc, Si/scc+1,]
@@ -324,18 +292,24 @@ Objective Types
                 options:
                     subweights: [1., 3., 1.,]
 
-**4) Key-value reference pairs, single model (underlying class: `ObjKeyValuePairs`)**
+4) Key-value reference pair items, single model
 -----------------------------------------------------------------------------------------
 
     A number of queries are made over a single model. 
     The reference is a dictionary of key-value pairs.
-    The name of the objective (*meff* below) has a non-deterministic 
-    meaning, since the queries are based on the keys from the reference data.
-    Actually, only a subset of queries are performed, based on the 
-    reference items with non-zero sub-weights -- see below.
+    The name of the objective (*meff* below) has a generic meaning, and is *not* defining 
+    the query items.
+    The queries are based on the keys from the reference data.
+    
+
+    The admitted option is ``subweights``, and its value must be a dictionary associating
+    a weighting coefficient with a key.
+    One of the subweight-keys is 'dflt', allowing to specify a weight over all keys.
+    Eventually, the subweights are normalised.
+    Note however, that a key is excluded from query if its sub-weight is 0.
     
     Example::
-        .. code:: yaml
+        .. code-block:: yaml
 
             - meff: 
                 doc: Effective masses, Si
@@ -356,8 +330,37 @@ Objective Types
                         mh_GX_0: 1.
                 weight: 1.5
 
-**5) Reference Bands, single model (underlying class: `ObjBands`)**
+5) Reference Bands, single model
 ----------------------------------------------------------------------
+
+**Correspondence between model data and reference data** may be non 
+   trivial when the data has the character of a band-structure, i.e. 
+   is 2D array. In this case correspondence can be established via 
+   *use*, and *align* clauses, as in the example YAML code below.
+   These clauses should be in the 'options' block of the declaration of
+   an objective, as indicated.
+
+    * `use_ref` or `use_model` (retain only enumerated bands)
+
+      Example::
+          .. code:: yaml
+
+            options:
+                use_ref: [[1, 4]]         # fortran-style index-bounds of bands to use
+                use_model: [[1, 4]]
+                align_ref: [4, 105]       # fortran-style index of band and k-point,
+                align_model: [4, max]     # or a function (e.g. min, max) instead of k-point
+
+    In any case, the final comparison (model vs objective) is over
+    arrays of identical shape.
+    Naturally, sub-weight array is of the same shape.
+
+6. **Correspondence between sub-weights and data**, per data item, is
+   established **after** the application of ``use`` and ``align`` 
+   clauses from the declaration of the objective.
+   When selection for applying sub-weights is based on data values,
+   the values considered are with respect to the new alignment, i.e.
+   after the application of the ``align`` clause.
 
     Bands are sets of sequences of indexed values, typically 
     representing a family of functions evaluated at a single 
