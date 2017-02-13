@@ -718,9 +718,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
                     loader_args: {unpack: False}
                     process:
                         rm_columns: 1
-                options:
-                    errf:  relerr
-                    costf: RMS
+                eval: [RMS, relerr]
         """
         # set model data
         db1 = {}

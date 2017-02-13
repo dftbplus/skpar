@@ -292,20 +292,11 @@ class Objective(object):
         self.model_weights = spec['model_weights']
         self.ref_data = spec['ref_data']
         _costf, _errf = spec.get('eval', [DEFAULT_COST_FUNC, DEFAULT_ERROR_FUNC])
-        self.costf = costf[_costf]
-        self.errf  = errf [_errf ]
+        self.costf = costf[_costf.lower()]
+        self.errf  = errf [_errf.lower()]
         # optional fields
         self.weight = spec.get('weight', 1)
         self.options = spec.get('options', None)
-        if self.options is not None:
-            try:
-                self.costf = costf[self.options['costf'].lower()]
-            except KeyError:
-                pass
-            try:
-                self.errf = errf[self.options['errf'].lower()]
-            except KeyError:
-                pass
         dfltdoc = "{}: {}".format(self.query_key, pformat(self.model_names))
         self.doc = spec.get('doc', dfltdoc)
         # further definitions of set/get depend on type of objective
