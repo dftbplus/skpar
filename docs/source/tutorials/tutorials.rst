@@ -143,7 +143,7 @@ The corresponding ``skopt_in.yaml`` is below, with comment annotations:
 
 .. _`tutorial-3`:
 
-Opitmisation of repulsive potentials for DFTB
-==================================================
+Tutorial 3 -- Opitmisation of repulsive potentials in DFTB
+============================================================
 
 .. _`test_optimise.yaml`: ../../../../test/test_optimise.yaml
