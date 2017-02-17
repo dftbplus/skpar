@@ -33,7 +33,7 @@ Input YAML file
 ------------------------------
 
 In this example we try to fit a 3-rd order polynomial to a few points 
-extracted from a such a polynomial.
+extracted from such a polynomial.
 
 The setup of SKOPT consists of 4 items:
 

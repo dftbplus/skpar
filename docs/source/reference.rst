@@ -6,8 +6,17 @@
 Input File Reference
 ========================================
 
-This reference covers the SKOPT input file -- the sections of the reference
-correspond to sections in the input file:
+SKOPT is controlled by an input file in `YAML`_. The filename is given as 
+an argument to the ``skopt`` command (e.g. ``skopt skopt_in.yaml``).
+Examples of input files can be seen in :ref:`tutorials`, while here we
+provide the full details.
+
+.. _`YAML`: http://pyyaml.org/wiki/PyYAMLDocumentation
+
+The input file must contain the following four sections, which are
+covered in this reference. The sections of the reference correspond to 
+sections in the input file.
+
 
 .. code-block:: yaml
 
@@ -20,8 +29,9 @@ correspond to sections in the input file:
     optimisation:
         # optimisation strategy
 
+    # optional
     executables:
-        # alisaes of executable commands used in tasks
+        # alises of executable commands used in tasks
 
 
 .. toctree::

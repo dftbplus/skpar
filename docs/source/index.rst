@@ -30,11 +30,11 @@ Contents
    about
    install
    commands
-   reference
    tutorials/tutorials
+   reference
    modules
-   develop
    license
+   develop
    contributors
 
 

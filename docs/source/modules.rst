@@ -3,7 +3,7 @@
 .. _skopt:
 
 =====================================
-Subpackages and modules
+Subpackage/module Reference
 =====================================
 
 SKOPT currently includes the following sub-packages:

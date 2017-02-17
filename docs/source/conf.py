@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SKOPT'
-copyright = u'2016, Stanislav Markov, The University of Hong Kong'
+copyright = u'2013 - 2016, Stanislav Markov, The University of Hong Kong'
 author = u'Stanislav Markov, The University of Hong Kong'
 
 # The version info for the project you're documenting, acts as replacement for

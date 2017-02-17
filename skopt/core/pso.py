@@ -1,59 +1,75 @@
 """
 Particle Swarm Optimizer (PSO)
+======================================================================
 
 
-## Particles
+Particles
+----------------------------------------------------------------------
 
 In PSO, a particle represents a set of parameters to be optimised. 
 Each parameter is therefore a degree of freedom of the particle.  
-Each particle is represented by its coordinate value. Additionally it needs several attributes:
+Each particle is represented by its coordinate value. 
+Additionally it needs several attributes:
     
-    * fitness (the quality of the set of parameters) -- e.g. RMS deviation
+    * fitness -- the quality of the set of parameters
+    
     * speed -- how much the position of the particle changes from one generation to the next
-    * smin/smax -- speed limits
-    * best -- particles own best position (i.e. with highest fitness)
 
+    * smin/smax -- speed limits (observed only initially, in the current implementation)
 
-## Particle normalisaton/re-normalisation
+    * best -- particles own best position (i.e. with best fitness)
 
-Additionally to the above generic PSO-related attributes, we need to introduce position normalisation as follows.  
-The parameters giving the particle coordinates are with different meaning, magnitudes and units.
-However, to keep the PSO generic, it is best to impose identical scale in each dimension,
-so that particle range is the same in each direction.  
-This is achieved by normalising the parameters so that the particle position in each dimension is between -1 and +1.  
-However, when evaluating the fitness of the particle, we need the renormalised values 
-(i.e. the true values of the parameters).  
+Particle normalisaton/re-normalisation 
+----------------------------------------------------------------------
+
+Additionally to the above generic PSO-related attributes, we need to 
+introduce position normalisation as follows. The parameters giving the 
+particle coordinates may be with different physical meaning, magnitudes 
+and units. However, to keep the PSO generic, it is best to impose identical 
+scale in each dimension, so that particle range is the same in each direction.  
+This is achieved by normalising the parameters so that the particle position 
+in each dimension is between -1 and +1. However, when evaluating the fitness 
+of the particle, we need the renormalised values (i.e. the true values of 
+the parameters).  
 
 Hence we introduce three additional attributes:
     
-* norm -- a list with the scaling factors for each dimension ($\eta$),
-* shift -- offset of the parameter range from 0 ($\sigma$),
-* renormalized -- the true value of the parameters ($\lambda$) represented by the particle.
+    * norm -- a list with the scaling factors for each dimension (:math:`\eta`),
+
+    * shift -- offset of the parameter range from 0 (:math:`\sigma`),
+
+    * renormalized -- the true value of the parameters (:math:`\lambda`) represented by the particle.
 
 The user must supply only the true range of the particle in the form of a tuple, 
-per dimension ($\lambda_{min}$,$\lambda_{max}$).  
-Then $(\lambda_{max}-\lambda_{min})\eta = 2.0$, or, 
-$\eta = 2.0/(\lambda_2-\lambda_1)$, and 
-$\sigma = 0.5*(\lambda_{max}+\lambda_{min})$.
+per dimension, e.g. :math:`(\lambda_{min}, \lambda_{max})`.  
+
+Then :math:`(\lambda_{max}-\lambda_{min})\eta = 2.0`, or, 
+:math:`\eta = 2.0/(\lambda_2-\lambda_1)`, and 
+:math:`\sigma = 0.5*(\lambda_{max}+\lambda_{min})`.
 
 So, the true particle position (for evaluations) is 
-$\lambda = P/\eta + \sigma$, 
-where $P$ is the normalised position of the particle.
+:math:`\lambda = P/\eta + \sigma`, 
+where :math:`P` is the normalised position of the particle.
 
 
 ## Using particles
 
-Below, we have the declaration of the particle class and a couple of methods for creation and evolution of the particle based on the PSO algorithm.   
+Below, we have the declaration of the particle class and a couple of methods for 
+creation and evolution of the particle based on the PSO algorithm.   
 
-__Note that the evaluation of the fitness of the particle is problem specific and the user must supply its own evaluation function and register it under the name ``'evaluate' `` with the toolbox.__
+Note that the evaluation of the fitness of the particle is problem specific and 
+the user must supply its own evaluation function and register it under the name 
+``evaluate`` with the toolbox.
 
 
-## Particle Swarm
+Particle Swarm
+----------------------------------------------------------------------
 
 The swarm is a a list of particles, with a couple of additional attributes:
     
-    * ``gbest `` -- globally the best particle (position) ever (i.e. accross any generation so far)
-    * ``gbestfit `` -- globally the best fitness (i.e. the quality value of gbest)   
+    * ``gbest`` -- globally the best particle (position) ever (i.e. accross any generation so far)
+
+    * ``gbestfit`` -- globally the best fitness (i.e. the quality value of gbest)   
 
 The swarm is declared, created and let to evolve with the help of the ``PSO`` class.
 """
@@ -126,7 +142,6 @@ def createParticle(prange):
 
 def evolveParticle_0(part, best, phi1=2, phi2=2):
     """
-    _NOTA__BENE_
     This is the implementation shown in the examples of the DEAP library.
     The inertial factor is 1.0 (implicit) and seems to be too big.
     Phi1/2 are also somewhat bigger than the Psi/Ki resulting from the optimal
@@ -163,13 +178,20 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
     "Encyclopedia of Machine Learning" (2010), which is equivalent to Eqs(3-4) of
     'Particle swarm optimization: an overview'. Swarm Intelligence. 2007; 1: 33-57.
     Arguments:
-        part -- instance of the particle class, the particle to be updated
-        best -- the best known particle ever (within the life of the swarm)
-        inertia -- factor scaling the persistence of the particle
-        acceleration -- factor scaling the influence of particle connection
-        degree -- unused right now. should serve for a fully informed particle swarm (FIPS),
-                  but this requires best to become a list of neighbours best;
-                    also u1,u2 and v_u1, v_u2 should be transformed into a Sum over neighbours
+
+        * part -- instance of the particle class, the particle to be updated
+
+        * best -- the best known particle ever (within the life of the swarm)
+
+        * inertia -- factor scaling the persistence of the particle
+
+        * acceleration -- factor scaling the influence of particle connection
+
+        * degree -- unused right now; should serve for a fully informed particle swarm (FIPS),
+
+        but this requires best to become a list of neighbours best;
+        also u1,u2 and v_u1, v_u2 should be transformed into a Sum over neighbours
+
     Returns the updated particle
     """
     if degree != 2:
