@@ -1,0 +1,38 @@
+tasks:
+    - set: [current.par, test_optimise, template.parameters.py ]
+    - run: [mypy model_poly3.py, test_optimise ]
+    - get: [get_model_data, test_optimise/model_poly3_out.dat,  poly3, yval]
+    - get: [get_model_data, test_optimise/model_poly3_out.dat,  poly3-2, yval]
+    - get: [get_model_data, test_optimise/model_poly3_xval.dat, poly3, xval]
+    - get: [get_model_data, test_optimise/model_poly3_xval.dat, poly3-2, xval]
+    - plot: [plot_objvs, 'test_optimise/pdf/polyfit1', [1], xval] 
+    - plot: [plot_objvs, 'test_optimise/pdf/polyfit2', [[yval, poly3]], xval] 
+    - plot: [plot_objvs, 'test_optimise/pdf/polyfit3', [[yval, poly3], [yval, poly3-2]], xval,
+                    {color: ['r', 'b'], marker:[None, 'o']}]
+
+objectives:
+    - yval:
+        doc: 3-rd order polinomial values for some values of the argument
+        models: poly3
+        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+        eval: [rms, relerr]
+
+    - yval:
+        doc: 3-rd order polinomial values for some values of the argument
+        models: poly3-2
+        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+        eval: [rms, relerr]
+
+optimisation:
+    algo: PSO   # particle swarm optimisation
+    options:
+        npart: 1 #4   # number of particles
+        ngen : 1 #5   # number of generations
+    parameters:
+        - c0:  5 15 #9.95    10.05
+        - c1: -2.49    -2.51
+        - c2:  0.499    0.501
+        - c3:  0.0499   0.0501
+
+executables:
+    mypy: 'python'

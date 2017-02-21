@@ -11,9 +11,8 @@ import sys
 from skopt.core.utils      import normalise, get_logger
 from skopt.core.objectives import set_objectives
 from skopt.core.query      import Query
-from skopt.core.tasks      import set_tasks
+from skopt.core.tasks      import set_tasks, PlotTask
 from skopt.core.optimise   import get_optargs
-from skopt.core import tasks
 
 module_logger = get_logger('skopt.input')
 
@@ -53,4 +52,10 @@ def parse_input(filename, verbose=False):
     #module_logger.debug("Parse input parnames  : {}".format(parnames))
     tasks      = set_tasks      (spec['tasks'], exedict, parnames)
     objectives = set_objectives (spec['objectives'], verbose=verbose)
+    # Any dependencies of tasks on objectives or vice virsa could be 
+    # resolved here, before proceeding with execution
+    # Plot-task depend on objectives, i.e. need references to objectives
+    for task in tasks:
+        if isinstance(task, PlotTask):
+            task.pick_objectives(objectives)
     return tasks, objectives, optargs

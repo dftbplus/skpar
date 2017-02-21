@@ -6,7 +6,7 @@ from os.path import split as splitpath
 from subprocess import STDOUT
 from pprint import pprint, pformat
 from skopt.core.query import Query
-from skopt.core.taskdict import gettaskdict
+from skopt.core.taskdict import gettaskdict, plottaskdict
 from skopt.core.parameters import update_parameters
 from skopt.core.utils import get_logger
 
@@ -190,8 +190,6 @@ class SetTask (object):
         self.kwargs['parfile'] = self.parfile
         self.kwargs['parnames'] = self.parnames
         self.kwargs['templates'] = self.templates
-        #self.kwargs['logger'] = self.logger
-        self.kwargs['templates'] = self.templates
         # report task initialisation
         # self.logger.debug(self.__repr__())
 
@@ -213,8 +211,9 @@ class SetTask (object):
         s = []
         s.append("{:9s}{:<15s}: {}".format("", "SetTask via", pformat(self.func.__name__)))
         s.append("{:9s}{:<15s}: {}".format("", "Param. file", os.path.relpath(self.parfile)))
-        s.append("{:9s}{:<15s}: {}".format("", "Templ. files", 
-            " ".join(["{}".format(os.path.relpath(ff)) for ff in self.templates])))
+        if self.templates:
+            s.append("{:9s}{:<15s}: {}".format("", "Templ. files", 
+                " ".join(["{}".format(os.path.relpath(ff)) for ff in self.templates])))
         if self.parnames:
             s.append("{:9s}{:<15s}: {}".format("", "Param. names", pformat(self.parnames)))
         return '\n'+'\n'.join(s)
@@ -224,7 +223,6 @@ class GetTask (object):
     """Wrapper class to declare tasks w/ arguments but calls w/o args"""
     def __init__(self, func, source, destination, *args, **kwargs):
         self.func = func
-        #self.logger = kwargs.get('logger', logging.getLogger(__name__))
         self.logger = module_logger
         assert isinstance (source, str)
         self.src_name = source
@@ -258,6 +256,141 @@ class GetTask (object):
         s.append("{:9s}{:<15s}: {:<15s} {:>10s} {:s}".format("", "from", 
             os.path.relpath(self.src_name), "to :", os.path.relpath(self.dst_name)))
         s.append("{:9s}{:<15s}: {}".format("", "args", pformat(self.args)))
+        s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
+        return '\n'+'\n'.join(s)
+
+
+class PlotTask (object):
+    """Wrapper class to plot model and reference data associated with an objective."""
+
+    def __init__(self, func, plotname, objectives, abscissa_key, **kwargs):
+        self.func = func
+        self.logger = module_logger
+        # How to get the ordinates: from objectives 
+        # Notabene: the tasks do not have direct visibility of objectives
+        # In fact, objectives may not be declared/initialise at the time 
+        # of PlotTask initialisation.
+        # Therefore, a higher authority must deal with the assignment.
+        # Here we can only record users selection rules.
+        if isinstance(objectives, list):
+            self.objv_selectors = objectives
+        else:
+            self.objv_selectors = [objectives, ]
+        # How to get the abscissas: assume a get-task put it in the model DB
+        # We can declare queries, but first we need to have reference to
+        # the model_names associated with an objective -> again, a higher
+        # authority is needed, who must call the self.pick_objectives
+        self.abscissa_key = abscissa_key
+        self.absc_queries = []
+        # how to make up the plot nam
+        self.plotname = plotname
+        # these pertain to the back end plotting routine (e.g. matplotlib)
+        # so pass them directly upon call
+        self.kwargs = kwargs
+
+    def pick_objectives(self, objectives):
+        """Get the references corresponding to the objective tags.
+        """
+        if isinstance(self.objv_selectors[0], int):
+            # Since objectives are declared via a list, indexing is viable
+            # option for their selection, but may fail if objectives are
+            # updated, while the plot task not, etc.
+            # -1 below is to allow Fortran indexing by user, starting from 1
+            self.objectives = [objectives[ix-1] for ix in self.objv_selectors]
+        else:
+            # The more general option assumes [(query_key, model_names), ...]
+            # This may capture more than one objectives, but should be OK, since
+            # in such a case the type of data will be the same
+            assert len(self.objv_selectors[0])==2, self.objv_selectors[0]
+            self.objectives = []
+            for objv in objectives:
+                for item in self.objv_selectors:
+                    keys, models = item
+                    self.logger.info((keys, models))
+                    self.logger.info((objv.query_key, objv.model_names))
+                    if objv.query_key == keys and objv.model_names == models:
+                        self.objectives.append(objv)
+        # Once we have the objectives, we know also their model names
+        for item in self.objectives:
+            self.absc_queries.append(Query(item.model_names, self.abscissa_key))
+
+    def plot(self, name, xx_in, yy_in, sw, **kwargs):
+        """Wrapper of the actual plot function, that pre-processes the kwargs.
+        """
+        # expect one color for ref and one color for model
+        color = kwargs.get('color', 'blue')
+        if isinstance(color, str):
+            color = [color, color]
+        else:
+            assert len(color)==2, color
+        # expect one marker for ref and one marker for model
+        marker = kwargs.get('marker', None)
+        if isinstance(marker, str):
+            marker = [marker, marker]
+        y1, y2 = zip(*yy_in)
+        colors  = [color[0]]*len(y1)+[color[1]]*len(y2)
+        if marker is not None:
+            assert len(marker)==2, marker
+            markers = [marker[0]]*len(y1)+[marker[1]]*len(y2)
+        else:
+            markers = [None]*len(colors)
+        # Parse yy; we may have different types:
+        # e.g. float array (1-D or 2-D) vs key-value pairs 
+        # The  former should be shown as lines or lines+markers,
+        # while the latter should be shown as scatter plot
+        yy = y1 + y2
+        xx = xx_in + xx_in
+        assert len(xx) == len(yy), (len(xx), len(yy))
+        self.logger.info((len(xx), len(yy)))
+        for l1, l2 in zip(xx, yy):
+            self.logger.info((l1.ndim, l2.ndim))
+        # What to do with subweights? create psuedo-lines coloured by subweights?
+        # Ignore for the moment
+        #
+        # call the actual plotting routine
+        self.func(name, xx, yy, colors, markers, title='name')
+
+    def __call__(self, iteration):
+        """Prepare data for the plot and tag the plot-name with iteration.
+        """
+        abscissas  = []
+        ordinates  = []
+        subweights = []
+        # get xy for plotting
+        for i, item in enumerate(self.objectives):
+            # keep the subweights separate
+            objvdata = item.get()
+            ordinates.append(objvdata[:2]) # model_data, ref_data
+            subweights.append(objvdata[2])
+            abscissas.append(self.absc_queries[i]())
+        # tag the plot-name by iteration
+        if iteration is not None:
+            try:
+                # should work if iteration is a tuple
+                plotname = "{:s}_{:d}-{:d}".format(self.plotname, *iteration)
+            except TypeError:
+                # if iteration is a single integer, rather than a sequence
+                plotname = "{:s}_{:d}".format(self.plotname, iteration)
+        else:
+            plotname = self.plotname
+        # try to plot
+        self.plot(plotname, abscissas, ordinates, subweights, **self.kwargs)
+        
+    def __repr__(self):
+        """Yield a summary of the task.
+        """
+        s = []
+        s.append("{:9s}{:<15s}: {} ".format("", "PlotTask", self.func.__name__))
+        s.append("{:9s}{:<15s}: {} ".format("", "func", self.func))
+        s.append("{:9s}{:<15s}: {} ".format("", "plot-name", self.plotname))
+        s.append("{:9s}{:<15s}: {} ".format("", "abscissas", self.abscissa_key))
+        try:
+            s.append("{:9s}{:<15s}: {} ".format("", "ordinates", 
+                '\n{:9s}'.join(["{}: {}".format(item.query_key, item.model_names) 
+                    for item in self.objectives])))
+        except AttributeError:
+            s.append("{:9s}{:<15s}: {} ".format("", "objectives", 
+                '\n{:9s}'.join(["{}".format(item) for item in self.objv_selectors])))
         s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
         return '\n'+'\n'.join(s)
 
@@ -325,6 +458,29 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
             # 4. Register the task in the task-list
             try: 
                 tasklist.append(GetTask(*taskargs, **optkwargs))
+            except TypeError:
+                # end up here if unknown task type, which is mapped to None
+                logger.debug ('Cannot handle the following task specification:')
+                logger.debug (spec)
+                raise
+        if 'plot' == tasktype.lower():
+            assert len(taskargs) >= 4,\
+                "A plot task must have at least 4 arguments:"\
+                "PlotFunction, Plotname, Objectives, Abscissa-Key, Optional kwargs"
+            # 1. Assign the real function to 1st arg
+            func = plottaskdict[taskargs[0]]
+            taskargs[0] = func
+            # 2. Check if we have optional dictionary of arguments
+            if isinstance(taskargs[-1], dict):
+                optkwargs = taskargs[-1]
+                optkwargs.update(kwargs)
+                del taskargs[-1]
+            else:
+                optkwargs = kwargs
+            # 3. Register the task in the task-list
+            logger.info('PlotTask spec \n{}\n{}'.format(taskargs, optkwargs))
+            try:
+                tasklist.append(PlotTask(*taskargs, **optkwargs))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')

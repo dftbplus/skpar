@@ -22,3 +22,5 @@ y = polyval(x, c)
 #print (y)
 with open('model_poly3_out.dat', 'wb') as fh:
     np.savetxt(fh, y)
+with open('model_poly3_xval.dat', 'wb') as fh:
+    np.savetxt(fh, x)

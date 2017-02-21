@@ -3,7 +3,7 @@
 import logging
 import numpy as np
 from skopt.core.utils import get_logger, normalise
-from skopt.core.tasks import SetTask
+from skopt.core.tasks import SetTask, PlotTask
 
 module_logger = get_logger('skopt.evaluate')
 
@@ -143,7 +143,10 @@ class Evaluator (object):
         for ii, task in enumerate(self.tasks[jj:]):
             kk = ii + jj
             try:
-                task()
+                if isinstance(task, PlotTask):
+                    task(iteration)
+                else:
+                    task()
             except:
                 self.logger.critical('Evaluation FAILED at task {}:\n{}'.format(kk+1, task))
                 raise

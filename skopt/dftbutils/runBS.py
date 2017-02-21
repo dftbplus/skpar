@@ -30,6 +30,9 @@ def set_bands_parser(parser=None):
             '-n', "--dry_run", dest="dry_run", default=False, action="store_true", 
             help="Do not execute the tasks but print the tasklist.")
     parser.add_argument(
+            '-p', "--plot", dest="plot", default=False, action="store_true", 
+            help="Plot the band-structure.")
+    parser.add_argument(
             "-wd", dest='workdir', type=str, default='.', action="store", 
             help="(dflt: .) Working directory with atoms, scc/ and bs/")
     parser.add_argument(
