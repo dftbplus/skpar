@@ -6,7 +6,7 @@ from math import pi
 import numpy as np
 from collections import OrderedDict
 from skopt.dftbutils.lattice import Lattice, getSymPtLabel
-from skopt.dftbutils.querykLines import get_klines
+from skopt.dftbutils.querykLines import get_klines, get_kvec_abscissa
 
 logger = logging.getLogger(__name__)
 
@@ -208,9 +208,11 @@ def get_bandstructure(source, destination,
     if latticeinfo is not None:
         lattice = Lattice(latticeinfo)
         kLines, kLinesDict = get_klines(lattice, hsdfile=f3)
+        kvector = get_kvec_abscissa(lattice, kLines)
         data.update({'lattice': lattice, 
                     'kLines': kLines, 
-                    'kLinesDict': kLinesDict})
+                    'kLinesDict': kLinesDict,
+                    'kvector': kvector,})
         #logger.debug(data['lattice'])
         #logger.debug(data['kLines'])
         #logger.debug(data['kLinesDict'])

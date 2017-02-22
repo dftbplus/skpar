@@ -46,12 +46,34 @@ class Lattice(object):
         for k,v in self.SymPts_k.items():
             self.SymPts[k] = get_kvec(v, self.reciprv)
 
-    def get_kvec(self, beta):
-        return get_kvec(beta, self.reciprv)
+    def get_kcomp(self, string):
+        """Return the k-components given a string label or string set of fraction.
+
+        Example of string:
+
+            s = 'X'
+            s = '1/2 0 1/2'
+            s = '1/2, 0, 1/2'
+            s = '0.5 0 0.5'
+        """
+        try:
+            # assume it is a label
+            comp = self.SymPts_k[string]
+        except KeyError:
+            # assume it is a triplet of fractions (string)
+            # i.e. '1/3 1/2 3/8' or '1/4, 0.5, 0'
+            frac = string.replace(',', ' ').split()
+            assert len(frac) == 3
+            comp = [Fraction(f) for f in frac]
+        return np.array(comp)
+
+    def get_kvec(self, kpt):
+        """Return the real space vector corresponding to a k-point.
+        """
+        return get_kvec(kpt, self.reciprv)
 
     def __repr__(self):
         return repr_lattice(self)
-
 
 class CUB(object):
     """

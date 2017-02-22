@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     """
-    This routine analyses the KPointsAndWeighs stanza in the input file of DFTB+ 
+    This routine analyses the KPointsAndWeights stanza in the input file of DFTB+ 
     (given as an input argument *hsdfile*), and returns the k-path, based on 
     the lattice object (given as an input argument *lattice*).
     If the file name is not provided, the routine looks in the default 
@@ -103,3 +103,31 @@ def greekLabels(kLines):
     else:
         result = lbls
     return result
+
+def get_kvec_abscissa(lat, kLines):
+    """Return abscissa values for the reciprocal lengths corresponding
+    to the k-vectors derived from kLines.
+    """
+    xx = []
+    for item1, item2 in zip(kLines[:-1], kLines[1:]):
+        l1, i1 = item1
+        kp1 = lat.get_kcomp(l1)
+        l2, i2 = item2
+        kp2 = lat.get_kcomp(l2)
+        npts = i2 - i1
+        if npts > 1:
+            seglen = np.linalg.norm(lat.get_kvec(kp2-kp1))
+            delta = seglen/npts
+            xsegm = np.arange(0, seglen, delta)
+        else:
+            seglen = 0
+            delta  = 0
+            xsegm  = np.zeros(2)
+        #print ('{}, {}, {}, {}, {}'.format(l1, l2, seglen/(2*pi), delta/(2*pi), xsegm/(2*pi)))
+        print ('{:>5s} -- {:5s}: {:.5f} / {:.5f}'.format(l1, l2, seglen, delta))
+        if xx:
+            xx.append(xsegm + xx[-1][-1])
+        else:
+            xx.append(xsegm)
+    xx = np.concatenate(xx)
+    assert xx.shape == (kLines[-1][-1]+1,), xx.shape
