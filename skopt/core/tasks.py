@@ -3,6 +3,7 @@ import os, sys, subprocess
 from os.path import abspath, normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
+import numpy as np
 from subprocess import STDOUT
 from pprint import pprint, pformat
 from skopt.core.query import Query
@@ -10,7 +11,6 @@ from skopt.core.taskdict import gettaskdict, plottaskdict
 from skopt.core.parameters import update_parameters
 from skopt.core.utils import get_logger
 
-#module_logger = logging.getLogger('skopt.tasks')
 module_logger = get_logger('skopt.tasks')
 
 def islistofstr(arg, msg=None, dflt=None):
@@ -306,13 +306,12 @@ class PlotTask (object):
             for objv in objectives:
                 for item in self.objv_selectors:
                     keys, models = item
-                    self.logger.info((keys, models))
-                    self.logger.info((objv.query_key, objv.model_names))
                     if objv.query_key == keys and objv.model_names == models:
                         self.objectives.append(objv)
         # Once we have the objectives, we know also their model names
-        for item in self.objectives:
-            self.absc_queries.append(Query(item.model_names, self.abscissa_key))
+        if self.abscissa_key is not None:
+            for item in self.objectives:
+                self.absc_queries.append(Query(item.model_names, self.abscissa_key))
 
     def plot(self, name, xx_in, yy_in, sw, **kwargs):
         """Wrapper of the actual plot function, that pre-processes the kwargs.
@@ -341,9 +340,6 @@ class PlotTask (object):
         yy = y1 + y2
         xx = xx_in + xx_in
         assert len(xx) == len(yy), (len(xx), len(yy))
-        self.logger.info((len(xx), len(yy)))
-        for l1, l2 in zip(xx, yy):
-            self.logger.info((l1.ndim, l2.ndim))
         # What to do with subweights? create psuedo-lines coloured by subweights?
         # Ignore for the moment
         #
@@ -359,10 +355,20 @@ class PlotTask (object):
         # get xy for plotting
         for i, item in enumerate(self.objectives):
             # keep the subweights separate
-            objvdata = item.get()
-            ordinates.append(objvdata[:2]) # model_data, ref_data
+            objvdata = item.get()  # model_data, ref_data, subweights
+            # make sure ordinates are first, so as to plot ref below model
+            ordinates.append((objvdata[1], objvdata[0])) # ref_data, model_data
             subweights.append(objvdata[2])
-            abscissas.append(self.absc_queries[i]())
+            # may be we can do this once only and assign self.abscissas...?
+            if self.absc_queries:
+                abscissas.append(self.absc_queries[i]())
+            else:
+                if objvdata[1].ndim == 2:
+                    abscissas.append(np.arange(objvdata[0].shape[1], dtype=int))
+                else:
+                    # assume 1D array... may break for key-value pairs...
+                    abscissas.append(np.arange(len(objvdata[0]), dtype=int))
+
         # tag the plot-name by iteration
         if iteration is not None:
             try:
@@ -416,17 +422,15 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
     Returns:
         list: A list of callable task object that can be executed in order.
     """
-    # logger = kwargs.get('logger', logging.getLogger(__name__))
-    logger = module_logger
-    # kwargs['logger'] = logger
     #
     tasklist = []
+    logger = module_logger
     # the spec list has definitions of different tasks
     for item in spec:
         (tasktype, taskargs), = item.items()
         if 'set' == tasktype.lower():
             try: 
-                tasklist.append(SetTask(*taskargs, parnames=parnames)) #, logger=logger))
+                tasklist.append(SetTask(*taskargs, parnames=parnames))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
@@ -434,7 +438,7 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
                 raise
         if 'run' == tasktype.lower():
             try: 
-                tasklist.append(RunTask(*taskargs, exedict=exedict)) #, logger=logger))
+                tasklist.append(RunTask(*taskargs, exedict=exedict))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
@@ -464,9 +468,9 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
                 logger.debug (spec)
                 raise
         if 'plot' == tasktype.lower():
-            assert len(taskargs) >= 4,\
-                "A plot task must have at least 4 arguments:"\
-                "PlotFunction, Plotname, Objectives, Abscissa-Key, Optional kwargs"
+            assert len(taskargs) >= 3,\
+                "A plot task must have at least 3 arguments:"\
+                "PlotFunction, Plotname, Objectives, Optional Abscissa-Key, Optional kwargs"
             # 1. Assign the real function to 1st arg
             func = plottaskdict[taskargs[0]]
             taskargs[0] = func
@@ -477,8 +481,10 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
                 del taskargs[-1]
             else:
                 optkwargs = kwargs
-            # 3. Register the task in the task-list
-            logger.info('PlotTask spec \n{}\n{}'.format(taskargs, optkwargs))
+            # 3. Check if we have an abscissa key or not
+            if len(taskargs) == 3:
+                taskargs.append(None)
+            # 4. Register the task in the task-list
             try:
                 tasklist.append(PlotTask(*taskargs, **optkwargs))
             except TypeError:

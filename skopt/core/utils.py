@@ -3,6 +3,48 @@
 import numpy as np
 import logging
 
+def f2prange(rng):
+    """Convert fortran range definition to a python one.
+    
+    Args:
+        rng (2-sequence): [low, high] index range boundaries, 
+            inclusive, counting starts from 1.
+            
+    Returns:
+        2-tuple: (low-1, high)
+    """
+    lo, hi = rng
+    msg = "Invalid range specification {}, {}.".format(lo, hi)\
+        + " Range should be of two integers, both being >= 1."
+    assert lo >= 1 and hi>=lo, msg
+    return lo-1, hi
+
+def get_ranges(data):
+    """Return list of tuples ready to use as python ranges.
+
+    Args:
+        data (int, list of int, list of lists of int):
+            A single index, a list of indexes, or a list of
+            2-tuple range of indexes in Fortran convention,
+            i.e. from low to high, counting from 1, and inclusive
+    
+    Return:
+        list of lists of 2-tuple ranges, in Python convention -
+        from 0, exclusive.
+    """
+    try:
+        rngs = []
+        for rng in data:
+            try:
+                lo, hi = rng
+            except TypeError:
+                lo, hi = rng, rng
+            rngs.append(f2prange((lo, hi)))
+    except TypeError:
+        # data not iterable -> single index, convert to list of lists
+        rngs = [f2prange((data,data))]
+    return rngs
+
 def configure_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
     """Get parent logger: logging INFO on the console and DEBUG to file.
     """

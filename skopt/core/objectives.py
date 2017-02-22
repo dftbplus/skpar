@@ -13,6 +13,7 @@ import logging
 import yaml
 from pprint import pprint, pformat
 from skopt.core.utils import get_logger, normalise, arr2s
+from skopt.core.utils import get_ranges, f2prange
 from skopt.core.query import Query
 from skopt.core.evaluate import costf, errf
 
@@ -576,7 +577,7 @@ class ObjBands(Objective):
         if self.subset_ind is not None:
             self.model_data = self.model_data[self.subset_ind]
         # apply shift: since model_data is not known in advance
-        #              the shift cannot be precomputed!
+        #              the shift cannot be precomputed; we do it on the fly.
         if self.align_model is not None:
             shift = get_refval(self.model_data, self.align_model)
             self.model_data -= shift
@@ -590,48 +591,6 @@ objectives_mapper = {
         'keyval_pairs': ObjKeyValuePairs,
         'bands'       : ObjBands,
         }
-
-def f2prange(rng):
-    """Convert fortran range definition to a python one.
-    
-    Args:
-        rng (2-sequence): [low, high] index range boundaries, 
-            inclusive, counting starts from 1.
-            
-    Returns:
-        2-tuple: (low-1, high)
-    """
-    lo, hi = rng
-    msg = "Invalid range specification {}, {}.".format(lo, hi)\
-        + " Range should be of two integers, both being >= 1."
-    assert lo >= 1 and hi>=lo, msg
-    return lo-1, hi
-
-def get_ranges(data):
-    """Return list of tuples ready to use as python ranges.
-
-    Args:
-        data (int, list of int, list of lists of int):
-            A single index, a list of indexes, or a list of
-            2-tuple range of indexes in Fortran convention,
-            i.e. from low to high, counting from 1, and inclusive
-    
-    Return:
-        list of lists of 2-tuple ranges, in Python convention -
-        from 0, exclusive.
-    """
-    try:
-        rngs = []
-        for rng in data:
-            try:
-                lo, hi = rng
-            except TypeError:
-                lo, hi = rng, rng
-            rngs.append(f2prange((lo, hi)))
-    except TypeError:
-        # data not iterable -> single index, convert to list of lists
-        rngs = [f2prange((data,data))]
-    return rngs
 
 def get_refdata(data):
     """Parse the input data and return a corresponding array.

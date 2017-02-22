@@ -1,16 +1,29 @@
 tasks:
-    - set: [current.par, test_optimise, template.parameters.py ]
-    - run: [mypy model_poly3.py, test_optimise ]
+#    - set: [current.par, test_optimise, template.parameters.py ]
+#    - run: [mypy model_poly3.py, test_optimise ]
     - get: [get_model_data, test_optimise/model_poly3_out.dat,  poly3, yval]
     - get: [get_model_data, test_optimise/model_poly3_out.dat,  poly3-2, yval]
     - get: [get_model_data, test_optimise/model_poly3_xval.dat, poly3, xval]
     - get: [get_model_data, test_optimise/model_poly3_xval.dat, poly3-2, xval]
-    - plot: [plot_objvs, 'test_optimise/pdf/polyfit1', [1], xval] 
+    - plot: [plot_objvs, 'test_optimise/pdf/polyfit1', [2], xval] 
     - plot: [plot_objvs, 'test_optimise/pdf/polyfit2', [[yval, poly3]], xval] 
     - plot: [plot_objvs, 'test_optimise/pdf/polyfit3', [[yval, poly3], [yval, poly3-2]], xval,
-                    {color: ['r', 'b'], marker:[None, 'o']}]
+                    {color: ['b', 'r'], marker:[None, 'o']}]
+    - plot: [plot_objvs, 'test_optimise/pdf/polyfit2', [[yval, poly3-2]]] 
+    # 
+    - get: [get_model_data, reference_data/fakebands-2.dat, fakemodel, bands,
+                    {loader_args: {unpack: True}, process: {rm_columns: [1]}}]
+    - plot: [plot_objvs, 'test_optimise/pdf/fakebandsplot', [[bands, fakemodel]], {color: ['b', 'darkred']}] 
 
 objectives:
+    - bands:
+        models: fakemodel
+        ref: 
+            file: reference_data/fakebands.dat
+            loader_args: {unpack: True}
+            process:
+                rm_columns: [1, 2, [8, 9]]
+
     - yval:
         doc: 3-rd order polinomial values for some values of the argument
         models: poly3
