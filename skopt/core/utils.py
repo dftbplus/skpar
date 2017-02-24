@@ -56,7 +56,12 @@ def configure_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
     ch = logging.StreamHandler()
     ch.setLevel(verbosity)
     # file handler with full debug info
-    fh = logging.FileHandler(filename, mode='w')
+    # on windows using filehandler yields logging exceptions for utf-8 chars, e.g. Γ
+    # using streamhandler removes the exception, but erroneous chars end up in file
+    # for some reason the code page of the console is not taken in to account by the
+    # logger, and I cannot find solution to that.
+    #fh = logging.FileHandler(filename, mode='w')
+    fh = logging.StreamHandler(open(filename, mode='w', encoding='utf-8'))
     fh.setLevel(logging.DEBUG)
     # message formatting
     fileformat = logging.Formatter('%(name)s - %(levelname)s: %(message)s')

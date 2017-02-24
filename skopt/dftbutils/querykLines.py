@@ -31,13 +31,13 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     output band-structure. 
 
     kLines is ordered, as per the appearence of symmetry points in the hsd input, e.g.:
-        [('L', 0), ('Gamma', 50), ('X', 110), ('U', 130), ('K', 131), ('Gamma', 181)]
-    therefore it may contain repetitions (e.g. for 'Gamma', in this case).
+        [('L', 0), ('Γ', 50), ('X', 110), ('U', 130), ('K', 131), ('Γ', 181)]
+    therefore it may contain repetitions (e.g. for 'Γ', in this case).
     
     kLinesDict returns a dictionary of lists, so that there's a single entry for
     non-repetitive k-points, and more than one entries in the list of repetitive
-    symmetry k-points, e.g. (see for 'Gamma' above): 
-        {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Gamma': [50, 181]}
+    symmetry k-points, e.g. (see for 'Γ' above): 
+        {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Γ': [50, 181]}
     """
     kLines_dftb = list()
 
@@ -83,10 +83,10 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
 
 def greekLabels(kLines):
     """
-    Check if Gamma is within the kLines and set the label to its latex formulation.
+    Check if Γ is within the kLines and set the label to its latex formulation.
     Note that the routine will accept either list of tupples ('label',int_index) or
     a list of strings, i.e. either kLines or only the kLinesLabels.
-    Could do check for other k-points with greek lables, byond Gamma
+    Could do check for other k-points with greek lables, byond Γ
     (i.e. points that are inside the BZ, not at the faces) but in the future.
     """
     try:
@@ -98,7 +98,7 @@ def greekLabels(kLines):
     for i, lbl in enumerate(lbls):
         if lbl == 'Gamma':
             #lbls[i] = r'$\Gamma$'
-            lbls[i] = u"\u0393"
+            lbls[i] = "Γ"
     if ixs is not None:
         result = list(zip(lbls, ixs))
     else:
@@ -113,25 +113,23 @@ def get_kvec_abscissa(lat, kLines):
     xt = []
     xl = []
     skipticklabel = False
-    logger.debug('k-vector abscissa values (segment length and step for each line on the k-path):')
+    logger.debug('Constructing k-vector abscissa for BS plotting:')
+    logger.debug('kLines:\n{}'.format(kLines))
     pos = 0
+    xx.append(np.atleast_1d(pos))
     for item1, item2 in zip(kLines[:-1], kLines[1:]):
         l1, i1 = item1
         kp1 = lat.get_kcomp(l1)
         l2, i2 = item2
         kp2 = lat.get_kcomp(l2)
-        npts = i2 - i1
-        # we should fix Gamma to \u0393
+        nseg = i2 - i1
         if l1 == 'Gamma':
-            # doesn't seem to work on windows l1 = u"\u0393"
-            l1 = r"$\Gamma$"
+            l1 = 'Γ'
         if l2 == 'Gamma':
-            # doesn't seem to work on windows l2 = u"\u0393"
-            l2 = r"$\Gamma$"
-        if npts > 1:
+            l2 = 'Γ'
+        if nseg > 1:
             seglen = np.linalg.norm(lat.get_kvec(kp2-kp1))
-            delta = seglen/npts
-            xsegm = np.arange(0, seglen, delta)
+            xsegm, delta = np.linspace(0, seglen, nseg+1, retstep=True)
             if not skipticklabel:
                 xt.append(pos)
                 xl.append(l1)
@@ -147,9 +145,9 @@ def get_kvec_abscissa(lat, kLines):
             else:
                 xl.append('{}|{}'.format(l1, l2))
             skipticklabel=True
-        #print ('{}, {}, {}, {}, {}'.format(l1, l2, seglen/(2*pi), delta/(2*pi), xsegm/(2*pi)))
-        logger.debug('{:>5s} -- {:5s}: {:.5f} / {:.5f}'.format(l1, l2, seglen, delta))
-        xx.append(pos+xsegm)
+        logger.debug('{:>2s} -- {:2s}: {:8.3f} -- {:8.3f} : {:8.3f}/{:<3d}={:8.3f}'.
+                format(l1, l2, pos+xsegm[0], pos+xsegm[-1], seglen, len(xsegm), delta))
+        xx.append(pos+xsegm[1:])
         pos += seglen
     # append the tick and label for the last point
     xt.append(pos)
@@ -158,5 +156,6 @@ def get_kvec_abscissa(lat, kLines):
     for item in xx:
         item = np.array(item)
     xx = np.concatenate(xx)
-    assert xx.shape == (kLines[-1][-1]+1,), xx.shape
+    assert xx.shape == (kLines[-1][-1]+1,), (xx.shape, kLines)
+    logger.debug('Tick labels: {}'.format(', '.join(['{}:{:.3f}'.format(l,t) for l,t in zip(xl, xt)])))
     return xx, xt, xl

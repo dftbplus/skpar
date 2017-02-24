@@ -24,6 +24,15 @@ def islistofstr(arg, msg=None, dflt=None):
             msg = "Expecting string or list of strings, not:"
         errmsg = pformat(arg)
         return "".join([msg, errmsg])
+
+def islistoflists(arg):
+    """Return True if item is a list of lists.
+    """
+    itis = False
+    if isinstance(arg, list):
+        if isinstance(arg[0], list):
+            itis = True
+    return itis
     
 
 class RunTask (object):
@@ -272,7 +281,8 @@ class PlotTask (object):
         # of PlotTask initialisation.
         # Therefore, a higher authority must deal with the assignment.
         # Here we can only record users selection rules.
-        if isinstance(objectives, list):
+        #if isinstance(objectives, list): doesn't work if we give only one objective
+        if islistoflists(objectives) or isinstance(objectives[0], int):
             self.objv_selectors = objectives
         else:
             self.objv_selectors = [objectives, ]
