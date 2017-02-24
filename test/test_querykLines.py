@@ -4,7 +4,7 @@ import numpy as np
 import numpy.testing as nptest
 from skopt.dftbutils import lattice
 from skopt.dftbutils.lattice import Lattice
-from skopt.dftbutils.querykLines import get_klines, greekLabels
+from skopt.dftbutils.querykLines import get_klines, greekLabels, get_kvec_abscissa
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format=' %(message)s')
@@ -21,6 +21,19 @@ class QuerykLinesTest(unittest.TestCase):
         klines, klinesdict = get_klines(lat, workdir='test_dftbutils/bs')
         self.assertListEqual(refklines, klines)
         self.assertDictEqual(refklinesdict, klinesdict)
+
+class GetAbscissakVectorTest(unittest.TestCase):
+
+    def test_get_kvec_abscissa(self):
+        """Can we get the bandstructure and extract the kvector info"""
+        latticeinfo = {'type': 'FCC', 'param': 1.}
+        lat = Lattice(latticeinfo)
+        kLines = [('L', 0), ('Gamma', 10), ('X', 20), ('U', 30), ('K', 31), ('Gamma', 41)]
+        xx, xt, xl = get_kvec_abscissa(lat, kLines)
+        refxl = ['L', r"$\Gamma$", 'X', 'U|K', r"$\Gamma$"]
+        refxt = [0, 5.44140, 11.724583399882238, 13.946024868961421, 20.610349276198971]
+        self.assertListEqual(xl, refxl)
+        nptest.assert_almost_equal(xt, refxt, 5)
 
 if __name__ == '__main__':
     unittest.main()

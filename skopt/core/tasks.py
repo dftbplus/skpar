@@ -313,39 +313,6 @@ class PlotTask (object):
             for item in self.objectives:
                 self.absc_queries.append(Query(item.model_names, self.abscissa_key))
 
-    def plot(self, name, xx_in, yy_in, sw, **kwargs):
-        """Wrapper of the actual plot function, that pre-processes the kwargs.
-        """
-        # expect one color for ref and one color for model
-        color = kwargs.get('color', 'blue')
-        if isinstance(color, str):
-            color = [color, color]
-        else:
-            assert len(color)==2, color
-        # expect one marker for ref and one marker for model
-        marker = kwargs.get('marker', None)
-        if isinstance(marker, str):
-            marker = [marker, marker]
-        y1, y2 = zip(*yy_in)
-        colors  = [color[0]]*len(y1)+[color[1]]*len(y2)
-        if marker is not None:
-            assert len(marker)==2, marker
-            markers = [marker[0]]*len(y1)+[marker[1]]*len(y2)
-        else:
-            markers = [None]*len(colors)
-        # Parse yy; we may have different types:
-        # e.g. float array (1-D or 2-D) vs key-value pairs 
-        # The  former should be shown as lines or lines+markers,
-        # while the latter should be shown as scatter plot
-        yy = y1 + y2
-        xx = xx_in + xx_in
-        assert len(xx) == len(yy), (len(xx), len(yy))
-        # What to do with subweights? create psuedo-lines coloured by subweights?
-        # Ignore for the moment
-        #
-        # call the actual plotting routine
-        self.func(name, xx, yy, colors, markers, title='name')
-
     def __call__(self, iteration):
         """Prepare data for the plot and tag the plot-name with iteration.
         """
@@ -368,6 +335,21 @@ class PlotTask (object):
                 else:
                     # assume 1D array... may break for key-value pairs...
                     abscissas.append(np.arange(len(objvdata[0]), dtype=int))
+        # ordinates is now a list of tuples, each tuple being (ref, model)
+        # abscissas is now a list of the same size as ordinates
+        # items in the lists may be of different type and size, depending on objectives
+        # ideally, we may parse and present them according to their type,
+        # i.e. kesy-values by markers, others by lines, etc.
+        # But in any case, we must map a set of x and y and provide
+        # different color for model and for ref.
+        y1, y2 = zip(*ordinates) # y1 = list of ref, y2 = list of model data
+        yval = y1 + y2
+        xval = abscissas + abscissas
+        # draw all objectives with the same color, distinguish only ref vs model
+        # unless explicit user spec
+        if self.kwargs.get('colors', None) is None:
+            colors = ['b']*len(y1) + ['r']*len(y2)
+            self.kwargs['colors'] = colors
 
         # tag the plot-name by iteration
         if iteration is not None:
@@ -377,10 +359,19 @@ class PlotTask (object):
             except TypeError:
                 # if iteration is a single integer, rather than a sequence
                 plotname = "{:s}_{:d}".format(self.plotname, iteration)
+            title = self.kwargs.get('title', '')
+            if title:
+                title += '\niter. {}'.format(iteration)
+            else:
+                title = 'iter. {}'.format(iteration)
+            self.kwargs['title'] = title
         else:
             plotname = self.plotname
+        # set legend labels
+        self.kwargs['ylabels'] = ['ref', 'model']
         # try to plot
-        self.plot(plotname, abscissas, ordinates, subweights, **self.kwargs)
+        # ignore subweights for the moment
+        self.func(plotname, xval, yval, **self.kwargs)
         
     def __repr__(self):
         """Yield a summary of the task.

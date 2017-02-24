@@ -208,11 +208,12 @@ def get_bandstructure(source, destination,
     if latticeinfo is not None:
         lattice = Lattice(latticeinfo)
         kLines, kLinesDict = get_klines(lattice, hsdfile=f3)
-        kvector = get_kvec_abscissa(lattice, kLines)
+        kvec, kticks, klabels = get_kvec_abscissa(lattice, kLines)
         data.update({'lattice': lattice, 
                     'kLines': kLines, 
                     'kLinesDict': kLinesDict,
-                    'kvector': kvector,})
+                    'kvector': kvec,
+                    'kticklabels': zip(kticks, klabels)})
         #logger.debug(data['lattice'])
         #logger.debug(data['kLines'])
         #logger.debug(data['kLinesDict'])

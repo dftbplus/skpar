@@ -97,7 +97,8 @@ def greekLabels(kLines):
 
     for i, lbl in enumerate(lbls):
         if lbl == 'Gamma':
-            lbls[i] = r'$\Gamma$'
+            #lbls[i] = r'$\Gamma$'
+            lbls[i] = u"\u0393"
     if ixs is not None:
         result = list(zip(lbls, ixs))
     else:
@@ -109,25 +110,53 @@ def get_kvec_abscissa(lat, kLines):
     to the k-vectors derived from kLines.
     """
     xx = []
+    xt = []
+    xl = []
+    skipticklabel = False
+    logger.debug('k-vector abscissa values (segment length and step for each line on the k-path):')
+    pos = 0
     for item1, item2 in zip(kLines[:-1], kLines[1:]):
         l1, i1 = item1
         kp1 = lat.get_kcomp(l1)
         l2, i2 = item2
         kp2 = lat.get_kcomp(l2)
         npts = i2 - i1
+        # we should fix Gamma to \u0393
+        if l1 == 'Gamma':
+            # doesn't seem to work on windows l1 = u"\u0393"
+            l1 = r"$\Gamma$"
+        if l2 == 'Gamma':
+            # doesn't seem to work on windows l2 = u"\u0393"
+            l2 = r"$\Gamma$"
         if npts > 1:
             seglen = np.linalg.norm(lat.get_kvec(kp2-kp1))
             delta = seglen/npts
             xsegm = np.arange(0, seglen, delta)
+            if not skipticklabel:
+                xt.append(pos)
+                xl.append(l1)
+            else:
+                skipticklabel = False
         else:
             seglen = 0
             delta  = 0
             xsegm  = np.zeros(2)
+            xt.append(pos)
+            if l1 == l2:
+                xl.append(l1)
+            else:
+                xl.append('{}|{}'.format(l1, l2))
+            skipticklabel=True
         #print ('{}, {}, {}, {}, {}'.format(l1, l2, seglen/(2*pi), delta/(2*pi), xsegm/(2*pi)))
-        print ('{:>5s} -- {:5s}: {:.5f} / {:.5f}'.format(l1, l2, seglen, delta))
-        if xx:
-            xx.append(xsegm + xx[-1][-1])
-        else:
-            xx.append(xsegm)
+        logger.debug('{:>5s} -- {:5s}: {:.5f} / {:.5f}'.format(l1, l2, seglen, delta))
+        xx.append(pos+xsegm)
+        pos += seglen
+    # append the tick and label for the last point
+    xt.append(pos)
+    xl.append(l2)
+    #
+    for item in xx:
+        item = np.array(item)
     xx = np.concatenate(xx)
     assert xx.shape == (kLines[-1][-1]+1,), xx.shape
+    return xx, xt, xl

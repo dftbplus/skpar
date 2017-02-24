@@ -1,13 +1,16 @@
+import logging
 import numpy as np
 from os.path import normpath, expanduser
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
-from skopt.core.utils import get_ranges
+from skopt.core.utils import get_ranges, get_logger
 from skopt.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from skopt.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 from skopt.dftbutils.plot import plotBS
+
+module_logger = get_logger('skopt.tasks')
 
 def get_model_data (src, dst, data_key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
@@ -43,12 +46,12 @@ def get_model_data (src, dst, data_key, *args, **kwargs):
         array_data = np.loadtxt(file, **loader_args)
     except ValueError:
         # `file` was not understood
-        print ('np.loadtxt cannot understand the contents of {}'.format(file))
-        print ('with the given loader arguments: {}'.format(**loader_args))
+        module_logger.critical('np.loadtxt cannot understand the contents of {}'.format(file)+\
+                                'with the given loader arguments: {}'.format(**loader_args))
         raise
     except (IOError, FileNotFoundError):
         # `file` was not understood
-        print ('Data file {} cannot be found'.format(file))
+        module_logger.critical('Data file {} cannot be found'.format(file))
         raise
     # do some filtering on columns and/or rows if requested
     # note that file to 2D-array mapping depends on 'unpack' from
@@ -76,27 +79,79 @@ def get_model_data (src, dst, data_key, *args, **kwargs):
         array_data = array_data * scale
     dst[data_key] = array_data
 
-def plot_objvs(plotname, xx, yy, colors='darkred', markers=None, 
-        xlabel='X', ylabel='Y', yyrange=None, xxrange=None, figsize=(6, 7), 
-        col='darkred', markersonly=False, withmarkers=False, labels=None, **kwargs):
+def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None, 
+        axeslabels=[None, None], xlim=None, ylim=None, figsize=(6, 7), 
+        title=None,
+        xticklabels=None, yticklabels=None, withmarkers=False, **kwargs):
     """General plotting functions for 1D or 2D arrays.
     """
-    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize', 20),\
+    matplotlib.rcParams.update({'axes.titlesize': kwargs.get('fontsize', 20),\
+                                'font.size': kwargs.get('fontsize', 20),\
                                 'font.family': kwargs.get('fontfamily', 'sans')})
     plt.rc('lines', linewidth=2)
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    for x, y, c, m in zip(xx, yy, colors, markers):
+    # Axes decoration
+    if axeslabels[0]:
+        ax.set_xlabel(axeslabels[0])
+    if axeslabels[1]:
+        ax.set_ylabel(axeslabels[1])
+    if xticklabels:
+        ticks, labels  = zip(*xticklabels)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(labels)
+    else:
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+    if yticklabels:
+        ticks, labels  = zip(*yticklabels)
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(labels)
+    else:
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+    # Figure out how to handle data
+    isset = True if isinstance(yy, list) else False
+    yval = np.asarray(yy)
+    xval = np.asarray(xx)
+    assert xval.shape[-1] == yval.shape[-1]
+    if isset and xval.shape[0] != yval.shape[0]:
+        xval = np.tile(xval, len(yval)).reshape(len(yval), len(xval))
+    # Get as many colours as necessary; replace with user explicit preferences; 
+    # Potentially repeated colors; think about a cure (check if user color in cval)
+    #cmap = plt.get_cmap('Set1')
+    #cval = [cmap(j) for j in np.linspace(0, 1, 9)]
+    cval = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
+    if colors:
+        for i in range(len(np.atleast_1d(colors))):
+            cval[i] = np.atleast_1d(colors)[i]
+    if withmarkers:
+        mval = [mmap[i%len(mmap)] for i in range(len(yval))]
+        for i in range(len(np.atleast_1d(markers))):
+            mval[i] = np.atleast_1d(markers)[i]
+    else:
+        mval = ['']*len(yval)
+    ms = kwargs.get('markersize', 7)
+    if ylabels:
+        ylab = ylabels
+        if not len(ylab) == len(yval):
+            module_logger.warning('Missing ylabels: {} needed but {} found'.
+                    format(len(yval), len(ylab)))
+            ylab.extend(['']*(len(yval)-len(ylab)))
+    else:
+        ylab = ['']*len(yval)
+    # Plot the data
+    legenditems = []
+    for x, y, c, m, l in zip(xval, yval, cval, mval, ylab):
         if y.ndim == 2:
-            ax.plot(x, y.transpose(), color=c, marker=m, markersize=kwargs.get('markersize', 7))
+            lines = ax.plot(x, y.transpose(), color=c, marker=m, label=l, ms=ms)
         else:
-            ax.plot(x, y, color=c, marker=m, markersize=kwargs.get('markersize', 7))
+            lines = ax.plot(x, y, color=c, marker=m, label=l, ms=ms)
+        legenditems.append(lines[0])
     # set limits at the end, to make sure no artist tries to expand
-    ax.set_ylim(yyrange)
-    ax.set_xlim(xxrange)
+    ax.set_ylim(ylim)
+    ax.set_xlim(xlim)
+    if title:
+        ax.set_title(title, fontsize=14)
+    if ylabels:
+        ax.legend(legenditems, ylab)
     fig.savefig(plotname+'.pdf')
 
 
