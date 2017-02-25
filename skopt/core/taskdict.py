@@ -83,14 +83,20 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
         axeslabels=[None, None], xlim=None, ylim=None, figsize=(6, 7), 
         title=None,
         xticklabels=None, yticklabels=None, withmarkers=False, **kwargs):
-    """General plotting functions for 1D or 2D arrays.
+    """General plotting functions for 1D or 2D arrays or sets of these.
     """
+    # ------------------------------
+    # Plot appearance
+    # ------------------------------
     matplotlib.rcParams.update({'axes.titlesize': kwargs.get('fontsize', 20),\
                                 'font.size': kwargs.get('fontsize', 20),\
                                 'font.family': kwargs.get('fontfamily', 'sans')})
     plt.rc('lines', linewidth=2)
     fig, ax = plt.subplots(figsize=figsize)
+
+    # ------------------------------
     # Axes decoration
+    # ------------------------------
     if axeslabels[0]:
         ax.set_xlabel(axeslabels[0])
     if axeslabels[1]:
@@ -107,13 +113,34 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
         ax.set_yticklabels(labels)
     else:
         ax.yaxis.set_minor_locator(AutoMinorLocator())
+
+    # ------------------------------
     # Figure out how to handle data
+    # ------------------------------
     isset = True if isinstance(yy, list) else False
-    yval = np.asarray(yy)
+    if isset:
+        module_logger.debug('Plotting a set of {} items:'.format(len(yy)))
+        module_logger.debug(' '.join(['{}'.format(item.shape) for item in yy]))
+    else:
+        module_logger.debug('Plotting an item of length {}:'.format(len(yy)))
     xval = np.asarray(xx)
-    assert xval.shape[-1] == yval.shape[-1]
+    # DO NOT DO THAT (line below): if yy is a list of arrays of different shape, 
+    # e.g. (4,80), (4,80), (2,80), (2,80), we get garbage: 
+    # yval.shape = (len(yy),), in this case, yval.shape=(4,) 
+    # instead of (4,?,80), for obvious reasons -- incompatible dim 1 (4 or 2?)
+    # The result seems to be an array holding only references to the original arrays.
+    # Note that we can still slice it along axis 0 and get job done, but
+    # any reference to its higher dimensions will yield mysterious errors!
+    yval = np.asarray(yy)
+    # the line below fails in the scenario above, which is common if we
+    # combine objectives of different dimensions, e.g. CB and VB with different bands.
+    # assert xval.shape[-1] == yval.shape[-1], (xval.shape, yval.shape)
     if isset and xval.shape[0] != yval.shape[0]:
         xval = np.tile(xval, len(yval)).reshape(len(yval), len(xval))
+
+    # ------------------------------
+    # Deal with colors, markers and labels
+    # ------------------------------
     # Get as many colours as necessary; replace with user explicit preferences; 
     # Potentially repeated colors; think about a cure (check if user color in cval)
     #cmap = plt.get_cmap('Set1')
@@ -122,6 +149,7 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
     if colors:
         for i in range(len(np.atleast_1d(colors))):
             cval[i] = np.atleast_1d(colors)[i]
+    #
     if withmarkers:
         mval = [mmap[i%len(mmap)] for i in range(len(yval))]
         for i in range(len(np.atleast_1d(markers))):
@@ -129,6 +157,7 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
     else:
         mval = ['']*len(yval)
     ms = kwargs.get('markersize', 7)
+    #
     if ylabels:
         ylab = ylabels
         if not len(ylab) == len(yval):
@@ -137,19 +166,23 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
             ylab.extend(['']*(len(yval)-len(ylab)))
     else:
         ylab = ['']*len(yval)
+
+    # ------------------------------
     # Plot the data
+    # ------------------------------
     legenditems = []
     for x, y, c, m, l in zip(xval, yval, cval, mval, ylab):
         if y.ndim == 2:
             lines = ax.plot(x, y.transpose(), color=c, marker=m, label=l, ms=ms)
         else:
             lines = ax.plot(x, y, color=c, marker=m, label=l, ms=ms)
-        legenditems.append(lines[0])
+        if l:
+            legenditems.append(lines[0])
     # set limits at the end, to make sure no artist tries to expand
     ax.set_ylim(ylim)
     ax.set_xlim(xlim)
     if title:
-        ax.set_title(title, fontsize=14)
+        ax.set_title(title, fontsize=16)
     if ylabels:
         ax.legend(legenditems, ylab)
     fig.savefig(plotname+'.pdf')

@@ -335,16 +335,23 @@ class PlotTask (object):
             objvdata = item.get()  # model_data, ref_data, subweights
             # make sure ordinates are first, so as to plot ref below model
             ordinates.append((objvdata[1], objvdata[0])) # ref_data, model_data
+            self.logger.debug("Ordinates shape for plotted Objective {}: {}{}".
+                    format(i, objvdata[1].shape, objvdata[0].shape))
             subweights.append(objvdata[2])
             # may be we can do this once only and assign self.abscissas...?
             if self.absc_queries:
-                abscissas.append(self.absc_queries[i]())
+                self.logger.debug("Querying for abscissas {}:".format(self.absc_queries[i]))
+                absc = self.absc_queries[i]()
             else:
+                self.logger.debug("Constructing abscissas.")
                 if objvdata[1].ndim == 2:
-                    abscissas.append(np.arange(objvdata[0].shape[1], dtype=int))
+                    absc = np.arange(objvdata[0].shape[1], dtype=int)
                 else:
                     # assume 1D array... may break for key-value pairs...
-                    abscissas.append(np.arange(len(objvdata[0]), dtype=int))
+                    absc = np.arange(len(objvdata[0]), dtype=int)
+            abscissas.append(absc)
+            self.logger.debug("Abscissas shape for plotted Objective {}: {}".
+                    format(i, absc.shape))
         # ordinates is now a list of tuples, each tuple being (ref, model)
         # abscissas is now a list of the same size as ordinates
         # items in the lists may be of different type and size, depending on objectives
@@ -352,13 +359,33 @@ class PlotTask (object):
         # i.e. kesy-values by markers, others by lines, etc.
         # But in any case, we must map a set of x and y and provide
         # different color for model and for ref.
-        y1, y2 = zip(*ordinates) # y1 = list of ref, y2 = list of model data
-        yval = y1 + y2
-        xval = abscissas + abscissas
+        self.logger.debug('Collected {} abscissa and {} ordinate sets'.
+                format(len(abscissas), len(ordinates)))
+        xval = []
+        yval = []
+        for xx, yy in zip(abscissas, ordinates):
+            self.logger.debug('x {}: y {} {}'.format(xx.shape, yy[0].shape, yy[1].shape))
+            y1, y2 = yy[0], yy[1] # y1 = list of ref, y2 = list of model data
+            self.logger.debug('x {}: y {} {}'.format(xx.shape, y1.shape, y2.shape))
+            yval.append(y1)
+            yval.append(y2)
+            xval.append(xx)
+            xval.append(xx)
+        assert len(xval) == len(yval), (len(xval), len(yval))
+        #for x, y in zip(xval, yval):
+        #    self.logger.debug((x.shape, y.shape))
+        #    assert x.shape[0] == y.shape[-1], (x.shape, y.shape)
+        self.logger.debug('Overall length of abscissa and ordinate sets: {} {}'.
+                format(len(xval), len(yval)))
         # draw all objectives with the same color, distinguish only ref vs model
         # unless explicit user spec
         if self.kwargs.get('colors', None) is None:
-            colors = ['b']*len(y1) + ['r']*len(y2)
+            colors = []
+            for i in range(int(len(yval)/2)):
+                # note how yval is composed above: 
+                # y1 is ref (blue) y2 is model (red)
+                colors.append('b')
+                colors.append('r')
             self.kwargs['colors'] = colors
 
         # tag the plot-name by iteration
@@ -371,13 +398,14 @@ class PlotTask (object):
                 plotname = "{:s}_{:d}".format(self.plotname, iteration)
             title = self.kwargs.get('title', '')
             if title:
-                title += '\niter. {}'.format(iteration)
+                title = '\niter. {}'.format(iteration)
             else:
                 title = 'iter. {}'.format(iteration)
             self.kwargs['title'] = title
         else:
             plotname = self.plotname
-        # set legend labels
+        # set legend labels (only 2 labels by default, consistent with 
+        # the colour setting
         self.kwargs['ylabels'] = ['ref', 'model']
         # try to plot
         # ignore subweights for the moment
@@ -393,7 +421,7 @@ class PlotTask (object):
         s.append("{:9s}{:<15s}: {} ".format("", "abscissas", self.abscissa_key))
         try:
             s.append("{:9s}{:<15s}: {} ".format("", "ordinates", 
-                '\n{:9s}'.join(["{}: {}".format(item.query_key, item.model_names) 
+                '\n         '.join(["{}: {}".format(item.query_key, item.model_names) 
                     for item in self.objectives])))
         except AttributeError:
             s.append("{:9s}{:<15s}: {} ".format("", "objectives", 
