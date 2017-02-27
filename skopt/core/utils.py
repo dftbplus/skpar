@@ -46,7 +46,7 @@ def get_ranges(data):
         rngs = [f2prange((data,data))]
     return rngs
 
-def configure_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
+def configure_logger(name, filename='skopt.log', verbosity=logging.INFO):
     """Get parent logger: logging INFO on the console and DEBUG to file.
     """
     logger = logging.getLogger(name)
@@ -66,13 +66,27 @@ def configure_logger(name, filename='skopt.debug.log', verbosity=logging.INFO):
         # logger, and I cannot find solution to that.
         fh = logging.StreamHandler(open(filename, mode='w', encoding='utf-8'))
     fh.setLevel(logging.DEBUG)
+    debug_filename = filename.split('.')
+    debug_filename = '.'.join(debug_filename[:-1]+['debug']+[debug_filename[-1]])
+    if not os.name=='nt':
+        fhd = logging.FileHandler(debug_filename, mode='w')
+    else:
+        # on windows using filehandler yields logging exceptions for utf-8 chars, e.g. Γ
+        # using streamhandler removes the exception, but erroneous chars may end up in file.
+        # for some reason the code page of the console is not taken in account by the
+        # logger, and I cannot find solution to that.
+        fhd = logging.StreamHandler(open(debug_filename, mode='w', encoding='utf-8'))
+    fh.setLevel(logging.INFO)
+    fhd.setLevel(logging.DEBUG)
     # message formatting
-    fileformat = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
     consformat = logging.Formatter('%(levelname)7s: %(message)s')
-    fh.setFormatter(fileformat)
+    fh.setFormatter(consformat)
     ch.setFormatter(consformat)
+    fileformat = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
+    fhd.setFormatter(fileformat)
     # add the configured handlers
     logger.addHandler(fh)
+    logger.addHandler(fhd)
     logger.addHandler(ch)
     return logger
 
@@ -89,7 +103,7 @@ def get_logger(name, filename=None, verbosity=logging.INFO):
     """
     parent = name.split('.')[0]
     if filename is None:
-        filename = parent+'.debug.log'
+        filename = parent+'.log'
     parent_logger = logging.getLogger(parent)
     if not parent_logger.handlers:
         configure_logger(parent, filename, verbosity)
@@ -107,11 +121,11 @@ def normalise(a):
     norm = np.sum(np.asarray(a))
     return np.asarray(a)/norm
 
-def arr2s(aa, precision=3, suppress_small=True, max_line_width=90):
+def arr2s(aa, precision=3, suppress_small=True, max_line_width=75):
     """Helper for compact string representation of numpy arrays.
     """
-    ss = np.array2string(aa, precision=precision,
-                suppress_small=suppress_small, max_line_width=max_line_width)
+    ss = np.array2string(aa, precision=precision, suppress_small=suppress_small,
+            max_line_width=max_line_width)
     return ss
 
 def is_monotonic(x):
