@@ -213,7 +213,7 @@ def get_bandstructure(source, destination,
                     'kLines': kLines, 
                     'kLinesDict': kLinesDict,
                     'kvector': kvec,
-                    'kticklabels': zip(kticks, klabels),
+                    'kticklabels': list(zip(kticks, klabels)),
                    })
         #logger.debug(data['lattice'])
         #logger.debug(data['kLines'])

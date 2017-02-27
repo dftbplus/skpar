@@ -5,63 +5,181 @@ from matplotlib.ticker import AutoMinorLocator
 import numpy as np
 import logging
 
+module_logger = logging.getLogger(__name__)
 
-def plotBS(bands_in, kvec, Erange=[-13, 13], krange=None, figsize=(6, 7),\
-           col='darkred', withmarkers=False, Ekscatter=None, colEkpts='blue',\
-           kLabels=None, **kwargs):
+#def plotBS(plotname, xx, yy, xlim=None, ylim=[-13, 13], figsize=(6, 7),\
+#           col='darkred', withmarkers=False, Ekscatter=None, colEkpts='blue',\
+#           kLabels=None, **kwargs):
+def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None, 
+        xlim=None, ylim=[-13, 13], figsize=(6, 7), title=None,
+        xticklabels=None, yticklabels=None, withmarkers=False, **kwargs):
+
+    """Specialised magic routine for plotting band-structure.
     """
-    """
-    matplotlib.rcParams.update({'font.size': kwargs.get('fontsize', 20),\
-                                'font.family': kwargs.get('fontfamily', 'sans')})
+    # ------------------------------
+    # Extra data may contain necessary info, if not supplied by primary args
+    # ------------------------------
+    extra_data = kwargs.get('extra_data', {})
+
+    # ------------------------------
+    # Plot appearance
+    # ------------------------------
+    matplotlib.rcParams.update({'axes.titlesize': kwargs.get('fontsize', 20),\
+                                'font.size': kwargs.get('fontsize', 20),\
+                                'font.family': kwargs.get('fontfamily', 'sans-serif'),
+                                'font.sans-serif': kwargs.get('font', 
+                                ['Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Lucida Grande', 
+                                'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', 'sans-serif'])})
     plt.rc('lines', linewidth=2)
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_xlabel('$\mathbf{k}$-vector')
-    ax.set_ylabel('Energy (eV)')
-    # Deal with bands input: make bands and col lists, even if they are not
-    nE, nk = [], []
-    if isinstance(bands_in, list):
-        bands = bands_in
+
+    # ------------------------------
+    # Axes decoration
+    # ------------------------------
+    ax.set_xlabel('Wave-vector')
+    ax.set_ylabel('Energy, eV')
+    # check either kwargs or extra_data for ticks/ticklabels
+    xticklabels = kwargs.get('kticklabels', None)
+    if xticklabels is None:
+        # try to get it from extra_data
+        try:
+            xticklabels = extra_data.get('kticklabels', None)
+            # note that items in extra_data may be lists (e.g. item per bands set)
+            # but not necessarily, so try to figure that out.
+            try:
+                # split first label and tick, assuming xticklabels is in a list
+                l, t = xticklabels[0][0]
+                # obviously we can use only one set of labels and ticks
+                xticklabels = xticklabels[0]
+            except (ValueError, TypeError) as e:
+                # Need more than one value to unpack if xticklabels not in a list.
+                # Use directly in such case
+                # TypeError if xticklabels is None -- still pass
+                pass
+        except (KeyError, IndexError) as e:
+            pass
+    if xticklabels:
+        xticks, xtlabels  = zip(*xticklabels)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xtlabels)
     else:
-        bands = [bands_in, ]
-    for item in bands:
-        nE.append(item.shape[0])
-        nk.append(item.shape[1])
-    for item in nk:
-        assert item==len(kvec), (item, len(kvec))
-    if isinstance(col, list):
-        assert len(col)==len(bands)
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        xticks = None
+        xtlabels = None
+    if yticklabels:
+        yticks, ytlabels  = zip(*yticklabels)
+        ax.set_yticks(yticks)
+        ax.set_yticklabels(ytlabels)
     else:
-        col = [col,]
-    print (len(bands), len(col))
-    # plot the bands
-    for b, c in zip(bands, col):
-        if withmarkers:
-            ax.plot(kvec, b.transpose(), color=c, marker='o', markersize=kwargs.get('markersize', 4))
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+        yticks = None
+        ytlabels = None
+
+    # ------------------------------
+    # Figure out how to handle data
+    # ------------------------------
+    isset = True if isinstance(yy, list) else False
+    if isset:
+        module_logger.debug('Plotting a set of {} items:'.format(len(yy)))
+        module_logger.debug(' '.join(['{}'.format(item.shape) for item in yy]))
+    else:
+        module_logger.debug('Plotting an item of length {}:'.format(len(yy)))
+    xval = np.asarray(xx)
+    # DO NOT DO THAT (line below): if yy is a list of arrays of different shape, 
+    # e.g. (4,80), (4,80), (2,80), (2,80), we get garbage: 
+    # yval.shape = (len(yy),), in this case, yval.shape=(4,) 
+    # instead of (4,?,80), for obvious reasons -- incompatible dim 1 (4 or 2?)
+    # The result seems to be an array holding only references to the original arrays.
+    # Note that we can still slice it along axis 0 and get job done, but
+    # any reference to its higher dimensions will yield mysterious errors!
+    yval = np.asarray(yy)
+    # the line below fails in the scenario above, which is common if we
+    # combine objectives of different dimensions, e.g. CB and VB with different bands.
+    # assert xval.shape[-1] == yval.shape[-1], (xval.shape, yval.shape)
+    if isset and xval.shape[0] != yval.shape[0]:
+        xval = np.tile(xval, len(yval)).reshape(len(yval), len(xval))
+    
+    # ------------------------------
+    # Dirty hack to open a band-gap
+    # ------------------------------
+    # assume that yval is:
+    # Egap, VB, CB or
+    # Egap(ref), Egap(model), VB(ref), VB(model), CB(ref), CB(model)
+    rmix = []
+    for i in range(len(yval)):
+        if yval[i].shape == (1,):
+            if yval[i-1].shape == (1,) or yval[i+1].shape == (1,):
+                module_logger.info('Including band-gap in BS plot')
+                yval[i+4] += yval[i][0]
+            else:
+                module_logger.info('Including band-gap in BS plot')
+                yval[i+2] += yval[i][0]
+            rmix.append(i)
+    yval = np.delete(yval, rmix, 0)
+    xval = np.delete(xval, rmix, 0)
+
+    # ------------------------------
+    # Deal with colors, markers and labels
+    # ------------------------------
+    # Get as many colours as necessary; replace with user explicit preferences; 
+    # Potentially repeated colors; think about a cure (check if user color in cval)
+    #cmap = plt.get_cmap('Set1')
+    #cval = [cmap(j) for j in np.linspace(0, 1, 9)]
+    cval = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
+    if colors:
+        for i in range(len(np.atleast_1d(colors))):
+            cval[i] = np.atleast_1d(colors)[i]
+    #
+    if withmarkers:
+        mval = [mmap[i%len(mmap)] for i in range(len(yval))]
+        for i in range(len(np.atleast_1d(markers))):
+            mval[i] = np.atleast_1d(markers)[i]
+    else:
+        mval = ['']*len(yval)
+    ms = kwargs.get('markersize', 7)
+    #
+    if ylabels:
+        ylab = ylabels
+        if not len(ylab) == len(yval):
+            module_logger.warning('Missing ylabels: {} needed but {} found'.
+                    format(len(yval), len(ylab)))
+            ylab.extend(['']*(len(yval)-len(ylab)))
+    else:
+        ylab = ['']*len(yval)
+
+    # ------------------------------
+    # Plot the data
+    # ------------------------------
+    legenditems = []
+    for x, y, c, m, l in zip(xval, yval, cval, mval, ylab):
+        if y.ndim == 2:
+            lines = ax.plot(x, y.transpose(), color=c, marker=m, label=l, ms=ms)
         else:
-            ax.plot(kvec, b.transpose(), color=c)
-    # set k-labels and v-lines at corresponding ticks
-    if kLabels is not None:
-        ticks, labels  = zip(*kLabels)
-        ax.set_xticks(ticks)
-        ax.set_xticklabels(labels)
-    else:
-        ticks = None
-        labels = None
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
+            lines = ax.plot(x, y, color=c, marker=m, label=l, ms=ms)
+        if l:
+            legenditems.append(lines[0])
+
     # plot vertical lines at special symmetry points if these are known
-    if ticks:
-        [ax.axvline(x=k, color='k', lw=0.5) for k in ticks]
+    if xticks:
+        [ax.axvline(t, color='k', lw=1.0) for t in xticks]
+
     # plot reference Ek points with markers if given
-    if Ekscatter is not None:
-        if isinstance(Ekscatter, list):
-            _Ek = np.stack(Ekscatter).transpose()
-        else:
-            _Ek = Ekscatter.transpose()
-        ax.plot(_Ek[0], _Ek[1], color=colEkpts, marker='o', ls='', lw='1',
-                markersize=kwargs.get('markersize', 7))
+#    if scatterpts is not None:
+#        if isinstance(scatterpts, list):
+#            _Ek = np.stack(scatterpts).transpose()
+#        else:
+#            _Ek = scatterpts.transpose()
+#        ax.plot(_Ek[0], _Ek[1], color=colEkpts, marker='o', ls='', lw='1',
+#                markersize=kwargs.get('markersize', 7))
+
     # set limits at the end, to make sure no artist tries to expand
-    ax.set_ylim(Erange)
-    ax.set_xlim(krange)
+    ax.set_ylim(ylim)
+    ax.set_xlim(xlim)
+    if title:
+        ax.set_title(title, fontsize=16)
+    if ylabels:
+        ax.legend(legenditems, ylab)
+    fig.savefig(plotname+'.pdf')
     return fig
 
 

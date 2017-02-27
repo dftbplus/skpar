@@ -28,11 +28,11 @@ def islistofstr(arg, msg=None, dflt=None):
 def islistoflists(arg):
     """Return True if item is a list of lists.
     """
-    itis = False
+    tf = False
     if isinstance(arg, list):
         if isinstance(arg[0], list):
-            itis = True
-    return itis
+            tf = True
+    return tf
     
 
 class RunTask (object):
@@ -292,10 +292,15 @@ class PlotTask (object):
         # authority is needed, who must call the self.pick_objectives
         self.abscissa_key = abscissa_key
         self.absc_queries = []
-        # how to make up the plot nam
+        # Extra queries serve to pass extra data to plotting routine, 
+        # e.g. k-labels and ticks etc.
+        self.extra_query_keys = kwargs.get('queries', None)
+        if self.extra_query_keys and not isinstance(self.extra_query_keys, list):
+                self.extra_query_keys = [self.extra_query_keys,]
+        # how to make up the plot name
         self.plotname = plotname
-        # these pertain to the back end plotting routine (e.g. matplotlib)
-        # so pass them directly upon call
+        # The following are passed to the back end plotting routine 
+        # (e.g. matplotlib) so pass them directly upon call
         self.kwargs = kwargs
 
     def pick_objectives(self, objectives):
@@ -319,17 +324,35 @@ class PlotTask (object):
                     if objv.query_key == keys and objv.model_names == models:
                         self.objectives.append(objv)
         # Once we have the objectives, we know also their model names
+        # and we can create queries for the abscissa key and extra query keys
         if self.abscissa_key is not None:
             for item in self.objectives:
                 self.absc_queries.append(Query(item.model_names, self.abscissa_key))
+        if self.extra_query_keys is not None:
+            self.extra_queries = []
+            # extract all models from the list of objectives and create a 
+            # list of queries -- one per model
+            allmodels = []
+            for item in self.objectives:
+                if isinstance(item.model_names, str):
+                    allmodels.append(item.model_names)
+                else:
+                    assert isinstance(item.model_names, list)
+                    allmodels.extend(item.model_names)
+            # this destroys order: allmodels = set(allmodels)
+            seen = set()
+            osetmodels = [m for m in allmodels if m not in seen and not seen.add(m)]
+            for model in osetmodels:
+                for qkey in self.extra_query_keys:
+                    self.extra_queries.append(Query(model, qkey))
 
     def __call__(self, iteration):
         """Prepare data for the plot and tag the plot-name with iteration.
         """
+        # get xy for plotting
         abscissas  = []
         ordinates  = []
         subweights = []
-        # get xy for plotting
         for i, item in enumerate(self.objectives):
             # keep the subweights separate
             objvdata = item.get()  # model_data, ref_data, subweights
@@ -364,9 +387,7 @@ class PlotTask (object):
         xval = []
         yval = []
         for xx, yy in zip(abscissas, ordinates):
-            self.logger.debug('x {}: y {} {}'.format(xx.shape, yy[0].shape, yy[1].shape))
             y1, y2 = yy[0], yy[1] # y1 = list of ref, y2 = list of model data
-            self.logger.debug('x {}: y {} {}'.format(xx.shape, y1.shape, y2.shape))
             yval.append(y1)
             yval.append(y2)
             xval.append(xx)
@@ -377,8 +398,28 @@ class PlotTask (object):
         #    assert x.shape[0] == y.shape[-1], (x.shape, y.shape)
         self.logger.debug('Overall length of abscissa and ordinate sets: {} {}'.
                 format(len(xval), len(yval)))
-        # draw all objectives with the same color, distinguish only ref vs model
-        # unless explicit user spec
+
+        # Get data from extra queries
+        if self.extra_query_keys is not None:
+            # make a dictionary with query.key for keys and lists of data
+            # each datum corresponding to a model
+            qkeys = set(q.key for q in self.extra_queries)
+            extradata = {key: [] for key in qkeys}
+            for query in self.extra_queries:
+                # Note that in pick_objectives we made a set(allmodels) and 
+                # created one query per model, and model_names is a string
+                mn = query.model_names
+                qk = query.key
+                self.logger.debug("Querying {} for {}:".format(mn, qk))
+                mdb = query.get_modeldb(mn)
+                qdata = query(atleast_1d=False)
+                # note that plotting routines will not have knowledge
+                # about model names, hence pass on only query key and data
+                extradata[qk].append(qdata)
+            self.kwargs['extra_data'] = extradata
+
+        # Set colors: draw all objectives with the same color, distinguish 
+        # only ref vs model unless explicit user spec is given
         if self.kwargs.get('colors', None) is None:
             colors = []
             for i in range(int(len(yval)/2)):
@@ -393,17 +434,15 @@ class PlotTask (object):
             try:
                 # should work if iteration is a tuple
                 plotname = "{:s}_{:d}-{:d}".format(self.plotname, *iteration)
+                title    = "{:s} ({:d}-{:d})".format(os.path.split(self.plotname)[-1], *iteration)
             except TypeError:
                 # if iteration is a single integer, rather than a sequence
                 plotname = "{:s}_{:d}".format(self.plotname, iteration)
-            title = self.kwargs.get('title', '')
-            if title:
-                title = '\niter. {}'.format(iteration)
-            else:
-                title = 'iter. {}'.format(iteration)
-            self.kwargs['title'] = title
+                title    = "{:s} ({:d})".format(os.path.split(self.plotname)[-1], *iteration)
         else:
             plotname = self.plotname
+            title    = os.path.split(self.plotname)[-1]
+        self.kwargs['title'] = title
         # set legend labels (only 2 labels by default, consistent with 
         # the colour setting
         self.kwargs['ylabels'] = ['ref', 'model']

@@ -90,7 +90,10 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
     # ------------------------------
     matplotlib.rcParams.update({'axes.titlesize': kwargs.get('fontsize', 20),\
                                 'font.size': kwargs.get('fontsize', 20),\
-                                'font.family': kwargs.get('fontfamily', 'sans')})
+                                'font.family': kwargs.get('fontfamily', 'sans-serif'),
+                                'font.sans-serif': kwargs.get('font', 
+                                ['Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Lucida Grande', 
+                                'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', 'sans-serif'])})
     plt.rc('lines', linewidth=2)
     fig, ax = plt.subplots(figsize=figsize)
 
