@@ -83,7 +83,8 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0, normalised=True,
     
     Args:
         spec (array-like or dict): values or specification of the subweights, 
-            for example::
+            for example:
+
             spec = """ """
             dflt: 1.0 # default value of subweights
             indexes: # explicit [index, weight] for 1d-array data
@@ -103,6 +104,7 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0, normalised=True,
                 - [[3, 4], 2.5]
                 - [[1, 2], 3.5]
             """ """
+
         refdata (numpy.array): Reference data; mandatory only when range of
             values must be specified
         nn (int): length of `refdata` (and corresponding weights)

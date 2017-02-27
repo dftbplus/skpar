@@ -31,13 +31,16 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
     output band-structure. 
 
     kLines is ordered, as per the appearence of symmetry points in the hsd input, e.g.:
-        [('L', 0), ('Γ', 50), ('X', 110), ('U', 130), ('K', 131), ('Γ', 181)]
+
+        * [('L', 0), ('Γ', 50), ('X', 110), ('U', 130), ('K', 131), ('Γ', 181)]
+
     therefore it may contain repetitions (e.g. for 'Γ', in this case).
     
     kLinesDict returns a dictionary of lists, so that there's a single entry for
     non-repetitive k-points, and more than one entries in the list of repetitive
     symmetry k-points, e.g. (see for 'Γ' above): 
-        {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Γ': [50, 181]}
+
+        * {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Γ': [50, 181]}
     """
     kLines_dftb = list()
 

@@ -20,12 +20,3 @@ SKOPT currently includes the following sub-packages:
 
     skopt.core
     skopt.dftbutils
-
-
-.. Module contents
-.. ---------------
-
-.. .. automodule:: skopt
-..     :members:
-..     :undoc-members:
-..     :show-inheritance:

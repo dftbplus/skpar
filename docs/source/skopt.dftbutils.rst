@@ -5,86 +5,50 @@
 dftbutils sub-package
 =====================================================
 
-Submodules
-----------
-
-skopt.dftbutils.bandstructure module
-------------------------------------
-
-.. automodule:: skopt.dftbutils.bandstructure
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.lattice module
-------------------------------
-
-.. automodule:: skopt.dftbutils.lattice
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.parametersSKGEN module
---------------------------------------
-
-.. automodule:: skopt.dftbutils.parametersSKGEN
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.plotBS module
------------------------------
-
-.. automodule:: skopt.dftbutils.plotBS
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.queryBands module
----------------------------------
-
-.. automodule:: skopt.dftbutils.queryBands
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.queryDFTB module
---------------------------------
-
-.. automodule:: skopt.dftbutils.queryDFTB
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.querykLines module
-----------------------------------
-
-.. automodule:: skopt.dftbutils.querykLines
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-skopt.dftbutils.runBS module
-----------------------------
+Run BS (skopt.dftbutils.runBS)
+-------------------------------
 
 .. automodule:: skopt.dftbutils.runBS
     :members:
     :undoc-members:
-    :show-inheritance:
+..    :show-inheritance:
 
-skopt.dftbutils.utils module
-----------------------------
+Query DFTB (skopt.dftbutils.queryDFTB)
+------------------------------------------
+
+.. automodule:: skopt.dftbutils.queryDFTB
+    :members:
+    :undoc-members:
+..    :show-inheritance:
+
+Query k-Lines (skopt.dftbutils.querykLines)
+--------------------------------------------
+
+.. automodule:: skopt.dftbutils.querykLines
+    :members:
+    :undoc-members:
+..    :show-inheritance:
+
+Lattice (skopt.dftbutils.lattice)
+---------------------------------------
+
+.. automodule:: skopt.dftbutils.lattice
+    :members:
+    :undoc-members:
+..    :show-inheritance:
+
+Plot (skopt.dftbutils.plot)
+-----------------------------
+
+.. automodule:: skopt.dftbutils.plot
+    :members:
+    :undoc-members:
+..    :show-inheritance:
+
+Unils (skopt.dftbutils.utils)
+-------------------------------
 
 .. automodule:: skopt.dftbutils.utils
     :members:
     :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: skopt.dftbutils
-    :members:
-    :undoc-members:
-    :show-inheritance:
+..    :show-inheritance:

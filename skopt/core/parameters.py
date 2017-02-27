@@ -1,6 +1,7 @@
 """
 Module for handling parameters in the context of SKF optimisation for DFTB via SKOPT.
 The following assumptions are made:
+
     * whatever optimiser is used, it is unaware of the actual meaning of 
       the parameters
     * from the perspective of the optimiser, parameters are just a list of values.

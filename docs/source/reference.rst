@@ -1,6 +1,6 @@
 .. index:: reference
 
-.. _about:
+.. _reference:
 
 ========================================
 Input File Reference

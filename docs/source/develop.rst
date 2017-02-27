@@ -1,6 +1,6 @@
 .. index:: develop
 
-.. _about:
+.. _develop:
 
 ====================
 Development

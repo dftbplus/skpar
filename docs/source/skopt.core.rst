@@ -32,7 +32,7 @@ Tasks (skopt.core.tasks)
     :show-inheritance:
 
 
-Get-Task Dictionary (skopt.core.taskdict)
+Task Dictionary (skopt.core.taskdict)
 -----------------------------------------
 
 .. automodule:: skopt.core.taskdict

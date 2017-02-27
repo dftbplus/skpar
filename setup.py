@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (C) 2013 - 2016  Stanislav Markov, The University of Hong Kong
+# Copyright (C) 2013 - 2017  Stanislav Markov, The University of Hong Kong
 # Please see the accompanying LICENSE file for further information.
 
 #from distutils.core import setup, Command
