@@ -77,7 +77,7 @@ class Query(object):
         self.model_names = model_names
         self.key = key
             
-    def __call__(self, modelsdb=None):
+    def __call__(self, modelsdb=None, atleast_1d=True):
         if modelsdb == None:
             modelsdb = self.__modelsdb
         if isinstance(self.model_names, list):
@@ -86,4 +86,6 @@ class Query(object):
                 result.append(modelsdb[m][self.key])
         else:
             result = modelsdb[self.model_names][self.key]
-        return np.atleast_1d(result)
+        if atleast_1d:
+            result = np.atleast_1d(result)
+        return result
