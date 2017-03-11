@@ -7,12 +7,9 @@ import logging
 
 module_logger = logging.getLogger(__name__)
 
-#def plotBS(plotname, xx, yy, xlim=None, ylim=[-13, 13], figsize=(6, 7),\
-#           col='darkred', withmarkers=False, Ekscatter=None, colEkpts='blue',\
-#           kLabels=None, **kwargs):
 def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None, 
         xlim=None, ylim=[-13, 13], figsize=(6, 7), title=None,
-        xticklabels=None, yticklabels=None, withmarkers=False, **kwargs):
+        withmarkers=False, **kwargs):
 
     """Specialised magic routine for plotting band-structure.
     """
@@ -31,6 +28,8 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
                                 ['Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Lucida Grande', 
                                 'Verdana', 'Geneva', 'Lucid', 'Helvetica', 'Avant Garde', 'sans-serif'])})
     plt.rc('lines', linewidth=2)
+    plt.rc('savefig', bbox='tight')
+    plt.rc('savefig', transparent='True')
     fig, ax = plt.subplots(figsize=figsize)
 
     # ------------------------------
@@ -39,7 +38,8 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
     ax.set_xlabel('Wave-vector')
     ax.set_ylabel('Energy, eV')
     # check either kwargs or extra_data for ticks/ticklabels
-    xticklabels = kwargs.get('kticklabels', None)
+    xticklabels = kwargs.get('xticklabels', None)
+    yticklabels = kwargs.get('yticklabels', None)
     if xticklabels is None:
         # try to get it from extra_data
         try:
@@ -178,7 +178,7 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
     if title:
         ax.set_title(title, fontsize=16)
     if ylabels:
-        ax.legend(legenditems, ylab)
+        ax.legend(legenditems, ylab, fontsize=14, loc=kwargs.get('legendloc', 0))
     fig.savefig(plotname+'.pdf')
     return fig
 
