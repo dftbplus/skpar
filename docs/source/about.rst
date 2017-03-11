@@ -56,7 +56,7 @@ the following entities is suggested:
 
     * **Optimiser** -- an algorithm for efficient exploration of the parameter
       space with the aim of minimising the cost function. *SKOPT 
-      features particlel-swam-optimisation (PSO) algorithm.*
+      features particle-swarm-optimisation (PSO) algorithm.*
       
 The sole purpose of the *Optimiser* in Fig. 1 is to generate parameters in a way 
 that does not depend on the specifics of the model being optimised.
