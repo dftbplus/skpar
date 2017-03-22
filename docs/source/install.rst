@@ -47,11 +47,12 @@ If these are not available, one could install them, e.g. by:
     pip3 install pyyaml --user
 
 As with any Python application dealing with lots of calculations, 
-NumPy_ is a must too.
+NumPy_ and Matplotlib (plotting) are a must too.
 
 .. _`DEAP`: http://deap.readthedocs.io/en/master
 .. _`YAML`: http://pyyaml.org/wiki/PyYAMLDocumentation
 .. _`NumPy`: http://www.numpy.org
+.. _`NumPy`: http://matplotlib.org/
 
 
 Test
