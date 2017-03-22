@@ -14,7 +14,7 @@ optimisation:
     algo: PSO   # particle swarm optimisation
     options:
         npart: 4   # number of particles
-        ngen : 6   # number of generations
+        ngen : 8   # number of generations
     parameters:
         - c0:  9.95    10.05
         - c1: -2.49    -2.51
