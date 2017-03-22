@@ -1,0 +1,29 @@
+# assumint 4 valence bands; i.e. without SOC
+Ec_G_3    4.15     
+Ec_G_0    3.35   
+#
+Ev_G_0    0.0    
+Ev_G_1    0.0
+Ev_G_2   -0.045            
+Ev_G_3   -12.5    
+#
+Ec_L_2    4.15
+Ec_L_0    2.4
+#
+Ev_L_0   -1.2
+Ev_L_2   -7.0   
+Ev_L_3   -9.3    
+#
+Ec_K_0    1.7     
+Ec_K_1    4.79 
+#
+Ev_K_0   -2.47    
+Ev_K_1   -4.37    
+Ev_K_2   -7.16   
+Ev_K_3   -8.15    
+#
+Ec_X_0    1.35
+#
+Ev_X_0   -2.9
+Ev_X_2   -8.01
+Ev_X_3   -8.01

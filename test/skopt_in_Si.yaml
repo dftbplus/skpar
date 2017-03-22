@@ -1,0 +1,91 @@
+---
+# What to do when evaluating a point in parameter space
+tasks:
+    #- set: [parfile, workdir, optional_arguments]
+    ## for run-tasks, command includes command-line arguments
+    ## while workdir is optional; default being current (top level)
+    #- run: [command, workdir]
+    #- get: [what, from_source(dir, file or dict), to_destination (dict), optional_keywordarguments]
+    #- set: [current.par, test_dftbutils/skf, skdefs.template.py]
+    #- run: [skgen, skf, ]
+    #- run: [bs_dftb, Si, ]
+    #- run: [bs_dftb, SiO2, ]
+    # Note that once SKOPT sees a dictionary name, it adds it to the QueryDB
+    # and subsequently, if it sees the same name as a source argument, it 
+    # will use it as a dictionary source database. Hence, user will not be able
+    # to read a directory of the same name as a dictionary name twice.
+    # The way around is to make keep dictionary names and directory names different.
+    # E.g. a dictionary 'Si/bs' will shadow a directory 'Si/bs' after the
+    # first task with 'Si/bs' dictionary is registered. To overcome this,
+    # use './Si/bs' for the directory name and 'Si/bs' for the dictionary name
+    # or avoid using / in the dictionary names, e.g. use 'Si.bs' for the dictionary.
+    - get: [get_dftbp_bs, test_dftbutils/Si/bs, Si.bs, {latticeinfo: {type: 'FCC', param: 5.431}}]
+    # below we omit the destination, and results will update the source dictionary
+    - get: [get_dftbp_meff, Si.bs, {carriers: 'e', directions: ['Gamma-X'], Erange: 0.005, usebandindex: True}]
+    - get: [get_dftbp_meff, Si.bs, {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 5, Erange: 0.0015}]
+    - get: [get_dftbp_meff, Si.bs, {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 3, Erange: 0.008}]
+    - get: [get_dftbp_meff, Si.bs, 
+        {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 1, Erange: 0.002, usebandindex: True}]
+    # note the use of the 'align: 'Evb'', which is to align the Ek with the 0 energy of the reference data
+    - get: [get_dftbp_Ek  , Si.bs,
+            {sympts: ['L', 'Gamma', 'X', 'K'], extract: {'cb': [0,2,4,6], 'vb': [0,2,4,6]}, align: 'Evb'}]
+
+
+# Individual objectives
+objectives:
+
+    - Egap:
+        doc: Band-gap of Si (diamond)
+        models: Si.bs
+        ref: 1.12
+        weight: 4.0
+        eval: [rms, relerr]
+
+    - effective_masses:
+        doc: Effective masses, Si
+        models: Si.bs
+        ref: 
+            file: ./reference_data/meff-Si.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt   : 0.1                # changing the default (from 1.) to 0. allows us to consider 
+                me_GX_0: 1.0                # only select entries; alternatively, set select entries
+                me_Xt_0: 0.0                # to zero effectively excludes them from consideration
+        weight: 1.0
+        eval: [rms, abserr]
+
+    - special_Ek:
+        doc: Eigenvalues at k-points of symmetry
+        models: Si.bs
+        ref:
+            file: ./reference_data/Ek-Si.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt   : 0.1                # changing the default (from 1.) to 0. allows us to consider 
+                me_GX_0: 1.0                # only select entries; alternatively, set select entries
+                mh_Xt_0: 0.0                # to zero effectively excludes them from consideration
+        weight: 1.0
+        eval: [rms, relerr]
+
+       
+# How to define a global criterion of success/fitness
+# Note that the definition of individual objectives 
+# decalres its own scalarisation procedure,
+# while this field remains for the global objective function.
+# CURRENTLY NOT SUPPORTED. Defaults are below
+# criterion:
+#     # details of the objective function
+#     objfun: WES # weighted exponential sum
+#     objfunpar:
+#         exp: 2    # exponent
+...

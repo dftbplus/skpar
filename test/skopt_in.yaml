@@ -1,0 +1,207 @@
+---
+# What to do when evaluating a point in parameter space
+tasks:
+    #- set: [parfile, workdir, optional_arguments]
+    ## for run-tasks, command includes command-line arguments
+    ## while workdir is optional; default being current (top level)
+    #- run: [command, workdir]
+    #- get: [what, source, destination, optional_arguments]
+    - set: [current.par, skf, ]
+    - run: [skgen, skf, ]
+    - run: [bs_dftb, Si, ]
+    - run: [bs_dftb, SiO2, ]
+    - get: [get_dftbp_data, Si, altSi]
+    # below we omit the destination, and results will update the source dictionary
+    - get: [get_dftbp_data, SiO2]   
+    # 'G-K' or 'GK' both work for directions of effective masses
+    - get: [get_dftbp_meff, Si/bs, {directions: ['G-X', 'GK'], nb: 4, Erange: 0.002}]
+
+
+# Individual objectives
+objectives:
+
+    - bands: 
+        doc: Valence Band, Si
+        models: Si/bs
+        ref: 
+            file: ./reference_data/fakebands.dat # 
+            loader_args: {unpack: True} # transpose file data, so that band-index = array-row-index
+            process:       # eliminate unused columns, like k-pt enumeration
+                # indexes and ranges below refer to file, not array, 
+                # i.e. independent of 'unpack' loader argument
+                rm_columns: 1                # filter k-point enumeration, and bands, potentially
+                # rm_rows   : [[18,36], [1,4]] # filter k-points if needed for some reason
+                # scale     : 1                # for unit conversion, e.g. Hartree to eV, if needed
+        options:
+            use_ref: [[1, 4]]                # fortran-style index-bounds of bands to use
+            use_model: [[1, 4]]
+            align_ref: [4, max]              # fortran-style index of band and k-point,
+            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
+            subweights: 
+                # NOTABENE:
+                # --------------------------------------------------
+                # Energy values are with respect to the ALIGNEMENT.
+                # If we want to have the reference  band index as zero,
+                # we would have to do tricks with the range specification 
+                # behind the curtain, to allow both positive and negative 
+                # band indexes, e.g. [-3, 0], INCLUSIVE of either boundary.
+                # Currently this is not done, so only standard Fortran
+                # range spec is supported. Therefore, band 1 is always
+                # the lowest lying, and e.g. band 4 is the third above it.
+                # --------------------------------------------------
+                dflt: 1
+                values: # [[range], subweight] for E-k points in the given range of energy
+                # notabene: the range below is with respect to the alignment value
+                    - [[-0.3, 0.], 3.0]
+                bands: # [[range], subweight] of bands indexes; fortran-style
+                    - [[2, 3], 1.5]   # two valence bands below the top VB
+                    - [4 , 3.5]       # emphasize the reference band
+                # not supported yet     ipoint:
+        weight: 1.0
+
+    - bands: 
+        doc: Conduction Band, Si
+        models: Si/bs
+        ref: 
+            file: ./reference_data/fakebands.dat # 
+            loader_args: {unpack: True}
+            process:       
+                rm_columns: 1              # filter k-point enumeration, and bands, potentially
+        options:
+            use_ref: [5, 6]                # fortran-style index enumeration: NOTABENE: not a range here!
+            use_model: [5, 6]              # using [[5,6]] would be a range with the same effect
+            align_ref: [1, 9]              # fortran-style index of band and k-point, (happens to be the minimum
+            align_model: [1, min]          # or a function (e.g. min, max) instead of k-point
+            subweights: 
+                values:                    # [[range], subweight] for E-k points in the given range of energy
+                    - [[0.0, 0.2], 3.0]    # bottom of CB and 200meV above
+                bands:                     # [[range], subweight] of bands indexes; fortran-style
+                    - [1, 2.0]             # the LUMO only increased in weight; note the indexing
+                                           # reflects the 'use_' clauses above
+        weight: 2.0
+
+    - band_gap:
+        doc: Band-gap of Si (diamond)
+        models: Si/bs
+        ref: 1.12
+        weight: 4.0
+
+    - effective_mass:
+        doc: Effective masses, Si
+        models: Si/bs
+        ref: 
+            file: ./reference_data/meff-Si.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt: 0.                    # changing the default (from 1.) to 0. allows us to consider 
+                me_GX_0: 2.                 # only select entries
+                mh_GX_0: 1.
+        weight: 1.5
+
+    - me_GX_0:
+        doc: Single query for effective mass
+        models: Si/bs
+        ref: 0.92
+        weigh: 0.4
+
+    - Etot:
+        doc: Energy vs volume, Si
+        models: [Si/scc-5, Si/scc-4, Si/scc-3, Si/scc-2, Si/scc-1,
+                 Si,
+                 Si/scc+1, Si/scc+2, Si/scc+3, Si/scc+4, Si/scc+5]
+        ref: 
+            file: reference_data/volen-Si.dat
+            loader_args: {unpack: True}
+            process:       
+                rm_columns: 1               # remove the column with volume data
+        options:
+            subweights: [1., 1., 1., 2., 3., 5., 3., 2., 1., 1., 1.]
+            ## alternative specification for subweights:
+            # subweights:
+            #   dflt: 0.
+            #   indexes: 
+            #     -[ix, value]
+            #   ranges: 
+            #     -[[start, stop], value]
+            #     -[[start, stop], value]
+        weight: 1.0
+
+    - Etot:
+        doc: "heat of formation, SiO2"
+        models: 
+            - [SiO2-quartz/scc, 1.]
+            - [Si/scc, -0.5] 
+            - [O2/scc, -1]
+        ref: 1.8 
+        weight: 1.2
+
+    - Etot:
+        doc: "energy difference between "
+        models: 
+            - [SiO2-quartz/0.0, -1.]
+            - [SiO2-quartz/+0.01, 1.]
+        ref: 0.5
+            
+    - Etot:
+        doc: "energy difference between phases of SiO2"
+        models: 
+            - [SiO2-quartz/geopt, 1.]
+            - [SiO2-cristobalite/geopt, -1.]
+        ref: 0.5
+            
+       
+# How to define a global criterion of success/fitness
+# Note that the definition of individual objectives 
+# decalres its own scalarisation procedure,
+# while this field remains for the global objective function.
+# CURRENTLY NOT SUPPORTED. Defaults are below
+# criterion:
+#     # details of the objective function
+#     objfun: WES # weighted exponential sum
+#     objfunpar:
+#         exp: 2    # exponent
+
+
+# How to explore the parameter space
+# E.g. if support for algorithms other than PSO is provided
+# in the future; Currently this part is ignored
+optimisation:
+     
+    algo: PSO   # particle swarm optimisation
+    options:
+        npart: 10   # number of particles
+        ngen: 50   # number of generations
+    parameters:
+        # either file: filename, or
+        # list parameter_name: init min max type
+        - r0_Si_sp: 4 2 6
+        - nc_Si_sp: 4 2 12 i
+        - rc_O_sp:  1.5 4
+        - ep_O_sp:  8 i
+
+
+executables:
+    # Allows for comfortable names in the `tasks` key above,
+    # independent of the actual executable (or its version, path, etc.)
+    # Note that if path is not explicit here, then the first one along $PATH
+    # will be tried.
+    # E.g. suppose we want to experiment with gridatom as opposed to slateratom
+    atom: gridatom
+    # specific version of my device
+    twocnt: ~/.local/bin/twocnt
+    skgen: ~/.local/bin/skgen
+    # suppose we need alternative to the stock distro
+    dftb: ~/.local/bin/dftb+
+    # there may be other 
+    bands: dp_bands
+    dos: dp_dos
+    # local thingy
+    skgen: ./skf/skgen.sh
+    # avoiding any traps from -i flags
+    copy: /bin/cp
+...

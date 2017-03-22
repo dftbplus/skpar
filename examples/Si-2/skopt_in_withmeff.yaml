@@ -1,0 +1,149 @@
+executables:
+    skgen: ./skf/skgen-opt.sh
+    bands: dftbutils bands
+
+tasks:
+    #- set: [parfile, workdir, optional_args]
+    #- run: [command, workdir]
+    #- get: [what, from_source(dir, file or dict), to_destination (dict), optional_kwargs]
+    # SetTask should change: eliminate first argument;
+    # Use only workdir and optional templates; implicitly write current.par
+    - set: [current.par, skf, skf/skdefs.template.py]
+      #    - run: [skgen, skf]
+      # the repetition of bands Si-diam is optionall, since the -wd already sets workdir
+    - run: [bands, Si-diam/100]
+    - get: [get_dftbp_bs, Si-diam/100/bs, Si.diam.100, {latticeinfo: {type: 'FCC', param: 5.431}}]
+    # below we omit the destination, and results will update the source dictionary
+    - get: [get_dftbp_meff, Si.diam.100, 
+            {carriers: 'e', directions: ['Gamma-X'], Erange: 0.005, usebandindex: True}]
+    - get: [get_dftbp_meff, Si.diam.100, 
+            {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 3, Erange: 0.002}]
+    - get: [get_dftbp_meff, Si.diam.100, 
+            {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 2, Erange: 0.008}]
+    - get: [get_dftbp_meff, Si.diam.100, 
+            {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 1, Erange: 0.002, 
+            usebandindex: True}]
+    # note the use of the 'align: 'Evb'', which is to align the Ek with the 0 energy of the reference data
+    - get: [get_dftbp_Ek  , Si.diam.100,
+            {sympts: ['L', 'Gamma', 'X', 'K'], extract: {'cb': [0,1,2,3], 'vb': [0,1,2,3]}, align: 'Evb'}]
+
+objectives:
+
+    - Egap:
+        doc: 'Si-diam-100: band-gap'      # if using : inside doc string, use '' or "" to surround the string
+        models: Si.diam.100
+        ref: 1.12
+        weight: 4.0
+        eval: [rms, relerr]
+
+    - bands:
+        doc: 'Si-diam-100: valence band'
+        models: Si.diam.100
+        ref:            
+            file: ~/Dropbox/projects/skf-dftb/Erep fitting/from Alfred/crystal/DFT/di-Si.Markov/PS.100/band/band.dat
+            process:  # the file above is from vasp + vasputils
+                # indexes and ranges below refer to file, not array, 
+                # i.e. independent of 'unpack' loader argument
+                rm_columns: 1      # filter k-point enumeration
+                # rm_rows: [[41,60]] # filter K-L segment; must do the same with dftb data... but in dftb_in.hsd...
+                # scale     : 1    # for unit conversion, e.g. Hartree to eV, if needed
+        options:
+            use_ref: [[1, 4]]                # fortran-style index-bounds of bands to use
+            use_model: [[1, 4]]
+            align_ref: [4, max]              # fortran-style index of band and k-point,
+            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
+            subweights: 
+                # NOTABENE:
+                # --------------------------------------------------
+                # Energy values are with respect to the ALIGNEMENT.
+                # If we want to have the reference  band index as zero,
+                # we would have to do tricks with the range specification 
+                # behind the curtain, to allow both positive and negative 
+                # band indexes, e.g. [-3, 0], INCLUSIVE of either boundary.
+                # Currently this is not done, so only standard Fortran
+                # range spec is supported. Therefore, band 1 is always
+                # the lowest lying, and e.g. band 4 is the third above it.
+                # --------------------------------------------------
+                dflt: 1
+                values: # [[range], subweight] for E-k points in the given range of energy
+                # notabene: the range below is with respect to the alignment value
+                    - [[-0.1, 0.], 5.0]
+                bands: # [[range], subweight] of bands indexes; fortran-style
+                    - [[2, 3], 1.5]   # two valence bands below the top VB
+                    - [4 , 2.5]       # emphasize the reference band
+                # not supported yet     ipoint:
+        weight: 4.0
+        eval: [rms, relerr]
+
+    - bands:
+        doc: 'Si-diam-100: conduction band'
+        models: Si.diam.100
+        ref:            
+            file: ~/Dropbox/projects/skf-dftb/Erep fitting/from Alfred/crystal/DFT/di-Si.Markov/PS.100/band/band.dat
+            process:  # the file above is from vasp + vasputils
+                # indexes and ranges below refer to file, not array, 
+                # i.e. independent of 'unpack' loader argument
+                rm_columns: 1      # filter k-point enumeration
+                # rm_rows: [[41,60]] # filter K-L segment
+                # scale     : 1    # for unit conversion, e.g. Hartree to eV, if needed
+        options:
+            use_ref: [5, 6]                # fortran-style index enumeration: NOTABENE: not a range here!
+            use_model: [5, 6]              # using [[5,6]] would be a range with the same effect
+            align_ref: [1, 9]              # fortran-style index of band and k-point, (happens to be the minimum
+            align_model: [1, min]          # or a function (e.g. min, max) instead of k-point
+            subweights: 
+                values:                    # [[range], subweight] for E-k points in the given range of energy
+                    - [[0.0, 2.5], 1.5]    # conduction band from fundamental minimum to the band at Gamma
+                    - [[0.0, 0.1], 4.0]    # bottom of CB and 100meV above, for good meff
+                bands:                     # [[range], subweight] of bands indexes; fortran-style
+                    - [1, 2.5]             # the LUMO only increased in weight; note the indexing
+                                           # reflects the 'use_' clauses above
+        weight: 4.0
+        eval: [rms, relerr]
+
+    - effective_masses:
+        doc: Si-diam-100, effective masses
+        models: Si.diam.100
+        ref: 
+            file: ./ref/meff-Si.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt   : 0.1                # changing the default (from 1.) to 0. allows us to consider 
+                me_GX_0: 1.0                # only select entries; alternatively, set select entries
+                me_Xt_0: 0.0                # to zero effectively excludes them from consideration
+        weight: 1.0
+        eval: [rms, abserr]
+
+    - special_Ek:
+        doc: Si-diam-100, eigenvalues at special k-points
+        models: Si.diam.100
+        ref:
+            file: ./ref/Ek-Si.dat
+            loader_args: 
+                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
+                                            #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+        options:
+            subweights: 
+                dflt   : 0.1                # changing the default (from 1.) to 0. allows us to consider 
+                me_GX_0: 1.0                # only select entries; alternatively, set select entries
+                mh_Xt_0: 0.0                # to zero effectively excludes them from consideration
+        weight: 1.0
+        eval: [rms, relerr]
+
+
+optimisation:
+    algo: PSO   # particle swarm optimisation
+    options:
+        npart: 2   # number of particles
+        ngen : 2   # number of generations
+    parameters:
+        - Si_Ed  :  0.1 0.3
+        - Si_r_sp:  3.5 7.0
+        - Si_r_d :  3.5 8.0
