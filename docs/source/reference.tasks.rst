@@ -186,7 +186,7 @@ Plot Tasks
         - plot: [plot_function, plot_name, list_of_objectives,
                     optional_abscissa_key,
                     optional_queries_list,
-                    **kwargs]
+                    kwargs]
 
 Plot tasks produce ``.pdf`` plots with specified ``plot_name``, visualising
 the reference and model data associated with an objective at each iteration.
