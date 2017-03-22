@@ -7,9 +7,9 @@ Install
 ====================
 
 The latest release of SKOPT can be found on `Bitbucket`_.
-Download it, open the archive and go to the newly created directory.
+Clone it (release-0.1 branch) and go to the newly created directory.
 
-.. _Bitbucket: https://bitbucket.org/stanmarkov/skopt/downloads
+.. _Bitbucket: https://bitbucket.org/stanmarkov/skopt/
 
 Assuming all dependencies are met, installation can proceed by
 the conventional
@@ -28,7 +28,8 @@ This will try to install SKOPT in your local home directory, creating
 The executables associated with skopt will be placed in ``~/.local/bin/``,
 which should be added to ``$PATH``, if not already done.
 
-All installed files will be listed in ``installed.info``, so to uninstall do:
+All installed files will be listed in ``installed.info``, so to uninstall 
+one can do:
 
 .. code:: bash
 
@@ -46,11 +47,12 @@ If these are not available, one could install them, e.g. by:
     pip3 install pyyaml --user
 
 As with any Python application dealing with lots of calculations, 
-NumPy_ is a must too.
+NumPy_ and Matplotlib_ (plotting) are a must too.
 
 .. _`DEAP`: http://deap.readthedocs.io/en/master
 .. _`YAML`: http://pyyaml.org/wiki/PyYAMLDocumentation
 .. _`NumPy`: http://www.numpy.org
+.. _`Matplotlib`: http://matplotlib.org/
 
 
 Test

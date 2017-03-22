@@ -5,7 +5,7 @@ tasks:
 
 objectives:
     - yval:
-        doc: 3-rd order polinomial values for some values of the argument
+        doc: 3-rd order polynomial values for some values of the argument
         models: poly3
         ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
         eval: [rms, relerr]
@@ -14,7 +14,7 @@ optimisation:
     algo: PSO   # particle swarm optimisation
     options:
         npart: 4   # number of particles
-        ngen : 5   # number of generations
+        ngen : 8   # number of generations
     parameters:
         - c0:  9.95    10.05
         - c1: -2.49    -2.51

@@ -1,0 +1,13 @@
+# assumint 4 valence bands; i.e. without SOC
+me_GX_0  0.916
+me_Xt_0  0.19
+mh_GX_0 -0.276
+mh_GK_0 -0.738
+mh_GL_0 -0.579
+mh_GX_1 -0.204
+mh_GK_1 -0.139
+mh_GL_1 -0.147
+mh_GX_2 -0.234
+mh_GK_2 -0.234
+mh_GL_2 -0.234
+cbminpos_GX_0  0.85

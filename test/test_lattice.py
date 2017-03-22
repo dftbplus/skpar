@@ -50,6 +50,8 @@ class LatticeTest(unittest.TestCase):
         c = 12.8024 #3.0
         #lat = Lattice({'type': 'ORC', 'param': [a, b, c], 'path': 'Gamma-S-X-Gamma-Z'})
         lat = Lattice({'type': 'ORC', 'param': [a, b, c], 'path': 'Gamma-S-Y-Gamma-Z'})
+        # Default Path
+        lat = Lattice({'type': 'ORC', 'param': [a, b, c]})
         logger.debug(lat)
 
     def test_rhombohedral(self):

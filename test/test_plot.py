@@ -34,6 +34,11 @@ class GenericPlotTaskTest(unittest.TestCase):
         altbands = bands + jitter
         if os.path.exists(plotname):
             os.remove(plotname)
+        else:
+            try:
+                os.mkdir('test_plot')
+            except  FileExistsError:
+                pass
         plot_objvs('test_plot/bs1', DB['kvector'], [altbands, bands], 
                 xticklabels=DB['kticklabels'],
                 axeslabels=['wave-vector', 'Energy, eV'], 
