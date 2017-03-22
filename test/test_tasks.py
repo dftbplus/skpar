@@ -209,7 +209,8 @@ class RunTaskTest(unittest.TestCase):
             tasks:
                 - run: [pythonspecial pass.py, test_tasks ]
             executables:
-                pythonspecial: '~/anaconda3/python'
+#                pythonspecial: '~/anaconda3/python'
+                pythonspecial: 'python'
             """
         taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
         spec = yaml.load(yamldata)
@@ -219,7 +220,8 @@ class RunTaskTest(unittest.TestCase):
         (ttype, args), = tt.items()
         kwargs = {"exedict": exedict}
         t1 = taskmapper[ttype](*args, **kwargs)
-        exe = normpath(expanduser('~/anaconda3/python'))
+        #exe = normpath(expanduser('~/anaconda3/python'))
+        exe = normpath(expanduser('python'))
         self.assertListEqual(t1.cmd,[exe, 'pass.py'])
         self.assertEqual(t1.wd, abspath(expanduser('test_tasks')))
         self.assertTrue(isinstance(t1.logger,logging.Logger))
