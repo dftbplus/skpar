@@ -13,17 +13,6 @@ from skopt.core.utils import get_logger
 
 module_logger = get_logger('skopt.tasks')
 
-def islistofstr(arg, msg=None, dflt=None):
-    """Check an argument is a list of strings or a default type.
-    Return message + argument's value otherwise.
-    """
-    if arg is dflt or all([isinstance(item, str) for item in arg]):
-        return True
-    else:
-        if msg is None:
-            msg = "Expecting string or list of strings, not:"
-        errmsg = pformat(arg)
-        return "".join([msg, errmsg])
 
 def islistoflists(arg):
     """Return True if item is a list of lists.
@@ -33,26 +22,17 @@ def islistoflists(arg):
         if isinstance(arg[0], list):
             tf = True
     return tf
-    
+
 
 class RunTask (object):
-    """
-    """
-    def __init__(self, cmd, wd='.', inp=None, out='out.log', 
-                 err=subprocess.STDOUT, exedict=None, *args, **kwargs):
-        #self.logger = kwargs.get('logger', logging.getLogger(__name__))
+    """Class for running an external executable."""
+    
+    def __init__(self, cmd, wd='.', out='out.log', exedict=None):
         self.logger = module_logger
-        # handle the path properly!
-        self.wd = abspath(expanduser(wd))
-        try:
-            # should work if cmd is a string
-            _cmd = cmd.split()
-        except AttributeError:
-            # if cmd is a list of strings
-            _cmd = cmd
-        # separate executable from arguments
+        self.wd = wd
+        _cmd = cmd.split() if isinstance(cmd, str) else cmd
+        assert isinstance(_cmd, list)
         exe  = _cmd[0]
-        # args will be empty list if there are no arguments
         args = _cmd[1:]
         # remap the executable; accept even a command with args
         if exedict is not None:
@@ -64,69 +44,69 @@ class RunTask (object):
         # exe is on the PATH
         if splitpath(exe)[0]:
             exe = abspath(expanduser(exe))
-        # make the command into a list, in preparation for subprocess
-        self.cmd = exe.split()
-        # add the command arguments to the list
-        self.cmd.extend(args)
-        # deal with input and output files, if any
-        if inp is not None:
-            try:
-                _inp = inp.split()
-            except AttributeError:
-                _inp = inp
-            self.cmd.extend(_inp)
+        self.cmd = [exe] + args
         if out is not None:
-            self.outfile = joinpath(self.wd, out)
+            self.outfile = os.path.normpath(os.path.join(self.wd, out))
         else:
             self.outfile = None
-        self.err = err
+        # Will contain output of command execution (used for unittests)
+        self.out = None
 
-    def __call__(self):
-        # Remember top level directory where skopt is invoked
-        # We must make every effort to return here even if task
-        # fails for some reason!
-        topdir = os.getcwd()
-        # Go to task working directory
+
+    def __call__(self, workroot):
+        origdir = os.getcwd()
+        workdir = os.path.normpath(os.path.join(workroot, self.wd))
+        outfile = self.outfile
+        if outfile is not None:
+            outfile = os.path.normpath(os.path.join(workroot, self.outfile))
+
         try:
-            os.chdir(self.wd)
+            os.chdir(workdir)
         except:
-            self.logger.critical("Cannot change to working directory {}".format(self.wd))
+            self.logger.critical("Cannot change to working directory {}"\
+                                 .format(workdir))
             raise
-        # Try to execute the task
+
         try:
-            self.logger.debug("Running {} in {}...".format(self.cmd, os.path.relpath(self.wd)))
-            # capture the output/error if any, for eventual checks
-            self.out = subprocess.check_output(self.cmd, 
-                                          universal_newlines=True, 
-                                          stderr=subprocess.STDOUT)
-            try:
-                with open(self.outfile, 'w') as fp:
+            msg = "Running {} in {}...".format(self.cmd, workdir)
+            self.logger.debug(msg)
+            self.out = subprocess.check_output(
+                self.cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+
+            if outfile is not None:
+                with open(outfile, 'w') as fp:
                     fp.write(self.out)
-                self.logger.debug("Done.  : output is in {}.\n".format(os.path.relpath(self.outfile)))
-            except TypeError:
-                # self.outfile is None
-                self.logger.debug("Done.  : outfile was None; output discarded.\n")
-            # return to caller's directory
-            os.chdir(topdir)
+                msg = "Done.  : output is in {}.\n"\
+                      .format(os.path.relpath(outfile))
+                self.logger.debug(msg)
+            else:
+                msg = "Done.  : outfile was None; output discarded.\n"
+                self.logger.debug(msg)
+
         except subprocess.CalledProcessError as exc:
             # report the issue and exit
-            self.logger.critical('The following task failed with exit status {}:\n'.
-                            format(exc.returncode))
+            msg = 'The following task failed with exit status {}:\n'\
+                  .format(exc.returncode)
+            self.logger.critical(msg)
             self.logger.critical(self.__repr__())
             self.out = exc.output
-            with open(self.outfile, 'w') as fp:
-                fp.write(self.out)
-            # go back to top dir
-            os.chdir(topdir)
+            if outfile is not None:
+                with open(outfile, 'w') as fp:
+                    fp.write(self.out)
             raise
-        except OSError:
-            self.logger.critical("Abnormal termination -- the OS could not handle the command of:")
-            self.logger.critical("If the command is a script, make sure there is a shebang!")
+
+        except OSError as exc:
+            msg = "Abnormal termination -- OS could not handle the command of:"
+            self.logger.critical(msg)
+            msg = "If the command is a script, make sure there is a shebang!"
+            self.logger.critical(msg)
             self.logger.critical(self.__repr__())
             self.logger.debug(os.getcwd())
-            # go back to top dir
-            os.chdir(topdir)
             raise
+
+        finally:
+            os.chdir(origdir)
+
 
     def __repr__(self):
         """Yield a summary of the task.
@@ -134,105 +114,68 @@ class RunTask (object):
         s = []
         s.append("{:9s}{:<15s}: {}".format("","RunTask in", os.path.relpath(self.wd)))
         s.append("{:9s}{:<15s}: {}".format("","command", pformat(' '.join(self.cmd))))
-        s.append("{:9s}{:<15s}: {}".format("","out/err", os.path.relpath(self.outfile)))
+        if self.outfile is not None:
+            s.append("{:9s}{:<15s}: {}".format("","out/err", os.path.relpath(self.outfile)))
+        else:
+            s.append("{:9s}{:<15s}: {}".format("","out/err", "discarded"))
         return "\n" + "\n".join(s)
 
 
-class SetTask (object):
-    """Wrapper class to update files with new parameter values.
 
-    At least one file is output with iteration number and parameters
-    provided at the time of task execution.
-    The task initialisation defines where to write the parameters.
-    In addition to the default file, template may be provided.
-    For exact handling of file names and working directory check the 
-    docs of the function assigned to self.func.
-    """
-    def __init__(self, parfile=None, wd='.', templates=None, *args, **kwargs):
-        """Create a task that would write parameters to specified file(s).
+class SetTask(object):
+    """Task for updating files with new parameter values. """
+
+    def __init__(self, *templates, parnames=None):
+        """Creates a task that substiutes parameters in template files.
 
         Args:
-            parfile (str): File name for the default file with parameters.
-            wd      (str): Working directory, where `parfile` file is written.
-                The full path to parfile is obtained by joining wd and parfile.
-                But the full path to `templates` depends on whether `templates`
-                contain a path component in them or not. If they do not, then
-                wd is prepended to them; typically, they should have a path.
-            templates (str, or list of strings): Template files, containing
-                placeholders of Python's old string-formatting style --
-                %(Name)Type, which are updated according to the parameters'
-                names and values.
-            parnames (str or list of string): This is accepted as a kwarg only
-                and is meant to supplement the `parameters` argument during
-                a call if `parameters` is merely a list of values (no names).
-            logger (logging.Logger): kwarg only; Message logger; defaults to
-                module logger at DEBUG level.
+            *templates (list of str): Template files containing placeholders of
+                Python's old string-formatting style -- %(Name)Type, which are
+                updated according to the parameters' names and values.
+            parnames (str or list of string, optional): Supplements the
+                `parameters` argument during a call if `parameters` is merely a
+                list of values (no names).
         """
-        #self.logger   = kwargs.get('logger', logging.getLogger(__name__))
-        self.logger = module_logger
-        # parnames may be None, string, or a list of strings
-        self.parnames = kwargs.get('parnames', None)
-        if isinstance(self.parnames, str): self.parnames = [self.parnames,]
-        assert islistofstr(self.parnames)
-        self.func = update_parameters
-        # setup parfile path
-        (path, name) = splitpath(parfile)
-        if path:
-            self.parfile = normpath(expanduser(parfile))
-        else:
-            self.parfile = normpath(expanduser(joinpath(wd, parfile)))
-        # templates may be None, string, or a list of strings
-        if isinstance(templates, str): templates = [templates, ]
-        assert islistofstr(templates)
-        if templates:
-            for ii, ftempl in enumerate(templates):
-                (path, name) = splitpath(ftempl)
-                if path:
-                    templates[ii] = normpath(expanduser(ftempl))
-                else:
-                    templates[ii] = normpath(expanduser(joinpath(wd, ftempl)))
         self.templates = templates
-        # bunch all in kwargs
-        self.args = args
-        self.kwargs = kwargs
-        # update kwargs with the local modifications
-        self.kwargs['parfile'] = self.parfile
-        self.kwargs['parnames'] = self.parnames
-        self.kwargs['templates'] = self.templates
-        # report task initialisation
-        # self.logger.debug(self.__repr__())
+        self.parnames = [parnames] if isinstance(parnames, str) else parnames
+        self.logger = module_logger
 
-    def __call__(self, parameters, iteration=None):
-        """Write the parameters to relevant files.
+
+    def __call__(self, workroot, parameters, iteration=None):
+        """Substitutes parameters in relevant templates.
 
         Args:
+            workroot (str): The root working directory for all relative output
+                directories.
             parameters (list): Parameter values or parameter objects
-            iteration (int or tuple of ints): Iteration number; may be
-                a tuple, e.g. (generation, individual)
+            iteration (int or tuple of ints): Iteration number; may be a tuple,
+                e.g. (generation, individual)
         """
-        self.logger.debug("Setting parameters for iteration {} in {}.".
-                format(iteration, os.path.relpath(self.parfile)))
-        self.func(parameters, iteration, *self.args, **self.kwargs)
+        self.logger.debug("Setting parameters for iteration {} in {}."\
+                          .format(iteration, workroot))
+        update_parameters(workroot, self.templates, parameters, self.parnames)
+
 
     def __repr__(self):
-        """Yield a summary of the task.
+        """Yields a summary of the task.
         """
         s = []
-        s.append("{:9s}{:<15s}: {}".format("", "SetTask via", pformat(self.func.__name__)))
-        s.append("{:9s}{:<15s}: {}".format("", "Param. file", os.path.relpath(self.parfile)))
+        s.append("{:9s}{:<15s}".format("", "SetTask"))
         if self.templates:
-            s.append("{:9s}{:<15s}: {}".format("", "Templ. files", 
-                " ".join(["{}".format(os.path.relpath(ff)) for ff in self.templates])))
+            s.append("{:9s}{:<15s}: {}".format(
+                "", "Templ. files", " ".join(self.templates)))
         if self.parnames:
-            s.append("{:9s}{:<15s}: {}".format("", "Param. names", pformat(self.parnames)))
-        return '\n'+'\n'.join(s)
+            s.append("{:9s}{:<15s}: {}".format(
+                "", "Param. names", pformat(self.parnames)))
+        return '\n' + '\n'.join(s)
+
 
 
 class GetTask (object):
     """Wrapper class to declare tasks w/ arguments but calls w/o args"""
+
     def __init__(self, func, source, destination, *args, **kwargs):
         self.func = func
-        self.logger = module_logger
         assert isinstance (source, str)
         self.src_name = source
         dbref = Query.get_modeldb(source)
@@ -241,32 +184,37 @@ class GetTask (object):
             self.src = dbref
         else:
             # assume it is a directory or file, and `func` will handle it
-            # watch out for the ~/ in the filename!!!
-            self.src = normpath(expanduser(source))
+            self.src = source
         self.dst_name = destination
         self.dst  = Query.add_modelsdb(destination)
         self.args = args
         self.kwargs = kwargs
+        self.logger = module_logger
 
-    def __call__(self):
+
+    def __call__(self, workroot):
         try:
-            self.func(self.src, self.dst, *self.args, **self.kwargs)
+            self.func(workroot, self.src, self.dst, *self.args, **self.kwargs)
         except:
-            self.logger.critical("FAILED attempt to call {} with the following args:\n{} and kwargs:\n{}".
-                    format(self.func.__name__, self.args, self.kwargs))
+            msg = "FAILED attempt to call {} with the following args:\n{} and "\
+                  "kwargs:\n{}".format(self.func.__name__, self.args,
+                                       self.kwargs)
+            self.logger.critical(msg)
             raise
-        
+
+
     def __repr__(self):
         """Yield a summary of the task.
         """
         s = []
         s.append("{:9s}{:<15s}: {} ".format("", "GetTask", self.func.__name__))
         s.append("{:9s}{:<15s}: {} ".format("", "func", self.func))
-        s.append("{:9s}{:<15s}: {:<15s} {:>10s} {:s}".format("", "from", 
+        s.append("{:9s}{:<15s}: {:<15s} {:>10s} {:s}".format("", "from",
             os.path.relpath(self.src_name), "to :", os.path.relpath(self.dst_name)))
         s.append("{:9s}{:<15s}: {}".format("", "args", pformat(self.args)))
         s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
         return '\n'+'\n'.join(s)
+
 
 
 class PlotTask (object):
@@ -275,9 +223,9 @@ class PlotTask (object):
     def __init__(self, func, plotname, objectives, abscissa_key, **kwargs):
         self.func = func
         self.logger = module_logger
-        # How to get the ordinates: from objectives 
+        # How to get the ordinates: from objectives
         # Notabene: the tasks do not have direct visibility of objectives
-        # In fact, objectives may not be declared/initialise at the time 
+        # In fact, objectives may not be declared/initialise at the time
         # of PlotTask initialisation.
         # Therefore, a higher authority must deal with the assignment.
         # Here we can only record users selection rules.
@@ -292,14 +240,14 @@ class PlotTask (object):
         # authority is needed, who must call the self.pick_objectives
         self.abscissa_key = abscissa_key
         self.absc_queries = []
-        # Extra queries serve to pass extra data to plotting routine, 
+        # Extra queries serve to pass extra data to plotting routine,
         # e.g. k-labels and ticks etc.
         self.extra_query_keys = kwargs.get('queries', None)
         if self.extra_query_keys and not isinstance(self.extra_query_keys, list):
                 self.extra_query_keys = [self.extra_query_keys,]
         # how to make up the plot name
         self.plotname = plotname
-        # The following are passed to the back end plotting routine 
+        # The following are passed to the back end plotting routine
         # (e.g. matplotlib) so pass them directly upon call
         self.kwargs = kwargs
 
@@ -330,7 +278,7 @@ class PlotTask (object):
                 self.absc_queries.append(Query(item.model_names, self.abscissa_key))
         if self.extra_query_keys is not None:
             self.extra_queries = []
-            # extract all models from the list of objectives and create a 
+            # extract all models from the list of objectives and create a
             # list of queries -- one per model
             allmodels = []
             for item in self.objectives:
@@ -406,7 +354,7 @@ class PlotTask (object):
             qkeys = set(q.key for q in self.extra_queries)
             extradata = {key: [] for key in qkeys}
             for query in self.extra_queries:
-                # Note that in pick_objectives we made a set(allmodels) and 
+                # Note that in pick_objectives we made a set(allmodels) and
                 # created one query per model, and model_names is a string
                 mn = query.model_names
                 qk = query.key
@@ -418,12 +366,12 @@ class PlotTask (object):
                 extradata[qk].append(qdata)
             self.kwargs['extra_data'] = extradata
 
-        # Set colors: draw all objectives with the same color, distinguish 
+        # Set colors: draw all objectives with the same color, distinguish
         # only ref vs model unless explicit user spec is given
         if self.kwargs.get('colors', None) is None:
             colors = []
             for i in range(int(len(yval)/2)):
-                # note how yval is composed above: 
+                # note how yval is composed above:
                 # y1 is ref (blue) y2 is model (red)
                 colors.append('b')
                 colors.append('r')
@@ -443,13 +391,13 @@ class PlotTask (object):
             plotname = self.plotname
             title    = os.path.split(self.plotname)[-1]
         self.kwargs['title'] = title
-        # set legend labels (only 2 labels by default, consistent with 
+        # set legend labels (only 2 labels by default, consistent with
         # the colour setting
         self.kwargs['ylabels'] = ['ref', 'model']
         # try to plot
         # ignore subweights for the moment
         self.func(plotname, xval, yval, **self.kwargs)
-        
+
     def __repr__(self):
         """Yield a summary of the task.
         """
@@ -459,36 +407,36 @@ class PlotTask (object):
         s.append("{:9s}{:<15s}: {} ".format("", "plot-name", self.plotname))
         s.append("{:9s}{:<15s}: {} ".format("", "abscissas", self.abscissa_key))
         try:
-            s.append("{:9s}{:<15s}: {} ".format("", "ordinates", 
-                '\n         '.join(["{}: {}".format(item.query_key, item.model_names) 
+            s.append("{:9s}{:<15s}: {} ".format("", "ordinates",
+                '\n         '.join(["{}: {}".format(item.query_key, item.model_names)
                     for item in self.objectives])))
         except AttributeError:
-            s.append("{:9s}{:<15s}: {} ".format("", "objectives", 
+            s.append("{:9s}{:<15s}: {} ".format("", "objectives",
                 '\n{:9s}'.join(["{}".format(item) for item in self.objv_selectors])))
         s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
         return '\n'+'\n'.join(s)
 
 
-def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
+
+def set_tasks(spec, exedict=None, parnames=None):
     """Parse user specification of Tasks, and return a list of Tasks for execution.
 
     Args:
         spec (list): List of dictionaries, each dictionary being a,
             specification of a callable task.
-
-        exedict (dict): A dictionary of name-aliased user-accessible 
-            external executables commands.
-        parnames (list): A list of parameter names. Note that typically
-            an optimiser has no knowledge of parameter meaning, or names.
-            But for various reasons, it is important to have the 
-            association between parameter names and parameter values.
-            This association is established before setting up the task(s)
-            that update model files with the parameter values, and 
-            `parnames` is the way to communicate that info to the 
-            relevant tasks.
+        exedict (dict): A dictionary of name-aliased user-accessible external
+            executables commands.
+        parnames (list): A list of parameter names. Note that typically an
+            optimiser has no knowledge of parameter meaning, or names.  But for
+            various reasons, it is important to have the association between
+            parameter names and parameter values.  This association is
+            established before setting up the task(s) that update model files
+            with the parameter values, and `parnames` is the way to communicate
+            that info to the relevant tasks.
 
     Returns:
         list: A list of callable task object that can be executed in order.
+
     """
     #
     tasklist = []
@@ -497,21 +445,21 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
     for item in spec:
         (tasktype, taskargs), = item.items()
         if 'set' == tasktype.lower():
-            try: 
+            try:
                 tasklist.append(SetTask(*taskargs, parnames=parnames))
             except TypeError:
-                # end up here if unknown task type, which is mapped to None
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug (spec)
+                logger.debug('Cannot handle the following task specification:')
+                logger.debug(spec)
                 raise
+
         if 'run' == tasktype.lower():
-            try: 
+            try:
                 tasklist.append(RunTask(*taskargs, exedict=exedict))
             except TypeError:
-                # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
-                logger.debug (spec)
+                logger.debug(spec)
                 raise
+
         if 'get' == tasktype.lower():
             assert isinstance(taskargs, list)
             # 1. Assign the real function to 1st arg
@@ -520,21 +468,21 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
             # 2. Check if we have optional dictionary of arguments
             if isinstance(taskargs[-1], dict):
                 optkwargs = taskargs[-1]
-                optkwargs.update(kwargs)
                 del taskargs[-1]
             else:
-                optkwargs = kwargs
+                optkwargs = {}
+            #BA: Would be weird when source was a directory and not a key!
             # 3. Check if we have a missing destination and assign the source
             if len(taskargs) == 2:
                 taskargs.append(taskargs[1])
             # 4. Register the task in the task-list
-            try: 
+            try:
                 tasklist.append(GetTask(*taskargs, **optkwargs))
             except TypeError:
-                # end up here if unknown task type, which is mapped to None
                 logger.debug ('Cannot handle the following task specification:')
                 logger.debug (spec)
                 raise
+
         if 'plot' == tasktype.lower():
             assert len(taskargs) >= 3,\
                 "A plot task must have at least 3 arguments:"\
@@ -545,10 +493,9 @@ def set_tasks(spec, exedict=None, parnames=None, *args, **kwargs):
             # 2. Check if we have optional dictionary of arguments
             if isinstance(taskargs[-1], dict):
                 optkwargs = taskargs[-1]
-                optkwargs.update(kwargs)
                 del taskargs[-1]
             else:
-                optkwargs = kwargs
+                optkwargs = {}
             # 3. Check if we have an abscissa key or not
             if len(taskargs) == 3:
                 taskargs.append(None)

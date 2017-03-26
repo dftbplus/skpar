@@ -1,5 +1,7 @@
 """
 """
+import os
+import shutil
 import logging
 import numpy as np
 from skopt.core.utils import get_logger, normalise
@@ -8,6 +10,13 @@ from skopt.core.tasks import SetTask, PlotTask
 module_logger = get_logger('skopt.evaluate')
 
 DEFAULT_GLOBAL_COST_FUNC = "rms"
+
+DEFAULT_CONFIG = {
+    'workroot': None,
+    'templatedir': None,
+    'keepworkdirs': True,
+}
+
 
 def abserr(ref, model):
     """Return the per-element difference model and reference.
@@ -72,8 +81,8 @@ errf = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 class Evaluator (object):
     """**Evaluator**
 
-    The evaluator is the only thing visible to the optimiser.  
-    It has several things to do:  
+    The evaluator is the only thing visible to the optimiser.
+    It has several things to do:
 
     1. Accept a list (or dict?) of parameter values (or key-value pairs),
        and an iteration number (or a tuple: (generation,particle_index)).
@@ -84,15 +93,22 @@ class Evaluator (object):
 
     4. Evaluate fitness for individual objectives.
 
-    5. Evaluate global fitness (cost) and return the value. It may be 
+    5. Evaluate global fitness (cost) and return the value. It may be
        good to also return the max error, to be used as a stopping criterion.
 
-    """   
-    def __init__(self, objectives, tasks, costf=costf[DEFAULT_GLOBAL_COST_FUNC],
-                 utopia = None, verbose=False, **kwargs):
+    """
+    def __init__(self, objectives, tasks, config=None,
+                 costf=costf[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
+                 verbose=False, **kwargs):
         self.objectives = objectives
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasks = tasks
+        self.config = config if config is not None else DEFAULT_CONFIG
+        workroot = self.config['workroot']
+        if workroot is not None:
+            workroot = os.path.abspath(workroot)
+            if not os.path.exists(workroot):
+                os.makedirs(workroot)
         self.costf = costf
         if utopia is None:
             self.utopia = np.zeros(len(self.objectives))
@@ -118,12 +134,22 @@ class Evaluator (object):
 
         Args:
             parameters (list or dict): current point in design/parameter space
-            iteration: (int or tupple): current iteration or current 
+            iteration: (int or tupple): current iteration or current
                 generation and individual index within generation
 
         Return:
             fitness (float): global fitness of the current design point
         """
+
+        # Create particles individual working directory
+        origdir = os.getcwd()
+        workroot = self.config['workroot']
+        if workroot is None:
+            workdir = origdir
+        else:
+            workdir = get_workdir(iteration, workroot)
+            create_workdir(workdir, self.config['templatedir'])
+
         # Update models with new parameters.
         # Updating the models should be the first task in the tasks list,
         # but user may decide to omit it in some situations (e.g. if only
@@ -137,25 +163,34 @@ class Evaluator (object):
             else:
                 self.msg('Iteration : {}'.format(iteration))
                 self.msg('Parameters: {:s}'.format(", ".join(["{:.6f}".format(p) for p in parameters])))
-                task(parameters, iteration)
+                os.chdir(workdir)
+                task(workdir, parameters, iteration)
             jj = 1
         # Get new model data by executing the rest of the tasks
         for ii, task in enumerate(self.tasks[jj:]):
             kk = ii + jj
+            os.chdir(workdir)
             try:
                 if isinstance(task, PlotTask):
                     task(iteration)
                 else:
-                    task()
+                    task(workdir)
             except:
                 self.logger.critical('Evaluation FAILED at task {}:\n{}'.format(kk+1, task))
                 raise
+
         # Evaluate individual fitness for each objective
         self.objvfitness = eval_objectives(self.objectives)
         ref = self.utopia
         # evaluate global fitness
         cost = self.costf(ref, self.objvfitness, self.weights)
         self.msg('{:<15s}: {}\n'.format('Overall cost', cost))
+
+        # Remove particle specific working dir if not needed:
+        if (not self.config['keepworkdirs']) and (workroot is not None):
+            destroy_workdir(workdir)
+        os.chdir(origdir)
+
         return np.atleast_1d(cost)
 
     def __call__(self, parameters, iteration=None):
@@ -176,3 +211,31 @@ class Evaluator (object):
         ss.append('--------------------')
         ss.append(self.costf.__name__)
         return '\n'.join(ss)
+
+
+def get_workdir(iteration, workroot):
+    if workroot is None:
+        workdir = None
+    else:
+        if iteration is None:
+            myworkdir = 'noiter'
+        else:
+            myworkdir = '-'.join([str(it) for it in iteration])
+        workdir = os.path.abspath(os.path.join(workroot, myworkdir))
+    return workdir
+
+
+def create_workdir(workdir, templatedir):
+    if workdir is None:
+        return
+    if os.path.exists(workdir):
+        shutil.rmtree(workdir)
+    if templatedir is not None:
+        shutil.copytree(templatedir, workdir, symlinks=True)
+    else:
+        os.mkdir(workdir)
+
+
+def destroy_workdir(workdir):
+    if workdir is not None:
+        shutil.rmtree(workdir)

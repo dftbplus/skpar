@@ -27,7 +27,8 @@ class GenericPlotTaskTest(unittest.TestCase):
         latticeinfo = {'type': 'FCC', 'param': 5.4315}
         DB = {}
         plotname = 'test_plot/bs1.pdf'
-        get_bandstructure('./test_dftbutils/Si/bs/', DB, latticeinfo={'type': 'FCC', 'param': 5.4315})
+        get_bandstructure('.', 'test_dftbutils/Si/bs/', DB,
+                          latticeinfo={'type': 'FCC', 'param': 5.4315})
         bands = DB['bands']
         eps = 0.25
         jitter = eps * (0.5 - random(bands.shape))

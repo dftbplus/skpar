@@ -8,7 +8,7 @@ from numpy.polynomial.polynomial import polyval
 # read the parameters of the model
 #                    names: ['keys', 'values']
 #                    formats: ['S15', 'float']
-raw = np.loadtxt('current.par', dtype=[('keys', 'S15'), ('values', 'float')])
+raw = np.loadtxt('parameters.dat', dtype=[('keys', 'S15'), ('values', 'float')])
 c = np.array([pair[1] for pair in raw])
 #print(c)
 

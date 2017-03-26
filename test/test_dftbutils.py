@@ -172,7 +172,7 @@ class BandsOutTest(unittest.TestCase):
         """Can we get the bandstructure and gap/cb/vb details?"""
         dst = {}
         src = 'test_dftbutils/bs'
-        get_bandstructure(src, dst)
+        get_bandstructure('.', src, dst)
         nptest.assert_array_almost_equal(dst['bands'], self.ref_bands)
         self.assertEqual(dst['nkpts'], self.ref_nk)
         self.assertEqual(dst['nbands'], self.ref_nb)
@@ -199,7 +199,7 @@ class MeffTest(unittest.TestCase):
         """Can we get effective masses in addition to band-structure, with default settings?"""
         dst = {}
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure(src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
         # the values below are in oldskopt.debug.log in the above dir
         self.assertTrue(dst['withSOC'])
         self.assertEqual(dst['ivbtop'], 7)
@@ -214,7 +214,7 @@ class MeffTest(unittest.TestCase):
         ref_klinesdict = {'K': [1409], 'X': [1132], 'Gamma': [532, 2041], 'L': [0], 'U': [1408]}
         self.assertListEqual(dst['kLines'], ref_klines)
         self.assertDictEqual(dst['kLinesDict'], ref_klinesdict)
-        get_effmasses(dst, dst)
+        get_effmasses('.', dst, dst)
         ref_meff_tags = ['me_LG', 'me_GX', 'me_XU', 'me_KG']
         ref_meff_tags.extend(['mh_LG', 'mh_GX', 'mh_XU', 'mh_KG'])
         self.assertTrue(all([key in dst for key in ref_meff_tags]))
@@ -224,19 +224,19 @@ class MeffTest(unittest.TestCase):
         dst = {}
         # NOTABENE: the refdata here is from SOC calculation!!!
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure(src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
         directions = ['Gamma-X', 'Gamma-L', 'Gamma-K']
         # Example how to extract different masses over a different energy window:
         # Note that subsequent extractions overwrite final data in dst, so we start with
         # the deepest bands, and than reduce the number of bands, towards to top of VB
         # The energy window should be adjusted depending on the anticipated curvature of the band
-        get_effmasses(dst, dst, directions=directions, carriers='e', nb=1, Erange=0.005, usebandindex=True)
+        get_effmasses('.', dst, dst, directions=directions, carriers='e', nb=1, Erange=0.005, usebandindex=True)
         # get the lowest band masses: (spin-orbit); forceErange seems to not work properly?
-        get_effmasses(dst, dst, directions=directions, carriers='h', nb=5, Erange=0.0015, forceErange=True)
+        get_effmasses('.', dst, dst, directions=directions, carriers='h', nb=5, Erange=0.0015, forceErange=True)
         # get the light hole bands (3 and 4)
-        get_effmasses(dst, dst, directions=directions, carriers='h', nb=3, Erange=0.008)
+        get_effmasses('.', dst, dst, directions=directions, carriers='h', nb=3, Erange=0.008)
         # get the top two (heavy hole) bands (1 and 2); enforce indexing! (i.e. add _0)
-        get_effmasses(dst, dst, directions=directions, carriers='h', nb=1, Erange=0.002, usebandindex=True)
+        get_effmasses('.', dst, dst, directions=directions, carriers='h', nb=1, Erange=0.002, usebandindex=True)
         self.assertAlmostEqual(dst['me_GX_0'],    0.945, places=3)
         self.assertAlmostEqual(dst['mh_GX_0'], -0.259, places=2)
         self.assertAlmostEqual(dst['mh_GK_0'], -0.516, places=3)
@@ -256,8 +256,8 @@ class EkTest(unittest.TestCase):
         """Get E(k) for k obtained from the kLines"""
         dst = {}
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure(src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
-        get_special_Ek(dst, dst)
+        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        get_special_Ek('.', dst, dst)
         self.assertAlmostEqual(dst['Ec_L_0'], 1.528, places=3)
         self.assertAlmostEqual(dst['Ec_G_0'], 2.744, places=3)
         self.assertAlmostEqual(dst['Ec_X_0'], 1.331, places=3)
@@ -274,8 +274,8 @@ class EkTest(unittest.TestCase):
         """Get E(k) for explicitly given, and multiple bands"""
         dst = {}
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure(src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
-        get_special_Ek(dst, dst, sympts = ['K', 'L'], 
+        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        get_special_Ek('.', dst, dst, sympts = ['K', 'L'], 
                         extract={'cb': [0, 2, 4, 6], 'vb': [0, 2, 4, 6]})
         self.assertAlmostEqual(dst['Ec_L_4'], 3.938, places=3)
         self.assertAlmostEqual(dst['Ec_L_0'], 1.528, places=3)

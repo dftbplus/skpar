@@ -58,4 +58,24 @@ def parse_input(filename, verbose=False):
     for task in tasks:
         if isinstance(task, PlotTask):
             task.pick_objectives(objectives)
-    return tasks, objectives, optargs
+
+    configinp = spec.get('config', None)
+    config = get_config(configinp)
+    
+    return tasks, objectives, optargs, config
+
+
+def get_config(input):
+    if input is None:
+        input = {}
+    config = {}
+    workroot = input.get('workroot', None)
+    if workroot is not None:
+        workroot = os.path.abspath(os.path.expanduser(workroot))
+    config['workroot'] = workroot
+    templatedir = input.get('templatedir', None)
+    if templatedir is not None:
+        templatedir = os.path.abspath(os.path.expanduser(templatedir))
+    config['templatedir'] = templatedir
+    config['keepworkdirs'] = input.get('keepworkdirs', False)
+    return config

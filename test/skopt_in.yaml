@@ -6,7 +6,7 @@ tasks:
     ## while workdir is optional; default being current (top level)
     #- run: [command, workdir]
     #- get: [what, source, destination, optional_arguments]
-    - set: [current.par, skf, ]
+    - set: [current.par,]
     - run: [skgen, skf, ]
     - run: [bs_dftb, Si, ]
     - run: [bs_dftb, SiO2, ]

@@ -4,6 +4,7 @@ import numpy as np
 import numpy.testing as nptest
 from skopt.core import evaluate as ev
 
+
 class Objv(object):
     """Barebone objective"""
     def __init__(self, ff, ww):
@@ -16,7 +17,7 @@ class Task(object):
     """Barebone task"""
     def __init__(self, exception=None):
        self.exception = exception
-    def __call__(self, **kwargs):
+    def __call__(self, workroot, **kwargs):
         if self.exception is not None:
             raise self.exception
         else:

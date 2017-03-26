@@ -45,7 +45,7 @@ class GetAbscissakVectorTest(unittest.TestCase):
         lat = Lattice(latticeinfo)
         DB = {}
         src = 'test_dftbutils/bs'
-        get_bandstructure(src, DB, latticeinfo=latticeinfo)
+        get_bandstructure('.', src, DB, latticeinfo=latticeinfo)
         kLines = DB['kLines']
         logger.debug('Bands.shape: {}'.format(DB['bands'].shape))
         logger.debug('kLines     : {}'.format(kLines))

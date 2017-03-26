@@ -1,7 +1,12 @@
+config:
+    templatedir: test_optimise
+    workroot: ./_workdir/test_optimise
+    keepworkdirs: true
+
 tasks:
-    - set: [current.par, test_optimise, template.parameters.py ]
-    - run: [mypy model_poly3.py, test_optimise ]
-    - get: [get_model_data, test_optimise/model_poly3_out.dat, poly3, yval]
+    - set: [template.parameters.dat]
+    - run: [mypy model_poly3.py]
+    - get: [get_model_data, model_poly3_out.dat, poly3, yval]
 
 objectives:
     - yval:
