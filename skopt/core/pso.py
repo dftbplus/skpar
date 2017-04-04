@@ -29,7 +29,7 @@ and units. However, to keep the PSO generic, it is best to impose identical
 scale in each dimension, so that particle range is the same in each direction.  
 This is achieved by normalising the parameters so that the particle position 
 in each dimension is between -1 and +1. However, when evaluating the fitness 
-of the particle, we need the renormalised values (i.e. the true values of 
+of the particle, we need the renormalized values (i.e. the true values of 
 the parameters).  
 
 Hence we introduce three additional attributes:
@@ -77,6 +77,7 @@ import random
 import operator
 import sys
 import numpy as np
+from copy import copy, deepcopy
 
 from deap import base
 from deap import creator
@@ -102,12 +103,12 @@ def declareTypes(weights):
     creator.create("pFitness", base.Fitness, weights=weights)
     creator.create("Particle", list, fitness=creator.pFitness, speed=list, past=list,
                    smin=None, smax=None, best=None, norm=list, shift=list, renormalized=list,
-                   worstErr=None)
+                   strict_bounds=True, prange=list)
     creator.create("Swarm", list, gbest=None, gbestfit=creator.pFitness,
                    gbest_iteration=None)
 
 
-def createParticle(prange):
+def createParticle(prange, strict_bounds=True):
     """
     Create particle of dimensionality len(prange), assigning initial particle
     coordinate in the i-th dimension within the prange[i] tuple.
@@ -123,7 +124,8 @@ def createParticle(prange):
     """
     # size is the dimensionality (degrees of freedom) of the particle
     # prange is a list of tuples containing the _initial_ range of particle coordinates
-    # prange is normalised, to [-1:+1], and the speedlimit is set to 0.5 the range
+    # prange is effectively normalized so particle position is in [-1:+1], 
+    # and the speedlimit is set to half the range
     size = len(prange)
     pmin, pmax, smin, smax = -1.0, 1.0, -1.0, 1.0
     part = creator.Particle(random.uniform(pmin, pmax) for _ in range(size))
@@ -131,14 +133,30 @@ def createParticle(prange):
     part.speed = [random.uniform(smin, smax) for _ in range(size)]
     part.smin = smin
     part.smax = smax
+    part.prange = prange
     part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in prange]
     part.shift = [0.5 * (r[1] + r[0]) for r in prange]
-    try:
-        part.renormalized = list(map(operator.add, list(map(operator.div, part, part.norm)), part.shift))
-    except AttributeError:
-        part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
+    part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
+    part.strict_bounds = strict_bounds
     return part
 
+def pformat(part):
+    """Return a formatted string for printing all particle info.
+    """
+    ss = []
+    ss.append('Strict  : {}'.format(part.strict_bounds))
+    ss.append('Position: {}'.format(' '.join(['{:7.3f}'.format(item) for item in part])))
+    ss.append('Speed   : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.speed])))
+    ss.append('Past    : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.past])))
+    ss.append('Norm    : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.norm])))
+    ss.append('Shift   : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.shift])))
+    ss.append('Renormed: {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.renormalized])))
+    try:
+        ss.append('Best    : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.best])))
+    except TypeError:
+        pass
+    return '\n'.join(ss)
+    
 
 def evolveParticle_0(part, best, phi1=2, phi2=2):
     """
@@ -165,10 +183,7 @@ def evolveParticle_0(part, best, phi1=2, phi2=2):
         elif speed > part.smax:
             part.speed[i] = part.smax
     part[:] = list(map(operator.add, part, part.speed))
-    try:
-        part.renormalized = list(map(operator.add, list(map(operator.div, part, part.norm)), part.shift))
-    except AttributeError:
-        part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
+    part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
 
 
 def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
@@ -215,11 +230,18 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
             part.speed[i] = part.smax
     # update current position in both normalized and physical coordinates
     part[:] = list(map(operator.add, part, part.speed))
-    try:
-        part.renormalized = list(map(operator.add, list(map(operator.div, part, part.norm)), part.shift))
-    except AttributeError:
-        part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
-
+    part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
+    # try recursion if we're out out 
+    if part.strict_bounds and not all([-1.0 < pp < 1.0 for pp in part]):
+        # recreate particle, but keeps its history (best and past)
+        module_logger.warning('Particle attempted to leave domain: \n'+pformat(part))
+        newpart = createParticle(part.prange, part.strict_bounds)
+        for ii, pp in enumerate(part):
+            part[ii] = newpart[ii]
+        part.speed = newpart.speed
+        part.renormalized = newpart.renormalized
+        module_logger.info ('Particle repositioned inside domain: \n'+pformat(part))
+        
 
 # init arguments: 
 pso_init_args = ["npart", "objectives", "parrange", "evaluate"]
@@ -272,7 +294,6 @@ def report_stats(stats):
     '{0:>10s}'.format('Max.'),
     '{0:>10s}'.format('Avg.'),
     '{0:>10s}'.format('Std.'),
-#    '{0:>12s}'.format('WorstErr(%)'),
     ])
     logger.info('')
     logger.info("Fitness statistics follow:")
@@ -290,10 +311,6 @@ def report_stats(stats):
  #       '{0:>12.2f}'.format(s['WRE']['Min']*100),
             ]))
     logger.info('============================================================')
-
-
-#def minabs(swarm):
-#    return np.min(np.abs([part.worstErr for part in swarm]))
 
 
 class PSO(object):
@@ -346,9 +363,6 @@ class PSO(object):
         fit_stats.register("Std", np.std)
         fit_stats.register("Min", np.min)
         fit_stats.register("Max", np.max)
-        #  - Worst Relative Error statistics
-        # wre_stats = tools.Statistics(key=lambda ind: ind.worstErr)
-        # wre_stats.register("Min", np.min)
         # All statistics will be compiled for each generation and added to the record
         self.mstats = tools.MultiStatistics(Fitness=fit_stats)
         self.stats_record = []
@@ -368,7 +382,6 @@ class PSO(object):
             for i, part in enumerate(self.swarm):
                 iteration = (g, i)
                 part.fitness.values = self.toolbox.evaluate(part.renormalized, iteration)
-                #   part.fitness.values, part.worstErr = self.toolbox.evaluate(part.renormalized, iteration)
                 if not part.best or part.best.fitness < part.fitness:
                     part.best = creator.Particle(part)
                     part.best.fitness.values = part.fitness.values
@@ -378,7 +391,6 @@ class PSO(object):
                     self.swarm.gbest = creator.Particle(part)
                     self.swarm.gbest.fitness.values = part.fitness.values
                     self.swarm.gbest.renormalized = part.renormalized
-                    #self.swarm.gbest.worstErr = part.worstErr
                     self.halloffame.update(self.swarm)
 
             # Update particles only after full evaluation of the swarm,
@@ -386,13 +398,8 @@ class PSO(object):
             for part in self.swarm:
                 self.toolbox.evolve(part, self.swarm.gbest)
 
-            # Gather all the fitnesses and worst errors and update the stats
+            # Gather all the fitnesses and update the stats
             self.stats_record.append(self.mstats.compile(self.swarm))
-
-            # Try an alternative exit criterion
-            # if ErrTol is not None:
-            #    if (np.abs(self.swarm.gbest.worstErr) <= ErrTol):
-            #        break
 
         return self.swarm, self.stats_record
 
