@@ -84,4 +84,4 @@ def main_bands(args):
     for tt in tasks:
         logger.debug(tt)
         if not args.dry_run:
-            tt()
+            tt(workroot='.')

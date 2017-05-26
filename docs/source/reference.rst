@@ -33,6 +33,9 @@ sections in the input file.
     executables:
         # alises of executable commands used in tasks
 
+    # optional
+    config:
+        # settings defining work directory layout 
 
 .. toctree::
 
@@ -40,3 +43,4 @@ sections in the input file.
     reference.objectives
     reference.optimisation
     reference.executables
+    reference.config
