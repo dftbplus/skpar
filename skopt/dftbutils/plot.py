@@ -180,7 +180,10 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
     if ylabels:
         ax.legend(legenditems, ylab, fontsize=14, loc=kwargs.get('legendloc', 0))
     fig.savefig(plotname+'.pdf')
-    return fig
+    if kwargs.get('returnfigure', False):
+        return fig
+    else:
+        plt.close('all')
 
 
 class Plotter(object):

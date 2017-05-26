@@ -189,6 +189,7 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
     if ylabels:
         ax.legend(legenditems, ylab)
     fig.savefig(plotname+'.pdf')
+    plt.close('all')
 
 
 gettaskdict = {

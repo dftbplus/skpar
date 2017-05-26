@@ -1,0 +1,1755 @@
+_workdir
+├── 0-0
+│   ├── C.dia
+│   │   ├── bands.hs-0.00_0-0.pdf
+│   │   ├── bands.hs-0.01_0-0.pdf
+│   │   ├── bands.hs+0.01_0-0.pdf
+│   │   ├── bands.hs-0.02_0-0.pdf
+│   │   ├── bands.hs+0.02_0-0.pdf
+│   │   ├── hydrostatic-0.00
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic-0.01
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic+0.01
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic-0.02
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   └── hydrostatic+0.02
+│   │       ├── bs
+│   │       │   ├── band.out
+│   │       │   ├── bands_tot.dat
+│   │       │   ├── charges.bin
+│   │       │   ├── detailed.out
+│   │       │   ├── dftb_in.hsd
+│   │       │   ├── dftb.log
+│   │       │   ├── dftb_pin.hsd
+│   │       │   └── dp_bands.log
+│   │       ├── dftbutils.bands.log
+│   │       ├── out.log
+│   │       ├── primcell.gen
+│   │       ├── scc
+│   │       │   ├── band.out
+│   │       │   ├── charges.bin
+│   │       │   ├── detailed.out
+│   │       │   ├── dftb_in.hsd
+│   │       │   ├── dftb.log
+│   │       │   └── dftb_pin.hsd
+│   │       ├── skopt.debug.log
+│   │       └── skopt.log
+│   └── skf
+│       ├── C
+│       │   ├── atom
+│       │   │   ├── 2p_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── atom0
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   └── results.tag
+│       │   ├── potcomp
+│       │   │   ├── coeffs_02p.tag
+│       │   │   ├── coeffs_02s.tag
+│       │   │   ├── dens.dat
+│       │   │   ├── energies.tag
+│       │   │   ├── hfatom.in
+│       │   │   ├── output
+│       │   │   ├── pot.dat
+│       │   │   ├── results.tag
+│       │   │   ├── wave_02p.dat
+│       │   │   └── wave_02s.dat
+│       │   └── wavecomp
+│       │       ├── wave_02p.dat
+│       │       └── wave_02s.dat
+│       ├── C1
+│       │   ├── atom
+│       │   │   ├── 2p_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── atom0
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   └── results.tag
+│       │   ├── potcomp
+│       │   │   ├── coeffs_02p.tag
+│       │   │   ├── coeffs_03s.tag
+│       │   │   ├── dens.dat
+│       │   │   ├── energies.tag
+│       │   │   ├── hfatom.in
+│       │   │   ├── output
+│       │   │   ├── pot.dat
+│       │   │   ├── results.tag
+│       │   │   ├── wave_02p.dat
+│       │   │   └── wave_03s.dat
+│       │   └── wavecomp
+│       │       ├── wave_02p.dat
+│       │       └── wave_03s.dat
+│       ├── C1-C1
+│       │   └── twocnt
+│       │       ├── output
+│       │       └── sktwocnt.in
+│       ├── C-C
+│       │   └── twocnt
+│       │       ├── at1-at1
+│       │       ├── output
+│       │       ├── results.tag
+│       │       └── sktwocnt.in
+│       ├── C-C1
+│       │   └── twocnt
+│       │       ├── at1-at2
+│       │       ├── at2-at1
+│       │       ├── output
+│       │       ├── results.tag
+│       │       └── sktwocnt.in
+│       ├── C-C.skf
+│       ├── out.log
+│       ├── skdefs.freeatoms.py
+│       ├── skdefs.py
+│       ├── skdefs.template.py
+│       ├── skgen-freeatoms.sh
+│       ├── skgen-opt.sh
+│       ├── skopt.debug.log
+│       └── skopt.log
+├── 0-1
+│   ├── C.dia
+│   │   ├── bands.hs-0.00_0-1.pdf
+│   │   ├── bands.hs-0.01_0-1.pdf
+│   │   ├── bands.hs+0.01_0-1.pdf
+│   │   ├── bands.hs-0.02_0-1.pdf
+│   │   ├── bands.hs+0.02_0-1.pdf
+│   │   ├── hydrostatic-0.00
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic-0.01
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic+0.01
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic-0.02
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   └── hydrostatic+0.02
+│   │       ├── bs
+│   │       │   ├── band.out
+│   │       │   ├── bands_tot.dat
+│   │       │   ├── charges.bin
+│   │       │   ├── detailed.out
+│   │       │   ├── dftb_in.hsd
+│   │       │   ├── dftb.log
+│   │       │   ├── dftb_pin.hsd
+│   │       │   └── dp_bands.log
+│   │       ├── dftbutils.bands.log
+│   │       ├── out.log
+│   │       ├── primcell.gen
+│   │       ├── scc
+│   │       │   ├── band.out
+│   │       │   ├── charges.bin
+│   │       │   ├── detailed.out
+│   │       │   ├── dftb_in.hsd
+│   │       │   ├── dftb.log
+│   │       │   └── dftb_pin.hsd
+│   │       ├── skopt.debug.log
+│   │       └── skopt.log
+│   └── skf
+│       ├── C
+│       │   ├── atom
+│       │   │   ├── 2p_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── atom0
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   └── results.tag
+│       │   ├── potcomp
+│       │   │   ├── coeffs_02p.tag
+│       │   │   ├── coeffs_02s.tag
+│       │   │   ├── dens.dat
+│       │   │   ├── energies.tag
+│       │   │   ├── hfatom.in
+│       │   │   ├── output
+│       │   │   ├── pot.dat
+│       │   │   ├── results.tag
+│       │   │   ├── wave_02p.dat
+│       │   │   └── wave_02s.dat
+│       │   └── wavecomp
+│       │       ├── wave_02p.dat
+│       │       └── wave_02s.dat
+│       ├── C1
+│       │   ├── atom
+│       │   │   ├── 2p_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── atom0
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   └── results.tag
+│       │   ├── potcomp
+│       │   │   ├── coeffs_02p.tag
+│       │   │   ├── coeffs_03s.tag
+│       │   │   ├── dens.dat
+│       │   │   ├── energies.tag
+│       │   │   ├── hfatom.in
+│       │   │   ├── output
+│       │   │   ├── pot.dat
+│       │   │   ├── results.tag
+│       │   │   ├── wave_02p.dat
+│       │   │   └── wave_03s.dat
+│       │   └── wavecomp
+│       │       ├── wave_02p.dat
+│       │       └── wave_03s.dat
+│       ├── C1-C1
+│       │   └── twocnt
+│       │       ├── output
+│       │       └── sktwocnt.in
+│       ├── C-C
+│       │   └── twocnt
+│       │       ├── at1-at1
+│       │       ├── output
+│       │       ├── results.tag
+│       │       └── sktwocnt.in
+│       ├── C-C1
+│       │   └── twocnt
+│       │       ├── at1-at2
+│       │       ├── at2-at1
+│       │       ├── output
+│       │       ├── results.tag
+│       │       └── sktwocnt.in
+│       ├── C-C.skf
+│       ├── out.log
+│       ├── skdefs.freeatoms.py
+│       ├── skdefs.py
+│       ├── skdefs.template.py
+│       ├── skgen-freeatoms.sh
+│       ├── skgen-opt.sh
+│       ├── skopt.debug.log
+│       └── skopt.log
+├── 1-0
+│   ├── C.dia
+│   │   ├── bands.hs-0.00_1-0.pdf
+│   │   ├── bands.hs-0.01_1-0.pdf
+│   │   ├── bands.hs+0.01_1-0.pdf
+│   │   ├── bands.hs-0.02_1-0.pdf
+│   │   ├── bands.hs+0.02_1-0.pdf
+│   │   ├── hydrostatic-0.00
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic-0.01
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic+0.01
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   ├── hydrostatic-0.02
+│   │   │   ├── bs
+│   │   │   │   ├── band.out
+│   │   │   │   ├── bands_tot.dat
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   ├── dftb_pin.hsd
+│   │   │   │   └── dp_bands.log
+│   │   │   ├── dftbutils.bands.log
+│   │   │   ├── out.log
+│   │   │   ├── primcell.gen
+│   │   │   ├── scc
+│   │   │   │   ├── band.out
+│   │   │   │   ├── charges.bin
+│   │   │   │   ├── detailed.out
+│   │   │   │   ├── dftb_in.hsd
+│   │   │   │   ├── dftb.log
+│   │   │   │   └── dftb_pin.hsd
+│   │   │   ├── skopt.debug.log
+│   │   │   └── skopt.log
+│   │   └── hydrostatic+0.02
+│   │       ├── bs
+│   │       │   ├── band.out
+│   │       │   ├── bands_tot.dat
+│   │       │   ├── charges.bin
+│   │       │   ├── detailed.out
+│   │       │   ├── dftb_in.hsd
+│   │       │   ├── dftb.log
+│   │       │   ├── dftb_pin.hsd
+│   │       │   └── dp_bands.log
+│   │       ├── dftbutils.bands.log
+│   │       ├── out.log
+│   │       ├── primcell.gen
+│   │       ├── scc
+│   │       │   ├── band.out
+│   │       │   ├── charges.bin
+│   │       │   ├── detailed.out
+│   │       │   ├── dftb_in.hsd
+│   │       │   ├── dftb.log
+│   │       │   └── dftb_pin.hsd
+│   │       ├── skopt.debug.log
+│   │       └── skopt.log
+│   └── skf
+│       ├── C
+│       │   ├── atom
+│       │   │   ├── 2p_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2p_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── 2s_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   ├── atom0
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_02s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_02s.dat
+│       │   │   └── results.tag
+│       │   ├── potcomp
+│       │   │   ├── coeffs_02p.tag
+│       │   │   ├── coeffs_02s.tag
+│       │   │   ├── dens.dat
+│       │   │   ├── energies.tag
+│       │   │   ├── hfatom.in
+│       │   │   ├── output
+│       │   │   ├── pot.dat
+│       │   │   ├── results.tag
+│       │   │   ├── wave_02p.dat
+│       │   │   └── wave_02s.dat
+│       │   └── wavecomp
+│       │       ├── wave_02p.dat
+│       │       └── wave_02s.dat
+│       ├── C1
+│       │   ├── atom
+│       │   │   ├── 2p_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 2p_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_d1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_d2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_u1
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── 3s_u2
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   ├── atom0
+│       │   │   │   ├── coeffs_02p.tag
+│       │   │   │   ├── coeffs_03s.tag
+│       │   │   │   ├── dens.dat
+│       │   │   │   ├── energies.tag
+│       │   │   │   ├── hfatom.in
+│       │   │   │   ├── output
+│       │   │   │   ├── pot.dat
+│       │   │   │   ├── wave_02p.dat
+│       │   │   │   └── wave_03s.dat
+│       │   │   └── results.tag
+│       │   ├── potcomp
+│       │   │   ├── coeffs_02p.tag
+│       │   │   ├── coeffs_03s.tag
+│       │   │   ├── dens.dat
+│       │   │   ├── energies.tag
+│       │   │   ├── hfatom.in
+│       │   │   ├── output
+│       │   │   ├── pot.dat
+│       │   │   ├── results.tag
+│       │   │   ├── wave_02p.dat
+│       │   │   └── wave_03s.dat
+│       │   └── wavecomp
+│       │       ├── wave_02p.dat
+│       │       └── wave_03s.dat
+│       ├── C1-C1
+│       │   └── twocnt
+│       │       ├── output
+│       │       └── sktwocnt.in
+│       ├── C-C
+│       │   └── twocnt
+│       │       ├── at1-at1
+│       │       ├── output
+│       │       ├── results.tag
+│       │       └── sktwocnt.in
+│       ├── C-C1
+│       │   └── twocnt
+│       │       ├── at1-at2
+│       │       ├── at2-at1
+│       │       ├── output
+│       │       ├── results.tag
+│       │       └── sktwocnt.in
+│       ├── C-C.skf
+│       ├── out.log
+│       ├── skdefs.freeatoms.py
+│       ├── skdefs.py
+│       ├── skdefs.template.py
+│       ├── skgen-freeatoms.sh
+│       ├── skgen-opt.sh
+│       ├── skopt.debug.log
+│       └── skopt.log
+└── 1-1
+    ├── C.dia
+    │   ├── bands.hs-0.00_1-1.pdf
+    │   ├── bands.hs-0.01_1-1.pdf
+    │   ├── bands.hs+0.01_1-1.pdf
+    │   ├── bands.hs-0.02_1-1.pdf
+    │   ├── bands.hs+0.02_1-1.pdf
+    │   ├── hydrostatic-0.00
+    │   │   ├── bs
+    │   │   │   ├── band.out
+    │   │   │   ├── bands_tot.dat
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   ├── dftb_pin.hsd
+    │   │   │   └── dp_bands.log
+    │   │   ├── dftbutils.bands.log
+    │   │   ├── out.log
+    │   │   ├── primcell.gen
+    │   │   ├── scc
+    │   │   │   ├── band.out
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   └── dftb_pin.hsd
+    │   │   ├── skopt.debug.log
+    │   │   └── skopt.log
+    │   ├── hydrostatic-0.01
+    │   │   ├── bs
+    │   │   │   ├── band.out
+    │   │   │   ├── bands_tot.dat
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   ├── dftb_pin.hsd
+    │   │   │   └── dp_bands.log
+    │   │   ├── dftbutils.bands.log
+    │   │   ├── out.log
+    │   │   ├── primcell.gen
+    │   │   ├── scc
+    │   │   │   ├── band.out
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   └── dftb_pin.hsd
+    │   │   ├── skopt.debug.log
+    │   │   └── skopt.log
+    │   ├── hydrostatic+0.01
+    │   │   ├── bs
+    │   │   │   ├── band.out
+    │   │   │   ├── bands_tot.dat
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   ├── dftb_pin.hsd
+    │   │   │   └── dp_bands.log
+    │   │   ├── dftbutils.bands.log
+    │   │   ├── out.log
+    │   │   ├── primcell.gen
+    │   │   ├── scc
+    │   │   │   ├── band.out
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   └── dftb_pin.hsd
+    │   │   ├── skopt.debug.log
+    │   │   └── skopt.log
+    │   ├── hydrostatic-0.02
+    │   │   ├── bs
+    │   │   │   ├── band.out
+    │   │   │   ├── bands_tot.dat
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   ├── dftb_pin.hsd
+    │   │   │   └── dp_bands.log
+    │   │   ├── dftbutils.bands.log
+    │   │   ├── out.log
+    │   │   ├── primcell.gen
+    │   │   ├── scc
+    │   │   │   ├── band.out
+    │   │   │   ├── charges.bin
+    │   │   │   ├── detailed.out
+    │   │   │   ├── dftb_in.hsd
+    │   │   │   ├── dftb.log
+    │   │   │   └── dftb_pin.hsd
+    │   │   ├── skopt.debug.log
+    │   │   └── skopt.log
+    │   └── hydrostatic+0.02
+    │       ├── bs
+    │       │   ├── band.out
+    │       │   ├── bands_tot.dat
+    │       │   ├── charges.bin
+    │       │   ├── detailed.out
+    │       │   ├── dftb_in.hsd
+    │       │   ├── dftb.log
+    │       │   ├── dftb_pin.hsd
+    │       │   └── dp_bands.log
+    │       ├── dftbutils.bands.log
+    │       ├── out.log
+    │       ├── primcell.gen
+    │       ├── scc
+    │       │   ├── band.out
+    │       │   ├── charges.bin
+    │       │   ├── detailed.out
+    │       │   ├── dftb_in.hsd
+    │       │   ├── dftb.log
+    │       │   └── dftb_pin.hsd
+    │       ├── skopt.debug.log
+    │       └── skopt.log
+    └── skf
+        ├── C
+        │   ├── atom
+        │   │   ├── 2p_1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2p_2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2p_d1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2p_d2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2p_u1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2p_u2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2s_1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2s_2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2s_d1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2s_d2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2s_u1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── 2s_u2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   ├── atom0
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_02s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_02s.dat
+        │   │   └── results.tag
+        │   ├── potcomp
+        │   │   ├── coeffs_02p.tag
+        │   │   ├── coeffs_02s.tag
+        │   │   ├── dens.dat
+        │   │   ├── energies.tag
+        │   │   ├── hfatom.in
+        │   │   ├── output
+        │   │   ├── pot.dat
+        │   │   ├── results.tag
+        │   │   ├── wave_02p.dat
+        │   │   └── wave_02s.dat
+        │   └── wavecomp
+        │       ├── wave_02p.dat
+        │       └── wave_02s.dat
+        ├── C1
+        │   ├── atom
+        │   │   ├── 2p_1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 2p_2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 2p_d1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 2p_d2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 2p_u1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 2p_u2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 3s_1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 3s_2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 3s_d1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 3s_d2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 3s_u1
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── 3s_u2
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   ├── atom0
+        │   │   │   ├── coeffs_02p.tag
+        │   │   │   ├── coeffs_03s.tag
+        │   │   │   ├── dens.dat
+        │   │   │   ├── energies.tag
+        │   │   │   ├── hfatom.in
+        │   │   │   ├── output
+        │   │   │   ├── pot.dat
+        │   │   │   ├── wave_02p.dat
+        │   │   │   └── wave_03s.dat
+        │   │   └── results.tag
+        │   ├── potcomp
+        │   │   ├── coeffs_02p.tag
+        │   │   ├── coeffs_03s.tag
+        │   │   ├── dens.dat
+        │   │   ├── energies.tag
+        │   │   ├── hfatom.in
+        │   │   ├── output
+        │   │   ├── pot.dat
+        │   │   ├── results.tag
+        │   │   ├── wave_02p.dat
+        │   │   └── wave_03s.dat
+        │   └── wavecomp
+        │       ├── wave_02p.dat
+        │       └── wave_03s.dat
+        ├── C1-C1
+        │   └── twocnt
+        │       ├── output
+        │       └── sktwocnt.in
+        ├── C-C
+        │   └── twocnt
+        │       ├── at1-at1
+        │       ├── output
+        │       ├── results.tag
+        │       └── sktwocnt.in
+        ├── C-C1
+        │   └── twocnt
+        │       ├── at1-at2
+        │       ├── at2-at1
+        │       ├── output
+        │       ├── results.tag
+        │       └── sktwocnt.in
+        ├── C-C.skf
+        ├── out.log
+        ├── skdefs.freeatoms.py
+        ├── skdefs.py
+        ├── skdefs.template.py
+        ├── skgen-freeatoms.sh
+        ├── skgen-opt.sh
+        ├── skopt.debug.log
+        └── skopt.log
+
+232 directories, 1520 files
