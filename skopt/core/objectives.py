@@ -379,6 +379,7 @@ class ObjValues(Objective):
         # coerce ref-data to 1D array if it is extracted from a 2D array
         if self.ref_data.ndim == 2 and self.ref_data.shape == (1,nmod):
             self.ref_data = self.ref_data.reshape((nmod,))
+        self.ref_data.flags.writeable = False
         shape = self.ref_data.shape
         # default options
         subweights = None
@@ -431,6 +432,7 @@ class ObjKeyValuePairs(Objective):
         mask = np.where(np.invert(np.isclose(ww, np.zeros(ww.shape))))
         self.query_key = [k.decode() for k in self.ref_data['keys'][mask]]
         self.ref_data = self.ref_data['values'][mask]
+        self.ref_data.flags.writeable = False
         self.subweights = ww[mask]
         assert self.subweights.shape == self.ref_data.shape
         assert len(self.query_key) == len(self.ref_data)
@@ -534,6 +536,7 @@ class ObjBands(Objective):
         if align_ref is not None:
             shift = get_refval(self.ref_data, align_ref)
             self.ref_data -= shift
+        self.ref_data.flags.writeable = False
 
         # Make up a mask to trim model_data if there is use_model
         # Note that the mask is only for dim_0, i.e. to
@@ -661,12 +664,13 @@ def get_refdata(data):
                         array_data = np.delete(array_data, obj=indexes, axis=axis)
                 scale = postprocess.get('scale', 1)
                 array_data = array_data * scale
-            return array_data
+            
+            return_data = array_data
         else:
             try:
                 # `data` is a dict of key-value data -> transform to structured array
                 dtype = [('keys','S15'), ('values','float')]
-                return np.array([(key,val) for key,val in data.items()], dtype=dtype)
+                return_data = np.array([(key,val) for key,val in data.items()], dtype=dtype)
             except TypeError:
                 print ('get_refdata cannot understand the contents of data dictionary')
                 print ("`data` should contain [string_key: float_value, ] pairs,")
@@ -677,15 +681,17 @@ def get_refdata(data):
         if isinstance(data, np.ndarray):
             # `data` is already an array  -> return as is
             # unlikely scenario, since yaml cannot encode numpy array
-            return data
+            return_data = data
         else:
             # suppose `data` is a value or a list  -> return array
             try:
-                return np.atleast_1d(data)
+                return_data = np.atleast_1d(data)
             except TypeError:
                 print ('get_refdata cannot understand the contents of data')
                 print ('`data` should be np.array, list, value, or dict, but it is not.')
                 raise
+    return_data.flags.writeable = False
+    return return_data
 
 def get_objective(spec, **kwargs):
     """Return an instance of an objective, as defined in the input spec.

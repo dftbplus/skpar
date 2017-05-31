@@ -12,6 +12,9 @@
 /*.egg-info
 /*.egg
 
+# work directories for tests and examples
+_workdir*
+
 # dropbox
 *.DS_Store
 

@@ -1,15 +1,15 @@
+config:
+    templatedir: template
+    workroot: ./_workdir
+    keepworkdirs: true
+
 executables:
-    skgen: ./skf/skgen-opt.sh
+    skgen: ./template/skf/skgen-opt.sh
     bands: dftbutils bands
 
 tasks:
-    #- set: [parfile, workdir, optional_args]
-    #- run: [command, workdir]
-    #- get: [what, from_source(dir, file or dict), to_destination (dict), optional_kwargs]
-    # SetTask should change: eliminate first argument;
-    # Use only workdir and optional templates; implicitly write current.par
-    - set: [current.par, skf, skf/skdefs.template.py]
-      #    - run: [skgen, skf]
+    - set: [skf/skdefs.template.py]
+    - run: [skgen, skf]
       # the repetition of bands Si-diam is optionall, since the -wd already sets workdir
     - run: [bands, Si-diam/100]
     - get: [get_dftbp_bs, Si-diam/100/bs, Si.diam.100, {latticeinfo: {type: 'FCC', param: 5.431}}]

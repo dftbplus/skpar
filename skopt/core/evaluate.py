@@ -43,7 +43,7 @@ def relerr(ref, model):
     # get deviations
     err = abserr(rr, mm)
     # fix the denominator
-    denom = rr
+    denom = rr.copy()
     denom[rr == 0.] = mm[rr == 0.]
     # assert 0 absolute error even for 0 denominator
     rele = np.zeros(err.shape)
