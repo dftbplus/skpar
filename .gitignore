@@ -15,6 +15,10 @@
 # work directories for tests and examples
 _workdir*
 
+# skopt logs from running tests etc.
+test/skopt*.log
+test/test_plot/
+
 # dropbox
 *.DS_Store
 
