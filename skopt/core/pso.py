@@ -128,6 +128,7 @@ def createParticle(prange, strict_bounds=True):
     # and the speedlimit is set to half the range
     size = len(prange)
     pmin, pmax, smin, smax = -1.0, 1.0, -1.0, 1.0
+    #pmin, pmax, smin, smax = -1.0, 1.0, -0.5, 0.5
     part = creator.Particle(random.uniform(pmin, pmax) for _ in range(size))
     part.past = [random.uniform(pmin, pmax) for _ in range(size)]
     part.speed = [random.uniform(smin, smax) for _ in range(size)]
@@ -144,7 +145,7 @@ def pformat(part):
     """Return a formatted string for printing all particle info.
     """
     ss = []
-    ss.append('Strict  : {}'.format(part.strict_bounds))
+#    ss.append('Strict  : {}'.format(part.strict_bounds))
     ss.append('Position: {}'.format(' '.join(['{:7.3f}'.format(item) for item in part])))
     ss.append('Speed   : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.speed])))
     ss.append('Past    : {}'.format(' '.join(['{:7.3f}'.format(item) for item in part.past])))
@@ -229,18 +230,41 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
         elif s > part.smax:
             part.speed[i] = part.smax
     # update current position in both normalized and physical coordinates
-    part[:] = list(map(operator.add, part, part.speed))
+    #part[:] = list(map(operator.add, part, part.speed))
+    for i, p in enumerate(part):
+        new_pos = p + part.speed[i]
+        if part.strict_bounds:
+            # If strict bounds are imposed, then tackle the escape goat per dimension.
+            # Below, we realise a bounce, where the excess travel is reversed in 
+            # direction. This reverses the persistence term, and reduces the
+            # chance for a second escape. Gradually though, if gbest happens to
+            # be in the vicinity of the boundary, the particle will find its way
+            # there. However both its persistence and influence terms will be
+            # smaller, thus reducing its tendency to escape.
+            if new_pos > 1:
+                module_logger.warning('Escape goat along {} to {:.3f}, speed {:.3f}'.
+                        format(i, new_pos, part.speed[i]))
+                new_pos = 2 - new_pos
+                module_logger.warning('Bounced back to        {:.3f}\n'.
+                        format(new_pos))
+            if new_pos < -1:
+                module_logger.warning('Escape goat along {} to {:.3f}, speed {:.3f}'.
+                        format(i, new_pos, part.speed[i]))
+                new_pos = -2 - new_pos
+                module_logger.warning('Bounced back to        {:.3f}\n'.
+                        format(new_pos))
+        part[i] = new_pos
     part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
     # try recursion if we're out out 
-    if part.strict_bounds and not all([-1.0 < pp < 1.0 for pp in part]):
-        # recreate particle, but keeps its history (best and past)
-        module_logger.warning('Particle attempted to leave domain: \n'+pformat(part))
-        newpart = createParticle(part.prange, part.strict_bounds)
-        for ii, pp in enumerate(part):
-            part[ii] = newpart[ii]
-        part.speed = newpart.speed
-        part.renormalized = newpart.renormalized
-        module_logger.info ('Particle repositioned inside domain: \n'+pformat(part))
+#    if part.strict_bounds and not all([-1.0 < pp < 1.0 for pp in part]):
+#        # recreate particle, but keeps its history (best and past)
+#        module_logger.warning('Particle attempted to leave domain: \n'+pformat(part))
+#        newpart = createParticle(part.prange, part.strict_bounds)
+#        for ii, pp in enumerate(part):
+#            part[ii] = newpart[ii]
+#        part.speed = newpart.speed
+#        part.renormalized = newpart.renormalized
+#        module_logger.info ('Particle repositioned inside domain: \n'+pformat(part))
         
 
 # init arguments: 
