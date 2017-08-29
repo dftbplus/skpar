@@ -26,7 +26,7 @@ class GenericPlotTaskTest(unittest.TestCase):
         """Can we plot a band-structure?"""
         latticeinfo = {'type': 'FCC', 'param': 5.4315}
         DB = {}
-        plotname = 'test_plot/bs1.pdf'
+        plotname = '_workdir/test_plot/bs1.pdf'
         get_bandstructure('.', 'test_dftbutils/Si/bs/', DB,
                           latticeinfo={'type': 'FCC', 'param': 5.4315})
         bands = DB['bands']
@@ -36,11 +36,8 @@ class GenericPlotTaskTest(unittest.TestCase):
         if os.path.exists(plotname):
             os.remove(plotname)
         else:
-            try:
-                os.mkdir('test_plot')
-            except  FileExistsError:
-                pass
-        plot_objvs('test_plot/bs1', DB['kvector'], [altbands, bands], 
+            os.makedirs('_workdir/test_plot', exist_ok=True)
+        plot_objvs('_workdir/test_plot/bs1', DB['kvector'], [altbands, bands], 
                 xticklabels=DB['kticklabels'],
                 axeslabels=['wave-vector', 'Energy, eV'], 
                 ylabels=['ref', 'model'], ylim=(-13, 6))

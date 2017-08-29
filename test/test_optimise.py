@@ -144,7 +144,7 @@ class EvaluateSiTest(unittest.TestCase):
             logger.debug(evaluate.costf)
             fitness = evaluate.costf(evaluate.utopia, objvfitness, evaluate.weights)
             logger.debug("Global fitness: {}".format(fitness))
-            self.assertTrue(fitness < np.atleast_1d(0.2))
+            self.assertTrue(fitness < np.atleast_1d(0.23))
 
 
 if __name__ == '__main__':
