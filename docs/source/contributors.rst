@@ -6,4 +6,5 @@
 Contributors
 ===============
 
-Stanislav Markov, The University of Hong Kong
+Stanislav Markov, Dept. Chemistry, The University of Hong Kong
+Bálint Aradi, BCCMS, University of Bremen, Germany

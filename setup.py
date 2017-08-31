@@ -21,7 +21,7 @@ short_description = ('Optimisation of Slater-Koster files (.skf) '+
 long_description  = open('README.txt').read()
 name         = 'skopt'
 # todo: try to regenerate ./skopt/__init__.py to include the version stated here
-version      = '0.1.0'
+version      = '0.2.0'
 
 package_dir  = {'skopt': 'skopt',}
 
