@@ -1,9 +1,14 @@
+config:
+    templatedir: template
+    workroot: ./_workdir
+    keepworkdirs: true
+
 executables:
-    skgen: ./skf/skgen-opt.sh
+    skgen: ./template/skf/skgen-opt.sh
     bands: dftbutils bands
 
 tasks:
-    - set: [current.par, skf, skf/skdefs.template.py]
+    - set: [skf/skdefs.template.py]
     - run: [skgen, skf]
     - run: [bands, Si-diam/100]
     - get: [get_dftbp_bs, Si-diam/100/bs, Si.diam.100, 

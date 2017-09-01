@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ $# = 1 ] ; then
+    logfile=$1
+else
+    logfile='dftb.log'
+fi
+
+if [ -e ${logfile} ] ; then
+    grep -A 10 ERROR ${logfile} > dftb.err
+    if [ $? = 1 ] ; then
+        stat=0
+    else
+        echo "DFTB+ ERRORS in ${logfile}:"
+        cat dftb.err
+        stat=1
+    fi
+fi
+
+exit ${stat}

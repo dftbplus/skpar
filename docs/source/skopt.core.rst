@@ -20,7 +20,6 @@ Input handler (skopt.core.input)
 .. automodule:: skopt.core.input
     :members:
     :undoc-members:
-..    :show-inheritance:
 
 
 Tasks (skopt.core.tasks)
@@ -38,7 +37,6 @@ Task Dictionary (skopt.core.taskdict)
 .. automodule:: skopt.core.taskdict
     :members:
     :undoc-members:
-..    :show-inheritance:
 
 
 Objectives (skopt.core.objectives)
@@ -91,7 +89,7 @@ PSO (skopt.core.pso)
 .. automodule:: skopt.core.pso
     :members:
     :undoc-members:
-..    :show-inheritance:
+    :show-inheritance:
 
 Utilities (skopt.core.utils)
 ------------------------------
@@ -99,4 +97,4 @@ Utilities (skopt.core.utils)
 .. automodule:: skopt.core.utils
     :members:
     :undoc-members:
-..    :show-inheritance:
+    :show-inheritance:

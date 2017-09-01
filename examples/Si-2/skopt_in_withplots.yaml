@@ -1,11 +1,16 @@
+config:
+    templatedir: template
+    workroot: ./_workdir_withplots
+    keepworkdirs: true
+
 executables:
-    skgen: ./skf/skgen-opt.sh
+    skgen: ./template/skf/skgen-opt.sh
     bands: dftbutils bands
 
 tasks:
-    - set: [current.par, skf, skf/skdefs.template.py]
-#    - run: [skgen, skf]
-#    - run: [bands, Si-diam/100]
+    - set: [skf/skdefs.template.py]
+    - run: [skgen, skf]
+    - run: [bands, Si-diam/100]
     - get: [get_dftbp_bs, Si-diam/100/bs, Si.diam.100, 
             {latticeinfo: {type: 'FCC', param: 5.431}}]
     # This will show both objectives for CB and VB, but no band-gap between them,
@@ -99,7 +104,7 @@ objectives:
         options:
             use_ref: [5, 6]                # fortran-style index enumeration: NOTABENE: not a range here!
             use_model: [5, 6]              # using [[5,6]] would be a range with the same effect
-            align_ref: [1, 9]              # fortran-style index of band and k-point, (happens to be the minimum here)
+            align_ref: [1, min]              # fortran-style index of band and k-point 
             align_model: [1, min]          # or a function (e.g. min, max) instead of k-point
             subweights: 
                 values:                    # [[range], subweight] for E-k points in the given range of energy
@@ -114,8 +119,8 @@ objectives:
 optimisation:
     algo: PSO   # particle swarm optimisation
     options:
-        npart: 1   # number of particles
-        ngen : 1   # number of generations
+        npart: 2   # number of particles
+        ngen : 2   # number of generations
     parameters:
         - Si_Ed  :  0.1 0.3
         - Si_r_sp:  3.5 7.0

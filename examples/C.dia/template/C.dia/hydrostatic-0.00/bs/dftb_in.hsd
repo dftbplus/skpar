@@ -1,0 +1,56 @@
+Geometry = GenFormat {
+  <<< "../primcell.gen"
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1e-1
+  OrbitalResolvedSCC = Yes
+  ReadInitialCharges = Yes
+  MaxSCCIterations = 1
+  SlaterKosterFiles = Type2FileNames {
+	Prefix = "../../../skf/"
+	Separator = "-"
+	Suffix = ".skf"
+	LowerCaseTypeName = No
+  }
+  MaxAngularMomentum {
+    C = "p"
+  }
+  Filling = Fermi {
+    Temperature [Kelvin] = 0.0
+  }
+  KPointsAndWeights = Klines {
+    1  0.00000  0.00000  0.00000    # Gamma
+    39 0.50000  0.00000  0.50000    # X
+
+    1  0.50000  0.00000  0.50000    # X
+    39 0.50000  0.25000  0.75000    # W
+
+    1  0.50000  0.25000  0.75000    # W
+    39 0.37500  0.37500  0.75000    # K
+
+    1  0.37500  0.37500  0.75000    # K
+    39 0.00000  0.00000  0.00000    # Gamma
+
+    1  0.00000  0.00000  0.00000    # Gamma
+    39 0.50000  0.50000  0.50000    # L
+
+    1  0.50000  0.50000  0.50000    # L
+    39 0.62500  0.25000  0.62500    # U
+
+    1  0.62500  0.25000  0.62500    # U
+    39 0.50000  0.25000  0.75000    # W
+
+    1  0.50000  0.25000  0.75000    # W
+    39 0.50000  0.50000  0.50000    # L
+
+    1  0.50000  0.50000  0.50000    # L
+    39 0.37500  0.37500  0.75000    # K
+
+    1  0.62500  0.25000  0.62500    # U
+    39 0.50000  0.00000  0.50000    # X
+  }
+#  SpinPolarisation = {}
+#  SpinOrbit = { Si [eV] = {0.0 +0.037 0.0} }
+}

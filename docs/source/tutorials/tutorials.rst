@@ -52,7 +52,7 @@ The corresponding yaml file, `test_optimise.yaml`_ reads:
 The reference polynomial, the reference points from it (see ``ref: [...]`` 
 in the yaml file above, and the fitted 3-rd order polynomial may look as so:
 
-.. figure:: ../../static/test_optimise_poly3.png
+.. figure:: ../_static/test_optimise_poly3.png
         :scale: 15
 
         **Comparison of reference and fitted (gbest) polynomials, and reference data points**

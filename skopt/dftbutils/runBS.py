@@ -48,7 +48,6 @@ def set_bands_parser(parser=None):
     else:
         return parser
 
-
 def main_bands(args):
     """
     Chain the relevant tasks for obtaining band-structure and execute.
@@ -72,8 +71,15 @@ def main_bands(args):
     # Create the task list
     tasks = []
     tasks.append(RunTask(cmd=dftb, wd=sccdir, out=dftblog))
+    # Note that dftb+ (at least v1.2) exits with 0 status even if there are ERRORS
+    # Therefore, below we ensure we stop in such case, rather than diffusing the 
+    # problem through attempts of subsequent operations.
+    # check_dftblog is a bash script in skopt/bin/
+    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
+
     tasks.append(RunTask(cmd=['cp', '-f', sccchg, bsdir], out=None))
     tasks.append(RunTask(cmd=dftb, wd=bsdir, out=dftblog))
+    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
     tasks.append(RunTask(cmd=[bands, 'band.out', 'bands'], wd=bsdir, out=bandslog))
 
     # align the loggers (could be done above in the initialization)
@@ -84,4 +90,4 @@ def main_bands(args):
     for tt in tasks:
         logger.debug(tt)
         if not args.dry_run:
-            tt()
+            tt(workroot='.')

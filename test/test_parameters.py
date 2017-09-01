@@ -6,7 +6,7 @@ import numpy as np
 import numpy.testing as nptest
 import yaml
 from skopt.core.parameters import get_parameters, update_template
-from skopt.core.parameters import write_parameters, update_parameters
+from skopt.core.parameters import update_parameters, substitute_template
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -44,7 +44,7 @@ class TemplateTest(unittest.TestCase):
     """Test we can read, update and write the template file."""
     tmplt = """This is some file
     with a few parameters defined like this:
-    # %(Dummy) or something like this.
+    # %%(Dummy) or something like this.
         %(Dummy)f  # parameter name only
     And we want to get
     # 2.7 or something like this
@@ -80,62 +80,53 @@ class WriteParametersTest(unittest.TestCase):
     def test_writeparameters_listparam(self):
         """Can we update a template and write it to a file?"""
         template = """%(A)f  %(B)f  %(C)f"""
-        fout   = 'temp.par'
-        with open(fout, 'w') as fh:
+        ftemplate   = 'temp.par'
+        with open(ftemplate, 'w') as fh:
             fh.write(template)
         parameters = [1, 15, 27]
-        parnames   = list('ABC')
+        parnames = list('ABC')
         expected = """1.000000  15.000000  27.000000"""
-        write_parameters(fout, template, parameters, parnames)
-        with open(fout, 'r') as fh:
+        fsubs = 'subs.par'
+        substitute_template(parameters, parnames, ftemplate, fsubs)
+        with open(fsubs, 'r') as fh:
             lines = fh.readlines()
         assert len(lines) == 1
         updated = lines[0]
         self.assertEqual(updated, expected)
-        os.remove(fout)
+        os.remove(ftemplate)
+        os.remove(fsubs)
 
 class UpdateParametersTest(unittest.TestCase):
     """Can we update parameters given proper file names?"""
     def test_updateparameters_listparam(self):
         template = """%(A)f  %(B)f  %(C)f"""
-        fcurr    = 'curr.par'
-        ftempl   = ['test.template.par',]
-        with open(ftempl[0], 'w') as fh:
+        ftempl = 'test.template.par'
+        with open(ftempl, 'w') as fh:
             fh.write(template)
-        fout = 'test.par'
         parameters = [1, 15, 27]
-        parnames   = list('ABC')
+        parnames = list('ABC')
         expected = """1.000000  15.000000  27.000000"""
-        # update_parameters expects 2 posargs and kwargs
-        update_parameters(parameters, None, 
-                parfile=fcurr, templates=ftempl, parnames=parnames)
-        with open(fcurr, 'r') as fh:
-            lines = fh.readlines()
-        assert len(lines) == 3
-        # currently we check for Iteration, and if None, we don't output a comment
-#        self.assertEqual(lines[0], '#None')
-        self.assertEqual(lines[0].split(), ['A', '1'])
-        self.assertEqual(lines[1].split(), ['B', '15'])
-        self.assertEqual(lines[2].split(), ['C', '27'])
+        update_parameters('.', [ftempl], parameters, parnames=parnames)
+        fout = 'test.par'
         with open(fout, 'r') as fh:
             lines = fh.readlines()
         assert len(lines) == 1
         self.assertEqual(lines[0], expected)
         os.remove(fout)
-        os.remove(fcurr)
-        os.remove(ftempl[0])
+        os.remove(ftempl)
 
-    def test_updateparameters_None(self):
-        "Can we handle None for parameters and iteration?"
-        fcurr      = 'curr.par'
-        parameters = None
-        iteration  = None
-        # update_parameters expects 2 posargs and kwargs
-        update_parameters(parameters, iteration, parfile=fcurr)
-        with open(fcurr, 'r') as fh:
-            lines = fh.readlines()
-        assert len(lines) == 0
-        os.remove(fcurr)
+    #BA: Disabled: update_parameters can't handle parnames=None.
+    #BA: But, why should it?
+    #def test_updateparameters_None(self):
+    #    "Can we handle None for parameters?"
+    #    fcurr = 'curr.par'
+    #    parameters = None
+    #    # update_parameters expects 3 posargs and kwargs
+    #    update_parameters('.', [fcurr], parameters, parnames=None)
+    #    with open(fcurr, 'r') as fh:
+    #        lines = fh.readlines()
+    #    assert len(lines) == 0
+    #    os.remove(fcurr)
 
 if __name__ == '__main__':
     unittest.main()

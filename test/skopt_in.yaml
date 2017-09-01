@@ -180,9 +180,9 @@ optimisation:
         # either file: filename, or
         # list parameter_name: init min max type
         - r0_Si_sp: 4 2 6
-        - nc_Si_sp: 4 2 12 i
+        - nc_Si_sp: 4 2 12
         - rc_O_sp:  1.5 4
-        - ep_O_sp:  8 i
+        - ep_O_sp:  8 12
 
 
 executables:

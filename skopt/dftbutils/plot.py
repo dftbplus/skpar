@@ -84,7 +84,7 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
         module_logger.debug(' '.join(['{}'.format(item.shape) for item in yy]))
     else:
         module_logger.debug('Plotting an item of length {}:'.format(len(yy)))
-    xval = np.asarray(xx)
+    xval = np.asarray(xx).copy()
     # DO NOT DO THAT (line below): if yy is a list of arrays of different shape, 
     # e.g. (4,80), (4,80), (2,80), (2,80), we get garbage: 
     # yval.shape = (len(yy),), in this case, yval.shape=(4,) 
@@ -92,7 +92,16 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
     # The result seems to be an array holding only references to the original arrays.
     # Note that we can still slice it along axis 0 and get job done, but
     # any reference to its higher dimensions will yield mysterious errors!
-    yval = np.asarray(yy)
+    #yval = np.asarray(yy).copy()
+    if isset:
+        yval = []
+        for aa in yy:
+            yval.append(aa.copy())
+            yval[-1].flags.writeable = True
+        yval = np.asarray(yval)
+    else:
+        # assume it is a single array or a list of floats
+        yval = np.asarray(yy).copy()
     # the line below fails in the scenario above, which is common if we
     # combine objectives of different dimensions, e.g. CB and VB with different bands.
     # assert xval.shape[-1] == yval.shape[-1], (xval.shape, yval.shape)
@@ -180,7 +189,10 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
     if ylabels:
         ax.legend(legenditems, ylab, fontsize=14, loc=kwargs.get('legendloc', 0))
     fig.savefig(plotname+'.pdf')
-    return fig
+    if kwargs.get('returnfigure', False):
+        return fig
+    else:
+        plt.close('all')
 
 
 class Plotter(object):

@@ -18,9 +18,6 @@ The following assumptions are made:
       file by string.format(dict(zip(ParNames,Parvalues)) substitution.
 """
 import logging
-from os.path import normpath, expanduser
-from os.path import join as joinpath
-from os.path import split as splitpath
 import os.path
 from skopt.core.utils import get_logger
 
@@ -145,97 +142,71 @@ class Parameter(object):
             format(name=self.name, val=self.value, minv=self.minv, maxv=self.maxv)
 
 
-def read_par_template(fileobj):
-    """
-    Returns a single string joining the lines of the fileobject,
-    including line breaking chars etc.
-    fileobj is either a file ID or a filename (possibly including path).
-    """
-    with open(fileobj, 'r') as fh:
-        ss = "".join(fh.readlines())
-    return ss
+def substitute_template(parameters, parnames, templatefile, resultfile):
+    """Substitute a template with actual parameter values.
 
-def update_template(template, pardict):
-    """Update a template string with parameter values in placeholders.
-    
-    Assume %(Name)[type] represents a placeholder.
-    Substitute placeholders with values from pardict.
-    Placeholders in commented lines (first non-white space char being #)
-    are untouched.
-    Return the updated string.
+    Args:
+        parameters (list): Parameter list, items being either floats or objects
+            with .value and .name attributes.
+        parnames (list): If `parameters` is a list of floats, then 
+            parnames is the list of corresponding names.
+        templatefile (str): Name of template file with substitution patterns.
+        resultfile (str): Name of file to contain the substituted result.
     """
-    assert isinstance(pardict, dict)
-    #module_logger.debug("Updating template according to {}".format(pardict))
-    lines_in = template.split('\n')
-    #module_logger.debug(lines_in)
-    lines_out = []
-    for line in lines_in:
-        if line.strip().startswith('#'):
-            # do not touch comments, even if they have a placeholder
-            lines_out.append(line)
-        else:
-            lines_out.append(line % pardict)
-    return "\n".join(lines_out)
-
-def write_parameters(fileobj, template, parameters, parnames=None):
-    """Update a template with actual parameter values and write to file.
-
-    The `template` is a string with placeholders, which are updated
-    from the `pardict` dictionary, and the result is written to `fileobj`.
-    Placeholders should be Python's old string formatting: %(Name)Type
-    """
+    with open(templatefile, 'r') as fd:
+        template = fd.read()
     try:
         pardict = dict([(p.name, p.value) for p in parameters])
     except AttributeError:
-        pardict = dict([(name, val) for (name, val) in zip(parnames, parameters)])
-        #module_logger.critical(('Cannot update parameters. Ensure parameters are objects',
-        #        'with name and value attributes'))
+        pardict = dict([(name, val)
+                        for (name, val) in zip(parnames, parameters)])
     updated = update_template(template, pardict)
-    # nota bene: since template contains '\n', updated contains them too
-    with open(fileobj, 'w') as fh:
-        fh.writelines(updated)
+    with open(resultfile, 'w') as fd:
+        fd.write(updated)
 
-def update_parameters(parameters, iteration=None, *args, **kwargs):
-    """Update relevant file(s) with new parameter values.
 
-    ARGS:
+def update_template(template, pardict):
+    """Makes variable substitution in a template.
+
+    Args:
+        template (str): Template with old style Python format strings.
+        pardict (dict): Dictionary of parameters to substitute.
+    
+    Returns:
+        str: String with substituted content.
+    """
+    return template % pardict
+    
+
+def update_parameters(workroot, templates, parameters, parnames):
+    """Update relevant templates with new parameter values.
+
+    Args:
+        workroot (str): Root working directory, template names are relative
+            to this directory.
+        templates (list): List of ascii filenames containing placeholders
+            for inserting parameter values. The place holders must follow
+            the old string formatting of Python: $(ParameterName)ParameterType.
         parameters (list): Either a list of floats, or a list of objects
             (each having .value and .name attributes)
         parnames (list): If `parameters` is a list of floats, then 
             parnames is the list of corresponding names.
-        parfile (string): Filename where the list of parameters is written
-            in a very plain format (one or two column, as per the absence 
-            or presence of parameter names.
-        templates (list): List of ascii filenames containing placeholders
-            for inserting parameter values. The place holders must follow
-            the old string formatting of Python: $(ParameterName)ParameterType.
     """
-    parfile   = kwargs.get('parfile', DEFAULT_PARAMETER_FILE)
-    templates = kwargs.get('templates', None)
-    parnames  = kwargs.get('parnames', None)
-    logger    = module_logger
-    #logger.debug('Updating parameters')
-    #logger.debug(parameters)
-    #logger.debug(iteration)
-    #logger.debug(parfile)
-    #logger.debug(parnames)
-    #logger.debug(templates)
-    # Update parameter file
-    parout = []
+    logger = module_logger
+
     # Overwrite parnames with the names of the parameter objects, if available
     try:
-        parnames  = [p.name  for p in parameters]
+        parnames = [p.name  for p in parameters]
     except AttributeError:
         # parameters is a list of floats
         assert all([isinstance(p, (float, int)) for p in parameters]), "{}".format(parameters)
         # test consistency if parnames is given (may be None)
         if parnames:
             assert len(parameters) == len(parnames)
-        pass
     except TypeError:
         assert parameters is None
         parnames = None
-        pass
+
     # Prepare the values to write
     try:
         parvalues = [p.value for p in parameters]
@@ -244,31 +215,13 @@ def update_parameters(parameters, iteration=None, *args, **kwargs):
     except TypeError:
         assert parameters is None
         parvalues = None
-        pass
-    # Prepare the output and write
-    if parnames:
-        parout = ["{:>20s}  {}".format(name, value) 
-                for (name, value) in zip(parnames, parvalues)]
-    else:
-        try:
-            parout = ["{}".format(p) for p in parvalues]
-        except TypeError:
-            assert parvalues is None
-            parout = ""
-    with open(parfile, 'w') as fp:
-        if iteration is not None:
-            fp.writelines('#{}\n'.format(iteration))
-        fp.writelines('\n'.join(parout))
+
     # Udpate (fill in) template files
     if templates:
-        assert (parnames is not None)
         for ftempl in templates:
-            fin = normpath(expanduser(ftempl))
-            # remove 'template.' tag from filename to form destination
-            # make sure you do this on the filename, not on the path!
-            path, name = splitpath(fin)
-            fout = normpath(joinpath(path, name.replace('template.','')))
-            # read template and substitute values for placeholders
-            # make sure you do not substitute in comments
-            templ = read_par_template(fin)
-            write_parameters(fout, templ, parvalues, parnames)
+            assert parnames is not None
+            fin = os.path.normpath(os.path.join(workroot, ftempl))
+            path, templname = os.path.split(fin)
+            name = templname.replace('template.', '')
+            fout = os.path.join(path, name)
+            substitute_template(parvalues, parnames, fin, fout)

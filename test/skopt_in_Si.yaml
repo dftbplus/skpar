@@ -1,4 +1,9 @@
 ---
+config:
+    templatedir: test_dftbutils/Si/bs
+    workroot: _workdir/test_Si
+    keepworkdirs: true
+    
 # What to do when evaluating a point in parameter space
 tasks:
     #- set: [parfile, workdir, optional_arguments]
@@ -19,7 +24,7 @@ tasks:
     # first task with 'Si/bs' dictionary is registered. To overcome this,
     # use './Si/bs' for the directory name and 'Si/bs' for the dictionary name
     # or avoid using / in the dictionary names, e.g. use 'Si.bs' for the dictionary.
-    - get: [get_dftbp_bs, test_dftbutils/Si/bs, Si.bs, {latticeinfo: {type: 'FCC', param: 5.431}}]
+    - get: [get_dftbp_bs, './', Si.bs, {latticeinfo: {type: 'FCC', param: 5.431}}]
     # below we omit the destination, and results will update the source dictionary
     - get: [get_dftbp_meff, Si.bs, {carriers: 'e', directions: ['Gamma-X'], Erange: 0.005, usebandindex: True}]
     - get: [get_dftbp_meff, Si.bs, {carriers: 'h', directions: ['Gamma-X', 'Gamma-L', 'Gamma-K'], nb: 5, Erange: 0.0015}]

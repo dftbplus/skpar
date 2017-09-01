@@ -240,7 +240,7 @@ Plot-Task Examples:
 
 .. _`Fig. 4`:
 
-.. figure:: ../static/polyfit1_0-0.png
+.. figure:: _static/polyfit1_0-0.png
         :width: 50%
 
         **Fig. 4. 1-D array plotted with the generic ``plot_objvs`` function**
@@ -271,7 +271,7 @@ correct, since k-point index is used as an abscissa; no labels either.
 
 .. _`Fig. 5`:
 
-.. figure:: ../static/fakebandsplot_0-0.png
+.. figure:: _static/fakebandsplot_0-0.png
         :width: 50%
 
         **Fig. 5. 2-D array data plotted by the generic plot_objvs function**
@@ -347,7 +347,7 @@ The magic here relies on:
 
 .. _`Fig. 6`:
 
-.. figure:: ../static/bs_2_0-0.png
+.. figure:: _static/bs_2_0-0.png
         :width: 50%
 
         **Fig. 6. Band-structure plotted by the ``plot_bs`` function**

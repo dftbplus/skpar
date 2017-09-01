@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from os.path import normpath, expanduser
+import os.path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ from skopt.dftbutils.plot import plotBS
 
 module_logger = get_logger('skopt.tasks')
 
-def get_model_data (src, dst, data_key, *args, **kwargs):
+def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
 
     Use numpy.loadtxt to get the data from `src` file and 
@@ -32,8 +32,8 @@ def get_model_data (src, dst, data_key, *args, **kwargs):
         "src must be a filename string, but is {} instead.".format(type(src))
     assert isinstance(data_key, str), \
         "data_key must be a string naming the data, but is {} instead.".format(type(data_key))
-#    data = np.loadtxt(src, **loader_args)
-    file = normpath(expanduser(src))
+
+    fname = os.path.normpath(os.path.join(workroot, os.path.expanduser(src)))
     loader_args = {} #{'unpack': False}
     # overwrite defaults and add new loader_args
     loader_args.update(kwargs.get('loader_args', {}))
@@ -43,15 +43,15 @@ def get_model_data (src, dst, data_key, *args, **kwargs):
             loader_args['unpack'] = False
     # read file
     try:
-        array_data = np.loadtxt(file, **loader_args)
+        array_data = np.loadtxt(fname, **loader_args)
     except ValueError:
-        # `file` was not understood
-        module_logger.critical('np.loadtxt cannot understand the contents of {}'.format(file)+\
+        # `fname` was not understood
+        module_logger.critical('np.loadtxt cannot understand the contents of {}'.format(fname)+\
                                 'with the given loader arguments: {}'.format(**loader_args))
         raise
     except (IOError, FileNotFoundError):
-        # `file` was not understood
-        module_logger.critical('Data file {} cannot be found'.format(file))
+        # `fname` was not understood
+        module_logger.critical('Data file {} cannot be found'.format(fname))
         raise
     # do some filtering on columns and/or rows if requested
     # note that file to 2D-array mapping depends on 'unpack' from
@@ -189,6 +189,7 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
     if ylabels:
         ax.legend(legenditems, ylab)
     fig.savefig(plotname+'.pdf')
+    plt.close('all')
 
 
 gettaskdict = {

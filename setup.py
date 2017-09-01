@@ -21,7 +21,7 @@ short_description = ('Optimisation of Slater-Koster files (.skf) '+
 long_description  = open('README.txt').read()
 name         = 'skopt'
 # todo: try to regenerate ./skopt/__init__.py to include the version stated here
-version      = '0.1.0'
+version      = '0.2.0'
 
 package_dir  = {'skopt': 'skopt',}
 
@@ -32,7 +32,7 @@ for dirname, dirnames, filenames in os.walk('skopt'):
 
 package_data = {}
 
-scripts=['bin/skopt', 'bin/dftbutils']
+scripts=['bin/skopt', 'bin/dftbutils', 'bin/check_dftblog']
 
 ## try to cater for windows
 if 'sdist' in sys.argv or os.name in ['ce', 'nt']:

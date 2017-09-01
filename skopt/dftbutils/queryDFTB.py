@@ -194,15 +194,15 @@ class Bandstructure(dict):
         return cls(data)
 
 
-def get_bandstructure(source, destination,
+def get_bandstructure(workroot, source, destination,
         detailfile='detailed.out', bandsfile='bands_tot.dat', hsdfile='dftb_pin.hsd', 
         latticeinfo=None, *args, **kwargs):
     """Load whatever data can be obtained from detailed.out of dftb+ and bands_tot.dat of dp_bands.
     """
     assert isdir(source)
-    f1 = normpath(expanduser(joinpath(source, detailfile)))
-    f2 = normpath(expanduser(joinpath(source, bandsfile)))
-    f3 = normpath(expanduser(joinpath(source, hsdfile)))
+    f1 = normpath(expanduser(joinpath(workroot, source, detailfile)))
+    f2 = normpath(expanduser(joinpath(workroot, source, bandsfile)))
+    f3 = normpath(expanduser(joinpath(workroot, source, hsdfile)))
     data = Bandstructure.fromfiles(f1, f2)
     #
     if latticeinfo is not None:
@@ -445,7 +445,7 @@ def expand_meffdata(meff_data):
         expanded_data[kpostag] = kposval
     return expanded_data
 
-def get_effmasses(source, destination, directions=None, 
+def get_effmasses(workroot, source, destination, directions=None, 
                 carriers='both', nb=1, Erange=0.04,
                 usebandindex=False, forceErange=False, *args, **kwargs):
     """Return a dictionary with effective masses for the given *carriers* for 
@@ -606,7 +606,7 @@ def greek (label):
             lbl = label
     return lbl
 
-def get_special_Ek(source, destination, sympts=None, 
+def get_special_Ek(workroot, source, destination, sympts=None, 
                     extract={'cb': [0, ], 'vb': [0, ]}, align='Ef', 
                     *args, **kwargs):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
