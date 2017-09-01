@@ -13,7 +13,7 @@ e.g. from DFT calculations or experimentally obtained physical quantities.
 
 .. _`Fig. 1`:
 
-.. figure:: ../static/skopt.diagram.png
+.. figure:: _static/skopt.diagram.png
         :width: 80%
 
         **Fig. 1. Conceptual block diagram of SKOPT.**
@@ -79,7 +79,7 @@ The optimisation loop realised by SKOPT is shown in Fig. 2.
 
 .. _`Fig. 2`:
 
-.. figure:: ../static/optimisation.flowchart.png
+.. figure:: _static/optimisation.flowchart.png
         :width: 70%
 
         **Fig. 2. Optimisation loop realised by SKOPT.**

@@ -18,6 +18,7 @@ _test*
 _example*
 
 # skopt logs from running tests etc.
+docs/*.log
 test/skopt*.log
 test/test_*/*.log
 test/test_plot/

@@ -25,7 +25,7 @@ engine from the application specifics. To achieve this:
 
 A conceptual block-diagram of the intended development is shown below.
 
-.. figure:: ../static/skopt.diagram--development.png
+.. figure:: _static/skopt.diagram--development.png
         :width: 55%
 
         **Conceptual block diagram of SKOPT with external model database**
