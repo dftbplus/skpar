@@ -19,6 +19,14 @@ Density Functional Tight-Binding (DFTB) theory.
 News
 ====
    
+   * SKOPT version 0.2.0 released: September 2017
+
+        - New Configuration section in input file allows for individual
+          directory for each model evaluation, i.e. each parameter set.
+          Be sure to check the relevant part in :ref:`reference`.
+        - Strict bounds for PSO particle space, applied per dimension
+        - Minor bug fixes
+
    * SKOPT version 0.1.0 released: February 2017.
 
 Contents

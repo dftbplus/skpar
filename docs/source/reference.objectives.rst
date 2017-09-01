@@ -316,7 +316,7 @@ A visual representation of the concept is shown in `Fig. 3`_.
 
 .. _`Fig. 3`:
 
-.. figure:: ../static/fakebands.png
+.. figure:: _static/fakebands.png
         :width: 40%
 
         **Fig. 3. Visual representation of a 2-D array in terms of bands.
