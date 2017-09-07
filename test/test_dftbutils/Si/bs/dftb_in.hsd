@@ -1,0 +1,49 @@
+Geometry = GenFormat {
+  <<< "../UnitCell.gen"
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+#  SCCTolerance = 1e-12
+  OrbitalResolvedSCC = No
+  ReadInitialCharges = Yes
+  MaxSCCIterations = 1
+  SlaterKosterFiles {
+    Si-Si = "~/.local/share/dftb/skf-dftb.org/siband-1-1/Si-Si.skf"
+  }
+  MaxAngularMomentum {
+    Si = "d"
+  }
+  Filling = Fermi {
+    Temperature [Kelvin] = 0.0
+  }
+  KPointsAndWeights = Klines {
+    1   0.500   0.500   0.500    # L
+   53   0.000   0.000   0.000    # Gamma
+   60   0.500   0.000   0.500    # X
+   28   0.625   0.250   0.625    # U
+    1   0.375   0.375   0.750    # K, equiv. to U
+   63   0.000   0.000   0.000    # Gamma
+#    1   0.500   0.500   0.500    # L
+#  532   0.000   0.000   0.000    # Gamma
+#  600   0.500   0.000   0.500    # X
+#  276   0.625   0.250   0.625    # U
+#    1   0.375   0.375   0.750    # K, equiv. to U
+#  632   0.000   0.000   0.000    # Gamma
+  }
+  #432   0.000   0.000   0.000    # Gamma
+  #500   0.500   0.000   0.500    # X
+  #176   0.625   0.250   0.625    # U
+  #532   0.000   0.000   0.000    # Gamma
+  SpinPolarisation = {}
+  SpinOrbit = { Si [eV] = {0.0 +0.037 0.0} }
+}
+
+Analysis {}
+
+
+Options {}
+
+ParserOptions {
+  ParserVersion = 4
+}

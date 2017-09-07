@@ -7,47 +7,37 @@ Install
 ====================
 
 The latest release of SKOPT can be found on `Bitbucket`_.
-Clone it (release-0.1 branch) and go to the newly created directory.
 
 .. _Bitbucket: https://bitbucket.org/stanmarkov/skopt/
 
-Assuming all dependencies are met, installation can proceed by
-the conventional
+
+Clone the repository and go to the newly created directory of the repository.
+
+Issue the following command from the root directory of the repository.
 
 .. code:: bash
 
-        python3 setup.py install --user --record installed.info
+        pip3 install --upgrade --user -r requirements.txt -e .
 
-This will try to install SKOPT in your local home directory, creating
+Please omit the `--user` option above if installing within a virtual environment.
 
-.. code:: bash
 
-        ~/.local/lib/python3.[?]/site-packages/skoptJ.I[.P[.S]].egg-info, 
-        ~/.local/lib/python3.[?]/site-packages/skopt/. 
-
-The executables associated with skopt will be placed in ``~/.local/bin/``,
-which should be added to ``$PATH``, if not already done.
-
-All installed files will be listed in ``installed.info``, so to uninstall 
-one can do:
+To uninstall:
 
 .. code:: bash
 
-        cat installed.info | xargs rm -rf
+        pip3 uninstall skopt
+
 
 Dependencies
 ====================
-SKOPT's operation requires YAML_ support, for setting up the optimisation,
-and the DEAP_ library for the Particle Swarm Optimisation engine.
-If these are not available, one could install them, e.g. by:
+SKOPT's operation requires:
 
-.. code:: bash
+    * YAML_ support, for setting up the optimisation,
+    * the DEAP_ library, for the Particle Swarm Optimisation engine,
+    * NumPy_ for data structures, and,
+    * Matplotlib_ for plotting.
 
-    pip3 install deap --user
-    pip3 install pyyaml --user
-
-As with any Python application dealing with lots of calculations, 
-NumPy_ and Matplotlib_ (plotting) are a must too.
 
 .. _`DEAP`: http://deap.readthedocs.io/en/master
 .. _`YAML`: http://pyyaml.org/wiki/PyYAMLDocumentation
