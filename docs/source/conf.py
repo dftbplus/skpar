@@ -58,8 +58,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SKOPT'
-copyright = u'2013 - 2017, Stanislav Markov, The University of Hong Kong'
-author = u'Stanislav Markov, The University of Hong Kong'
+copyright = u'2013 - 2017, Stanislav Markov'
+author = u'Stanislav Markov'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -236,7 +236,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'SKOPT.tex', u'SKOPT Documentation',
-   u'Stanislav Markov, The University of Hong Kong', 'manual'),
+   u'Stanislav Markov', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

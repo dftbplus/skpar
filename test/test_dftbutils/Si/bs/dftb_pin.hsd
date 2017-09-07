@@ -1,0 +1,87 @@
+Geometry = GenFormat {
+2  F
+Si
+1      1      0.000000000000000      0.000000000000000      0.000000000000000
+2      1      0.250000000000000      0.250000000000000      0.25000000000000
+0.000000000000000      0.000000000000000      0.000000000000000
+2.715500000000000      2.715500000000000      0.000000000000000
+0.000000000000000      2.715500000000000      2.715500000000000
+2.715500000000000      0.000000000000000      2.715500000000000
+}
+Hamiltonian = DFTB {
+  SCC = Yes
+  OrbitalResolvedSCC = No
+  ReadInitialCharges = Yes
+  MaxSCCIterations = 1
+  SlaterKosterFiles = Si-Si {
+"~/.local/share/dftb/skf-dftb.org/siband-1-1/Si-Si.skf"
+  }
+  MaxAngularMomentum = Si {
+"d"
+  }
+  Filling = Fermi {
+    Temperature [Kelvin] = 0.0
+    IndependentKFilling = No
+  }
+  KPointsAndWeights = Klines {
+1   0.500   0.500   0.500
+53   0.000   0.000   0.000
+60   0.500   0.000   0.500
+28   0.625   0.250   0.625
+1   0.375   0.375   0.750
+63   0.000   0.000   0.000
+  }
+  SpinPolarisation = {}
+  SpinOrbit = {
+    Si [eV] = {
+0.0 +0.037 0.0
+    }
+    Dual = No
+  }
+  PolynomialRepulsive = {}
+  OldRepulsiveSum = No
+  OldSKInterpolation = No
+  Charge = 0.000000000000000E+000
+  SCCTolerance = 1.000000000000000E-005
+  Mixer = Broyden {
+    MixingParameter = 0.200000000000000
+    CachedIterations = -1
+    InverseJacobiWeight = 1.000000000000000E-002
+    MinimalWeight = 1.00000000000000
+    MaximalWeight = 100000.000000000
+    WeightFactor = 1.000000000000000E-002
+  }
+  ElectricField = {}
+  DampXH = No
+  EwaldParameter = 0.000000000000000E+000
+  Eigensolver = DivideAndConquer {}
+  Dispersion = {}
+  ThirdOrder = No
+  ThirdOrderFull = No
+}
+Analysis = ProjectStates {}
+Options = {
+  CalculateForces = No
+  ConvergentForcesOnly = Yes
+  WriteEigenvectors = No
+  WriteAutotestTag = No
+  WriteDetailedXML = No
+  WriteResultsTag = No
+  WriteDetailedOut = Yes
+  WriteBandOut = Yes
+  AtomResolvedEnergies = No
+  RestartFrequency = 20
+  RandomSeed = 0
+  WriteHS = No
+  WriteRealHS = No
+  MinimiseMemoryUsage = No
+  ShowFoldedCoords = No
+}
+ParserOptions = {
+  ParserVersion = 4
+  WriteHSDInput = Yes
+  WriteXMLInput = No
+  StopAfterParsing = No
+  IgnoreUnprocessedNodes = No
+}
+Driver = {}
