@@ -1,5 +1,5 @@
 """
-Routines to handle the input of skopt
+Routines to handle the input of skpar
 """
 import numpy as np
 import yaml
@@ -8,13 +8,13 @@ from collections import OrderedDict
 import logging
 import os
 import sys
-from skopt.core.utils      import normalise, get_logger
-from skopt.core.objectives import set_objectives
-from skopt.core.query      import Query
-from skopt.core.tasks      import set_tasks, PlotTask
-from skopt.core.optimise   import get_optargs
+from skpar.core.utils      import normalise, get_logger
+from skpar.core.objectives import set_objectives
+from skpar.core.query      import Query
+from skpar.core.tasks      import set_tasks, PlotTask
+from skpar.core.optimise   import get_optargs
 
-module_logger = get_logger('skopt.input')
+module_logger = get_logger('skpar.input')
 
 def get_input_yaml(filename):
     """Read yaml input; report exception for non-existent file.

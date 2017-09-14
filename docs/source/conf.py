@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# SKOPT documentation build configuration file, created by
+# SKPAR documentation build configuration file, created by
 # sphinx-quickstart on Tue Dec 27 01:30:55 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -20,7 +20,7 @@ import sphinx_rtd_theme
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-# Note that we're in skopt's docs/source
+# Note that we're in skpar's docs/source
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -57,7 +57,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'SKOPT'
+project = u'SKPAR'
 copyright = u'2013 - 2017, Stanislav Markov'
 author = u'Stanislav Markov'
 
@@ -213,7 +213,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'SKOPTdoc'
+htmlhelp_basename = 'SKPARdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -235,7 +235,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'SKOPT.tex', u'SKOPT Documentation',
+  (master_doc, 'SKPAR.tex', u'SKPAR Documentation',
    u'Stanislav Markov', 'manual'),
 ]
 
@@ -265,7 +265,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'skopt', u'SKOPT Documentation',
+    (master_doc, 'skpar', u'SKPAR Documentation',
      [author], 1)
 ]
 
@@ -279,8 +279,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'SKOPT', u'SKOPT Documentation',
-   author, 'SKOPT', 'One line description of project.',
+  (master_doc, 'SKPAR', u'SKPAR Documentation',
+   author, 'SKPAR', 'One line description of project.',
    'Miscellaneous'),
 ]
 

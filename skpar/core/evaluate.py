@@ -4,10 +4,10 @@ import os
 import shutil
 import logging
 import numpy as np
-from skopt.core.utils import get_logger, normalise
-from skopt.core.tasks import SetTask, PlotTask
+from skpar.core.utils import get_logger, normalise
+from skpar.core.tasks import SetTask, PlotTask
 
-module_logger = get_logger('skopt.evaluate')
+module_logger = get_logger('skpar.evaluate')
 
 DEFAULT_GLOBAL_COST_FUNC = "rms"
 

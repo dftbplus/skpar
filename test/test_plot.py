@@ -8,11 +8,11 @@ from os.path import abspath, normpath, expanduser
 from numpy import pi, sqrt
 from fractions import Fraction
 import logging
-from skopt.dftbutils.lattice import Lattice
-from skopt.dftbutils.queryDFTB import get_bandstructure
-from skopt.dftbutils.querykLines import get_klines, get_kvec_abscissa
-from skopt.core.taskdict import plot_objvs
-from skopt.dftbutils.plot import plotBS
+from skpar.dftbutils.lattice import Lattice
+from skpar.dftbutils.queryDFTB import get_bandstructure
+from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
+from skpar.core.taskdict import plot_objvs
+from skpar.dftbutils.plot import plotBS
 np.set_printoptions(precision=2, suppress=True)
 
 logging.basicConfig(level=logging.DEBUG)

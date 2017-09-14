@@ -6,9 +6,9 @@
 Install
 ====================
 
-The latest release of SKOPT can be found on `Bitbucket`_.
+The latest release of SKPAR can be found on `Bitbucket`_.
 
-.. _Bitbucket: https://bitbucket.org/stanmarkov/skopt/
+.. _Bitbucket: https://bitbucket.org/stanmarkov/skpar/
 
 
 Clone the repository and go to the newly created directory of the repository.
@@ -26,12 +26,12 @@ To uninstall:
 
 .. code:: bash
 
-        pip3 uninstall skopt
+        pip3 uninstall skpar
 
 
 Dependencies
 ====================
-SKOPT's operation requires:
+SKPAR's operation requires:
 
     * YAML_ support, for setting up the optimisation,
     * the DEAP_ library, for the Particle Swarm Optimisation engine,
@@ -47,12 +47,12 @@ SKOPT's operation requires:
 
 Test
 ===================
-Once installation of SKOPT and its dependencies is complete, it is
+Once installation of SKPAR and its dependencies is complete, it is
 important to ensure that the test suite runs without failures, so:
 
 .. code:: bash
 
-    cd skopt_folder/test
+    cd skpar_folder/test
     python3 -m unittest
 
 Tests runtime is under 30 sec and should result in no errors or failures.

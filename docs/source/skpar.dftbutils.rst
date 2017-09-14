@@ -1,54 +1,54 @@
 .. index:: dftbutils
 
-.. _skopt.dftbutils:
+.. _skpar.dftbutils:
 
 dftbutils sub-package
 =====================================================
 
-Run BS (skopt.dftbutils.runBS)
+Run BS (skpar.dftbutils.runBS)
 -------------------------------
 
-.. automodule:: skopt.dftbutils.runBS
+.. automodule:: skpar.dftbutils.runBS
     :members:
     :undoc-members:
 ..    :show-inheritance:
 
-Query DFTB (skopt.dftbutils.queryDFTB)
+Query DFTB (skpar.dftbutils.queryDFTB)
 ------------------------------------------
 
-.. automodule:: skopt.dftbutils.queryDFTB
+.. automodule:: skpar.dftbutils.queryDFTB
     :members:
     :undoc-members:
 ..    :show-inheritance:
 
-Query k-Lines (skopt.dftbutils.querykLines)
+Query k-Lines (skpar.dftbutils.querykLines)
 --------------------------------------------
 
-.. automodule:: skopt.dftbutils.querykLines
+.. automodule:: skpar.dftbutils.querykLines
     :members:
     :undoc-members:
 ..    :show-inheritance:
 
-Lattice (skopt.dftbutils.lattice)
+Lattice (skpar.dftbutils.lattice)
 ---------------------------------------
 
-.. automodule:: skopt.dftbutils.lattice
+.. automodule:: skpar.dftbutils.lattice
     :members:
     :undoc-members:
 ..    :show-inheritance:
 
-Plot (skopt.dftbutils.plot)
+Plot (skpar.dftbutils.plot)
 -----------------------------
 
-.. automodule:: skopt.dftbutils.plot
+.. automodule:: skpar.dftbutils.plot
     :members:
     :undoc-members:
 ..    :show-inheritance:
 
-Unils (skopt.dftbutils.utils)
+Unils (skpar.dftbutils.utils)
 -------------------------------
 
-.. automodule:: skopt.dftbutils.utils
+.. automodule:: skpar.dftbutils.utils
     :members:
     :undoc-members:
 ..    :show-inheritance:

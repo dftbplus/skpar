@@ -10,9 +10,9 @@ import os, sys
 from deap import base
 from deap import creator
 from deap import tools
-from skopt.core.pso import PSO
-from skopt.core.pso import PSO, report_stats
-from skopt.core.pso import createParticle, evolveParticle, pformat
+from skpar.core.pso import PSO
+from skpar.core.pso import PSO, report_stats
+from skpar.core.pso import createParticle, evolveParticle, pformat
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

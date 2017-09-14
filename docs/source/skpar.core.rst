@@ -1,100 +1,100 @@
 .. index:: core
 
-.. _skopt.core:
+.. _skpar.core:
 
 core sub-package modules
 ===========================================================
 
-Main Program (skopt.core.skopt)
+Main Program (skpar.core.skpar)
 -------------------------------------
 
-.. automodule:: skopt.core.skopt
+.. automodule:: skpar.core.skpar
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Input handler (skopt.core.input)
+Input handler (skpar.core.input)
 ----------------------------------
 
-.. automodule:: skopt.core.input
+.. automodule:: skpar.core.input
     :members:
     :undoc-members:
 
 
-Tasks (skopt.core.tasks)
+Tasks (skpar.core.tasks)
 -------------------------
 
-.. automodule:: skopt.core.tasks
+.. automodule:: skpar.core.tasks
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Task Dictionary (skopt.core.taskdict)
+Task Dictionary (skpar.core.taskdict)
 -----------------------------------------
 
-.. automodule:: skopt.core.taskdict
+.. automodule:: skpar.core.taskdict
     :members:
     :undoc-members:
 
 
-Objectives (skopt.core.objectives)
+Objectives (skpar.core.objectives)
 -----------------------------------
 
-.. automodule:: skopt.core.objectives
+.. automodule:: skpar.core.objectives
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Query (skopt.core.query)
+Query (skpar.core.query)
 -------------------------
 
-.. automodule:: skopt.core.query
+.. automodule:: skpar.core.query
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Evaluator (skopt.core.evaluate)
+Evaluator (skpar.core.evaluate)
 ---------------------------------
 
-.. automodule:: skopt.core.evaluate
+.. automodule:: skpar.core.evaluate
     :members:
     :undoc-members:
     :show-inheritance:
 
-Optimiser (skopt.core.optimise)
+Optimiser (skpar.core.optimise)
 ---------------------------------
 
-.. automodule:: skopt.core.optimise
+.. automodule:: skpar.core.optimise
     :members:
     :undoc-members:
     :show-inheritance:
 
-Parameters (skopt.core.parameters)
+Parameters (skpar.core.parameters)
 -----------------------------------
 
-.. automodule:: skopt.core.parameters
+.. automodule:: skpar.core.parameters
     :members:
     :undoc-members:
     :show-inheritance:
 
 .. _`pso`:
 
-PSO (skopt.core.pso)
+PSO (skpar.core.pso)
 ------------------------------
 
-.. automodule:: skopt.core.pso
+.. automodule:: skpar.core.pso
     :members:
     :undoc-members:
     :show-inheritance:
 
-Utilities (skopt.core.utils)
+Utilities (skpar.core.utils)
 ------------------------------
 
-.. automodule:: skopt.core.utils
+.. automodule:: skpar.core.utils
     :members:
     :undoc-members:
     :show-inheritance:

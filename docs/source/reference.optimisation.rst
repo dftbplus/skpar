@@ -79,7 +79,7 @@ while for a finite :math:`m_i`, :math:`\Delta_i = (m_i - r_i)/m_i`.
 
 Optimisation Algorithm
 ----------------------------------------------------------------------
-Currently SKOPT supports only Particle Swarm Optimisation algorithm.
+Currently SKPAR supports only Particle Swarm Optimisation algorithm.
 The implementation follows Eq.(3) in [PSO-1]_ by J. Kennedy; 
 See also the equivalent and more detailed Eqs(3-4) in [PSO-2]_.
 
@@ -106,7 +106,7 @@ the report and log messages of the optimiser.
 Parameter declaration
 ----------------------------------------------------------------------
 From the viewpoint of an optimiser, the minimal required information 
-related to parameters is their number. However, SKOPT permits a more
+related to parameters is their number. However, SKPAR permits a more
 extensive declaration of parameters:
 
 .. code-block:: yaml

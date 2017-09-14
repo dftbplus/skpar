@@ -8,10 +8,10 @@ from os.path import join as joinpath
 import numpy as np
 import numpy.testing as nptest
 from subprocess import CalledProcessError
-from skopt.core.tasks import SetTask, RunTask, GetTask, set_tasks
-from skopt.core.parameters import Parameter
-from skopt.core.query import Query
-from skopt.core.taskdict import gettaskdict
+from skpar.core.tasks import SetTask, RunTask, GetTask, set_tasks
+from skpar.core.parameters import Parameter
+from skpar.core.query import Query
+from skpar.core.taskdict import gettaskdict
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -318,11 +318,11 @@ class GetTaskTest(unittest.TestCase):
 
 
 class SetAllTasksTest(unittest.TestCase):
-    """Check if we can create objectives from skopt_in.yaml"""
+    """Check if we can create objectives from skpar_in.yaml"""
 
     def test_settasks(self):
         """Can we create a number of tasks from input spec?"""
-        with open("skopt_in.yaml", 'r') as ff:
+        with open("skpar_in.yaml", 'r') as ff:
             try:
                 spec = yaml.load(ff)
             except yaml.YAMLError as exc:

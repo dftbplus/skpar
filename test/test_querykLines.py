@@ -2,10 +2,10 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from skopt.dftbutils import lattice
-from skopt.dftbutils.lattice import Lattice
-from skopt.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
-from skopt.dftbutils.querykLines import get_klines, greekLabels, get_kvec_abscissa
+from skpar.dftbutils import lattice
+from skpar.dftbutils.lattice import Lattice
+from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from skpar.dftbutils.querykLines import get_klines, greekLabels, get_kvec_abscissa
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format=' %(message)s')

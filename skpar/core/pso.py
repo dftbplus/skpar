@@ -83,9 +83,9 @@ from deap import base
 from deap import creator
 from deap import tools
 
-from skopt.core.utils import get_logger
+from skpar.core.utils import get_logger
 
-module_logger = get_logger('skopt.pso')
+module_logger = get_logger('skpar.pso')
 
 def declareTypes(weights):
     """

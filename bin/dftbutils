@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from skopt.dftbutils.runBS import set_bands_parser
+from skpar.dftbutils.runBS import set_bands_parser
 
 def main():
 

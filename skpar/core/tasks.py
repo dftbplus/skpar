@@ -6,12 +6,12 @@ from os.path import split as splitpath
 import numpy as np
 from subprocess import STDOUT
 from pprint import pprint, pformat
-from skopt.core.query import Query
-from skopt.core.taskdict import gettaskdict, plottaskdict
-from skopt.core.parameters import update_parameters
-from skopt.core.utils import get_logger
+from skpar.core.query import Query
+from skpar.core.taskdict import gettaskdict, plottaskdict
+from skpar.core.parameters import update_parameters
+from skpar.core.utils import get_logger
 
-module_logger = get_logger('skopt.tasks')
+module_logger = get_logger('skpar.tasks')
 
 
 def islistoflists(arg):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import argparse
-from skopt.core.skopt import SKOPT
+from skpar.core.skpar import SKPAR
 
 
 def main():
@@ -12,12 +12,12 @@ def main():
             description="Tool for optimising Slater-Koster tables for DFTB."
             )
     parser.add_argument(
-            "skopt_input", type=str, default="skopt_in.yaml", action="store", 
+            "skpar_input", type=str, default="skpar_in.yaml", action="store", 
             help="YAML input file: objectives, tasks, executables, optimisation options."
             )
     parser.add_argument(
             '-v', '--verbose', dest='verbose', default=False, action='store_true',
-            help="Verbose console output (include  full log as in ./skopt.debug.log)"
+            help="Verbose console output (include  full log as in ./skpar.debug.log)"
             )
     parser.add_argument(
             '-n', '--dry_run', dest='dry_run', default=False, action='store_true',
@@ -29,13 +29,13 @@ def main():
             )
     args = parser.parse_args()
 
-    skopt = SKOPT(infile=args.skopt_input, verbose=args.verbose)
+    skpar = SKPAR(infile=args.skpar_input, verbose=args.verbose)
 
     if not args.dry_run:
-        skopt(evalonly=args.evaluate_only)
+        skpar(evalonly=args.evaluate_only)
     else:
-        skopt.logger.warning('DRY RUN: reporting setup only!')
-        skopt.logger.info(skopt.evaluator)
+        skpar.logger.warning('DRY RUN: reporting setup only!')
+        skpar.logger.info(skpar.evaluator)
 
 
 if __name__ == "__main__":

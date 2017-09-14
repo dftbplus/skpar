@@ -19,20 +19,20 @@ if sys.version_info < (3, 0, 0, 'final', 0):
 short_description = ('Optimisation of Slater-Koster files (.skf) '+
                     'for density functional-based tight binding (DFTB)')
 long_description  = open('README.txt').read()
-name         = 'skopt'
-# todo: try to regenerate ./skopt/__init__.py to include the version stated here
+name         = 'skpar'
+# todo: try to regenerate ./skpar/__init__.py to include the version stated here
 version      = '0.2.0'
 
-package_dir  = {'skopt': 'skopt',}
+package_dir  = {'skpar': 'skpar',}
 
 packages     = []
-for dirname, dirnames, filenames in os.walk('skopt'):
+for dirname, dirnames, filenames in os.walk('skpar'):
         if '__init__.py' in filenames:
             packages.append(dirname.replace('/', '.'))
 
 package_data = {}
 
-scripts=['bin/skopt', 'bin/dftbutils', 'bin/check_dftblog']
+scripts=['bin/skpar', 'bin/dftbutils', 'bin/check_dftblog']
 
 ## try to cater for windows
 if 'sdist' in sys.argv or os.name in ['ce', 'nt']:
@@ -47,10 +47,10 @@ setup(name=name,
       version=version,
       description=short_description,
       long_description=long_description,
-      url='https://bitbucket.org/stanmarkov/skopt',
+      url='https://bitbucket.org/stanmarkov/skpar',
       maintainer='Stanislav Markov, The University of Hong Kong',
       maintainer_email='figaro@hku.hk',
-      keywords=['dftb', 'slater-koster integrals', 'dftb+', 'lodestar', 'particle swarm optimisation', 'optimisation', 'pso', 'skopt'],
+      keywords=['dftb', 'slater-koster integrals', 'dftb+', 'lodestar', 'particle swarm optimisation', 'optimisation', 'pso', 'skpar'],
       license='MIT',
       platforms=['any'],
       packages=packages,

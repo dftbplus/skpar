@@ -26,8 +26,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic-0.01
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -48,8 +48,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic+0.01
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -70,8 +70,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic-0.02
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -92,8 +92,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   └── hydrostatic+0.02
 │   │       ├── bs
 │   │       │   ├── band.out
@@ -114,8 +114,8 @@ _workdir
 │   │       │   ├── dftb_in.hsd
 │   │       │   ├── dftb.log
 │   │       │   └── dftb_pin.hsd
-│   │       ├── skopt.debug.log
-│   │       └── skopt.log
+│   │       ├── skpar.debug.log
+│   │       └── skpar.log
 │   └── skf
 │       ├── C
 │       │   ├── atom
@@ -435,8 +435,8 @@ _workdir
 │       ├── skdefs.template.py
 │       ├── skgen-freeatoms.sh
 │       ├── skgen-opt.sh
-│       ├── skopt.debug.log
-│       └── skopt.log
+│       ├── skpar.debug.log
+│       └── skpar.log
 ├── 0-1
 │   ├── C.dia
 │   │   ├── bands.hs-0.00_0-1.pdf
@@ -464,8 +464,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic-0.01
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -486,8 +486,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic+0.01
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -508,8 +508,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic-0.02
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -530,8 +530,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   └── hydrostatic+0.02
 │   │       ├── bs
 │   │       │   ├── band.out
@@ -552,8 +552,8 @@ _workdir
 │   │       │   ├── dftb_in.hsd
 │   │       │   ├── dftb.log
 │   │       │   └── dftb_pin.hsd
-│   │       ├── skopt.debug.log
-│   │       └── skopt.log
+│   │       ├── skpar.debug.log
+│   │       └── skpar.log
 │   └── skf
 │       ├── C
 │       │   ├── atom
@@ -873,8 +873,8 @@ _workdir
 │       ├── skdefs.template.py
 │       ├── skgen-freeatoms.sh
 │       ├── skgen-opt.sh
-│       ├── skopt.debug.log
-│       └── skopt.log
+│       ├── skpar.debug.log
+│       └── skpar.log
 ├── 1-0
 │   ├── C.dia
 │   │   ├── bands.hs-0.00_1-0.pdf
@@ -902,8 +902,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic-0.01
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -924,8 +924,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic+0.01
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -946,8 +946,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   ├── hydrostatic-0.02
 │   │   │   ├── bs
 │   │   │   │   ├── band.out
@@ -968,8 +968,8 @@ _workdir
 │   │   │   │   ├── dftb_in.hsd
 │   │   │   │   ├── dftb.log
 │   │   │   │   └── dftb_pin.hsd
-│   │   │   ├── skopt.debug.log
-│   │   │   └── skopt.log
+│   │   │   ├── skpar.debug.log
+│   │   │   └── skpar.log
 │   │   └── hydrostatic+0.02
 │   │       ├── bs
 │   │       │   ├── band.out
@@ -990,8 +990,8 @@ _workdir
 │   │       │   ├── dftb_in.hsd
 │   │       │   ├── dftb.log
 │   │       │   └── dftb_pin.hsd
-│   │       ├── skopt.debug.log
-│   │       └── skopt.log
+│   │       ├── skpar.debug.log
+│   │       └── skpar.log
 │   └── skf
 │       ├── C
 │       │   ├── atom
@@ -1311,8 +1311,8 @@ _workdir
 │       ├── skdefs.template.py
 │       ├── skgen-freeatoms.sh
 │       ├── skgen-opt.sh
-│       ├── skopt.debug.log
-│       └── skopt.log
+│       ├── skpar.debug.log
+│       └── skpar.log
 └── 1-1
     ├── C.dia
     │   ├── bands.hs-0.00_1-1.pdf
@@ -1340,8 +1340,8 @@ _workdir
     │   │   │   ├── dftb_in.hsd
     │   │   │   ├── dftb.log
     │   │   │   └── dftb_pin.hsd
-    │   │   ├── skopt.debug.log
-    │   │   └── skopt.log
+    │   │   ├── skpar.debug.log
+    │   │   └── skpar.log
     │   ├── hydrostatic-0.01
     │   │   ├── bs
     │   │   │   ├── band.out
@@ -1362,8 +1362,8 @@ _workdir
     │   │   │   ├── dftb_in.hsd
     │   │   │   ├── dftb.log
     │   │   │   └── dftb_pin.hsd
-    │   │   ├── skopt.debug.log
-    │   │   └── skopt.log
+    │   │   ├── skpar.debug.log
+    │   │   └── skpar.log
     │   ├── hydrostatic+0.01
     │   │   ├── bs
     │   │   │   ├── band.out
@@ -1384,8 +1384,8 @@ _workdir
     │   │   │   ├── dftb_in.hsd
     │   │   │   ├── dftb.log
     │   │   │   └── dftb_pin.hsd
-    │   │   ├── skopt.debug.log
-    │   │   └── skopt.log
+    │   │   ├── skpar.debug.log
+    │   │   └── skpar.log
     │   ├── hydrostatic-0.02
     │   │   ├── bs
     │   │   │   ├── band.out
@@ -1406,8 +1406,8 @@ _workdir
     │   │   │   ├── dftb_in.hsd
     │   │   │   ├── dftb.log
     │   │   │   └── dftb_pin.hsd
-    │   │   ├── skopt.debug.log
-    │   │   └── skopt.log
+    │   │   ├── skpar.debug.log
+    │   │   └── skpar.log
     │   └── hydrostatic+0.02
     │       ├── bs
     │       │   ├── band.out
@@ -1428,8 +1428,8 @@ _workdir
     │       │   ├── dftb_in.hsd
     │       │   ├── dftb.log
     │       │   └── dftb_pin.hsd
-    │       ├── skopt.debug.log
-    │       └── skopt.log
+    │       ├── skpar.debug.log
+    │       └── skpar.log
     └── skf
         ├── C
         │   ├── atom
@@ -1749,7 +1749,7 @@ _workdir
         ├── skdefs.template.py
         ├── skgen-freeatoms.sh
         ├── skgen-opt.sh
-        ├── skopt.debug.log
-        └── skopt.log
+        ├── skpar.debug.log
+        └── skpar.log
 
 232 directories, 1520 files
