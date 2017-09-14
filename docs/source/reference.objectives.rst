@@ -29,7 +29,7 @@ and are also normalised.
 Overview of Objectives Declaration
 ======================================================================
 
-The declaration of an objective in the input file of SKOPT consists of
+The declaration of an objective in the input file of SKPAR consists of
 the following elements:
 
 .. code-block:: yaml
@@ -70,7 +70,7 @@ Details of Objective Declaration
 
 Query Label (:code:`query`)
 ----------------------------------------------------------------------
-:code:`query` is just a label given by the user. SKOPT does not interpret
+:code:`query` is just a label given by the user. SKPAR does not interpret
 these labels but uses them to query the model database in order to
 obtain model data. Therefore, the only condition that must be met when
 selecting a label is that the label must be available in the database(s)
@@ -96,7 +96,7 @@ There is one case however, in which the above significance of
 :code:`query` is disregarded, and the specified label becomes irrelevant. 
 This is the case where the reference data of an objective is itself a
 dictionary of key-value pairs (or results in such upon acquisition 
-from a file). This case is automatically recognised by SKOPT and the 
+from a file). This case is automatically recognised by SKPAR and the 
 user need not do anything special. 
 The query-label in this case can be something generic.
 Example of such an objective can be found in 
@@ -110,7 +110,7 @@ This is an optional description -- preferably very brief, which would
 be used in reporting the individual fitness of the objective, and
 also as a unique identifier of the objective (complementary to its
 index in the list of objectives).
-If not specified, SKOPT will assign the following doc-string automatically:
+If not specified, SKPAR will assign the following doc-string automatically:
 ``doc: "model_name: query_item"``.
 
 
@@ -121,7 +121,7 @@ a mandatory field. A model name given here must be available in the
 model database. For this to happen, the model must appear as a 
 *destination* of a Get-Task declaration (see :ref:`get_tasks`).
 
-Beyond a single model name and a list of model names, SKOPT supports
+Beyond a single model name and a list of model names, SKPAR supports
 also a list of pairs -- [model-name, model-factor].
 In such a definition, the data of each model is scaled by the 
 model-factor, and a summation over all models is done, prior to 
@@ -166,7 +166,7 @@ Loading data from file is invoked by:
                 process:
                     # processing options
 
-SKOPT loads data via `Numpy loadtxt() function`_, and the optional
+SKPAR loads data via `Numpy loadtxt() function`_, and the optional
 arguments of this function could be specified by the user via
 ``loader_args``
 
@@ -273,7 +273,7 @@ below.
 
 There are five types of objectives. The type is deduced from the
 combination of *format of the reference data* and *number of model names*.
-Therefore, SKOPT automatically distinguishes between the following five
+Therefore, SKPAR automatically distinguishes between the following five
 objectives types:
 
 1) Single model, single item/1-D array reference data
@@ -336,7 +336,7 @@ established via the following options:
     * ``align_model: [...]`` 
 
 The ``use_`` options admit a list of indexes, ranges, or a mix of indexes and 
-ranges -- e.g. ``[[1, 4], 7, 9]``, and instruct SKOPT to retain only the 
+ranges -- e.g. ``[[1, 4], 7, 9]``, and instruct SKPAR to retain only the 
 enumerated bands for the comparison of the resulting 2-D sub-arrays of 
 model and reference data.
 Fortran-style indexing must be used, i.e. counting starts
@@ -347,7 +347,7 @@ In any case, the final comparison (model *vs* reference) is over arrays of
 identical shape, and the resulting arrays after the ``use_`` clause should 
 be of the same shape.
 
-The ``align_`` options instruct SKOPT to subtract the value of a specific
+The ``align_`` options instruct SKPAR to subtract the value of a specific
 data item in the array from all values in the array, i.e. change the
 reference. This option admits a pair of band-index and point-index, or
 a pair of band-index and a function name (``min`` or ``max``) to operate

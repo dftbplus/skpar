@@ -5,12 +5,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
-from skopt.core.utils import get_ranges, get_logger
-from skopt.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
-from skopt.dftbutils.queryDFTB import get_effmasses, get_special_Ek
-from skopt.dftbutils.plot import plotBS
+from skpar.core.utils import get_ranges, get_logger
+from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
+from skpar.dftbutils.plot import plotBS
 
-module_logger = get_logger('skopt.tasks')
+module_logger = get_logger('skpar.tasks')
 
 def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.

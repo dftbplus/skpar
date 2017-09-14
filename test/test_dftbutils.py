@@ -2,11 +2,11 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from skopt.dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
-from skopt.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
-from skopt.dftbutils.queryDFTB import get_effmasses, get_special_Ek
-from skopt.dftbutils.queryDFTB import get_labels
-from skopt.dftbutils import queryDFTB as dftb
+from skpar.dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
+from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
+from skpar.dftbutils.queryDFTB import get_labels
+from skpar.dftbutils import queryDFTB as dftb
 from math import pi
 
 logging.basicConfig(level=logging.DEBUG)
@@ -200,7 +200,7 @@ class MeffTest(unittest.TestCase):
         dst = {}
         src = 'test_dftbutils/Si/bs'
         get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
-        # the values below are in oldskopt.debug.log in the above dir
+        # the values below are in oldskpar.debug.log in the above dir
         self.assertTrue(dst['withSOC'])
         self.assertEqual(dst['ivbtop'], 7)
         self.assertEqual(dst['nkpts'], 206)

@@ -6,8 +6,8 @@
 Input File Reference
 ========================================
 
-SKOPT is controlled by an input file in `YAML`_. The filename is given as 
-an argument to the ``skopt`` command (e.g. ``skopt skopt_in.yaml``).
+SKPAR is controlled by an input file in `YAML`_. The filename is given as 
+an argument to the ``skpar`` command (e.g. ``skpar skpar_in.yaml``).
 Examples of input files can be seen in :ref:`tutorials`, while here we
 provide the full details.
 

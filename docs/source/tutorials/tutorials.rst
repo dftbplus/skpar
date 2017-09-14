@@ -11,22 +11,22 @@ Tutorials
 Tutorial 1 -- Polynomial Fitting
 =============================================================
 This example covers the basic structure and content of the
-input file. The input file, e.g. ``skopt_optimise.yaml``, would
+input file. The input file, e.g. ``skpar_optimise.yaml``, would
 typically reside in the invocation directory.
 The models should have separate execution directories,
 typically within the invocation folder.
 
-The relevant files for the example are under ``skopt/test`` directory:
+The relevant files for the example are under ``skpar/test`` directory:
 
     * ``test_optimise.yaml``, and the folder
     * ``test_optimise/``, where the model 
     * ``test_optimise/model_poly3.py`` is executed (and located)
 
-The example can be run in the ``skopt/test`` directory by invoking:
+The example can be run in the ``skpar/test`` directory by invoking:
 
-    * ``skopt test_optimise.yaml``,
+    * ``skpar test_optimise.yaml``,
 
-assuming that skopt is installed.
+assuming that skpar is installed.
 
 
 Input YAML file
@@ -35,7 +35,7 @@ Input YAML file
 In this example we try to fit a 3-rd order polynomial to a few points 
 extracted from such a polynomial.
 
-The setup of SKOPT consists of 4 items:
+The setup of SKPAR consists of 4 items:
 
     1. A list of objectives that steer the optimisation,
     2. A list of tasks necessary to evaluate the model,
@@ -104,9 +104,9 @@ to match a set of experimentally known *E-k* points and effective masses.
 Here we set three different objectives, each of them contributing several
 data items.
 
-The corresponding ``skopt_in.yaml`` is below, with comment annotations:
+The corresponding ``skpar_in.yaml`` is below, with comment annotations:
 
-.. literalinclude:: ../../../examples/Si-1/skopt_in.yaml
+.. literalinclude:: ../../../examples/Si-1/skpar_in.yaml
     :linenos:
     :language: yaml
 
@@ -133,9 +133,9 @@ This is accomplished by creating a couple of separate objectives for
 fitting the shapes of the conduction and valence bands independently,
 along with the objective for reaching the experimental band-gap.
 
-The corresponding ``skopt_in.yaml`` is below, with comment annotations:
+The corresponding ``skpar_in.yaml`` is below, with comment annotations:
 
-.. literalinclude:: ../../../examples/Si-2/skopt_in.yaml
+.. literalinclude:: ../../../examples/Si-2/skpar_in.yaml
     :linenos:
     :language: yaml
 

@@ -1,12 +1,12 @@
-.. SKOPT documentation master file, created by
+.. SKPAR documentation master file, created by
    sphinx-quickstart on Tue Dec 27 01:30:55 2016.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to SKOPT's documentation!
+Welcome to SKPAR's documentation!
 =================================
 
-SKOPT is a parameter-optimisation framework for the 
+SKPAR is a parameter-optimisation framework for the 
 Density Functional Tight-Binding (DFTB) theory.
 
 .. _Python: http://www.python.org
@@ -19,7 +19,7 @@ Density Functional Tight-Binding (DFTB) theory.
 News
 ====
    
-   * SKOPT version 0.2.0 released: September 2017
+   * SKPAR version 0.2.0 released: September 2017
 
         - New Configuration section in input file allows for individual
           directory for each model evaluation, i.e. each parameter set.
@@ -27,7 +27,7 @@ News
         - Strict bounds for PSO particle space, applied per dimension
         - Minor bug fixes
 
-   * SKOPT version 0.1.0 released: February 2017.
+   * SKPAR version 0.1.0 released: February 2017.
 
 Contents
 ==================

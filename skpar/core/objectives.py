@@ -12,15 +12,15 @@ import numpy as np
 import logging
 import yaml
 from pprint import pprint, pformat
-from skopt.core.utils import get_logger, normalise, arr2s
-from skopt.core.utils import get_ranges, f2prange
-from skopt.core.query import Query
-from skopt.core.evaluate import costf, errf
+from skpar.core.utils import get_logger, normalise, arr2s
+from skpar.core.utils import get_ranges, f2prange
+from skpar.core.query import Query
+from skpar.core.evaluate import costf, errf
 
 DEFAULT_COST_FUNC = "rms"
 DEFAULT_ERROR_FUNC = "abs"
 
-module_logger = get_logger('skopt.objectives')
+module_logger = get_logger('skpar.objectives')
 
 def parse_weights_keyval(spec, data, normalised=True):
     """Parse the weights corresponding to key-value type of data.

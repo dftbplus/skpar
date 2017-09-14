@@ -14,7 +14,7 @@ from os.path import join as joinpath
 import logging
 import numpy as np
 from collections import defaultdict
-from skopt.dftbutils.lattice import getSymPtLabel
+from skpar.dftbutils.lattice import getSymPtLabel
 
 logger = logging.getLogger(__name__)
 

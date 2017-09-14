@@ -3,21 +3,21 @@ import os
 import logging
 import numpy as np
 from pprint import pformat
-from skopt.core.utils    import get_logger
-from skopt.core.input    import parse_input
-from skopt.core.evaluate import Evaluator
-from skopt.core.optimise import Optimiser
-from skopt.core.query    import Query
+from skpar.core.utils    import get_logger
+from skpar.core.input    import parse_input
+from skpar.core.evaluate import Evaluator
+from skpar.core.optimise import Optimiser
+from skpar.core.query    import Query
 
 
-class SKOPT(object):
+class SKPAR(object):
 
-    def __init__(self, infile='skopt_in.yaml', verbose=False):
+    def __init__(self, infile='skpar_in.yaml', verbose=False):
 
         # setup logger
         # -------------------------------------------------------------------
         loglevel    = logging.DEBUG if verbose else logging.INFO
-        self.logger = get_logger(name='skopt', filename='skopt.log',  
+        self.logger = get_logger(name='skpar', filename='skpar.log',  
                                    verbosity=loglevel)
         # specific for numpy
         np.set_printoptions(threshold = 100, linewidth= 75, suppress=True)

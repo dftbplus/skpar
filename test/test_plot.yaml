@@ -19,7 +19,7 @@ tasks:
                     {colors: ['b', 'r', 'g', 'm'], marker:[None, 'o']}]
     - plot: [plot_objvs, 'polyfit2', [[yval, poly3-2]]] 
     # directory must be either absolutised or relative to workroot/iteration
-    # e.g. - get: [get_model_data, /home/username/projects/skopt-pr1/skopt/test/reference_data/fakebands-2.dat, fakemodel, bands,
+    # e.g. - get: [get_model_data, /home/username/projects/skpar-pr1/skpar/test/reference_data/fakebands-2.dat, fakemodel, bands,
     - get: [get_model_data, ../../../reference_data/fakebands-2.dat, fakemodel, bands,
                     {loader_args: {unpack: True}, process: {rm_columns: [1]}}]
     - plot: [plot_objvs, 'fakebandsplot', [[bands, fakemodel]]] 
@@ -28,7 +28,7 @@ objectives:
     - bands:
         models: fakemodel
         ref: 
-            # here path is relative to SKOPT invokation directory
+            # here path is relative to SKPAR invokation directory
             file: ./reference_data/fakebands.dat
             loader_args: {unpack: True}
             process:

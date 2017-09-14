@@ -5,8 +5,8 @@ from os.path import join as joinpath
 from math import pi
 import numpy as np
 from collections import OrderedDict
-from skopt.dftbutils.lattice import Lattice, getSymPtLabel
-from skopt.dftbutils.querykLines import get_klines, get_kvec_abscissa
+from skpar.dftbutils.lattice import Lattice, getSymPtLabel
+from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
 
 logger = logging.getLogger(__name__)
 

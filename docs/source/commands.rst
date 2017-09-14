@@ -8,34 +8,34 @@
 Commands
 ======================
 
-``skopt``
+``skpar``
 ======================================================================
 
-The ``skopt`` command is the primary tool for setting up and running 
+The ``skpar`` command is the primary tool for setting up and running 
 optimisation. The typical usage is:
 
 .. code:: bash
 
-    skopt skopt_in.yaml
+    skpar skpar_in.yaml
 
 The few supported options could be obtained by:
 
 .. code:: bash
 
-    skopt -h
+    skpar -h
 
-    usage: skopt [-h] [-v] [-n] [-e] skopt_input
+    usage: skpar [-h] [-v] [-n] [-e] skpar_input
 
     Tool for optimising Slater-Koster tables for DFTB.
 
     positional arguments:
-    skopt_input          YAML input file: objectives, tasks, executables,
+    skpar_input          YAML input file: objectives, tasks, executables,
                         optimisation options.
 
     optional arguments:
     -h, --help           show this help message and exit
     -v, --verbose        Verbose console output (include full log as in
-                        ./skopt.debug.log)
+                        ./skpar.debug.log)
     -n, --dry_run        Do not run; Only report the setup (tasklist,
                         objectives, optimisation).
     -e, --evaluate_only  Do not optimise, but execute the task list and evaluate

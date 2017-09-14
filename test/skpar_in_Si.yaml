@@ -15,7 +15,7 @@ tasks:
     #- run: [skgen, skf, ]
     #- run: [bs_dftb, Si, ]
     #- run: [bs_dftb, SiO2, ]
-    # Note that once SKOPT sees a dictionary name, it adds it to the QueryDB
+    # Note that once SKPAR sees a dictionary name, it adds it to the QueryDB
     # and subsequently, if it sees the same name as a source argument, it 
     # will use it as a dictionary source database. Hence, user will not be able
     # to read a directory of the same name as a dictionary name twice.

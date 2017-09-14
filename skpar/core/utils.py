@@ -46,7 +46,7 @@ def get_ranges(data):
         rngs = [f2prange((data,data))]
     return rngs
 
-def configure_logger(name, filename='skopt.log', verbosity=logging.INFO):
+def configure_logger(name, filename='skpar.log', verbosity=logging.INFO):
     """Get parent logger: logging INFO on the console and DEBUG to file.
     """
     logger = logging.getLogger(name)

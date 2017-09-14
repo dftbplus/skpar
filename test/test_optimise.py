@@ -4,10 +4,10 @@ import numpy as np
 import numpy.testing as nptest
 import os
 from os.path import abspath, normpath, expanduser
-from skopt.core.input import parse_input
-from skopt.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_workdir
-from skopt.core.optimise import Optimiser, get_optargs
-from skopt.core.query import Query
+from skpar.core.input import parse_input
+from skpar.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_workdir
+from skpar.core.optimise import Optimiser, get_optargs
+from skpar.core.query import Query
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -114,7 +114,7 @@ class EvaluateSiTest(unittest.TestCase):
     def test_parse_input(self):
         """Can we parse input, create an evaluator instance, and run the tasks?"""
         Query.flush_modelsdb()
-        filename   = "skopt_in_Si.yaml"
+        filename   = "skpar_in_Si.yaml"
         testfolder = "test_eval_Si"
         parfile    = os.path.join(testfolder, 'current.par')
         tasks, objectives, optimisation, config = parse_input(filename)

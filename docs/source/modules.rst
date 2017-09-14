@@ -1,22 +1,22 @@
 .. index:: subpackages and modules
 
-.. _skopt:
+.. _skpar:
 
 =====================================
 Subpackage/module Reference
 =====================================
 
-SKOPT currently includes the following sub-packages:
+SKPAR currently includes the following sub-packages:
 
 .. list-table::
 
-    * - :ref:`core <skopt.core>` 
+    * - :ref:`core <skpar.core>` 
       - the core modules realising the optimisation framework
 
-    * - :ref:`dftbutils <skopt.dftbutils>` 
+    * - :ref:`dftbutils <skpar.dftbutils>` 
       - the modules related to a DFTB model
 
 .. toctree::
 
-    skopt.core
-    skopt.dftbutils
+    skpar.core
+    skpar.dftbutils

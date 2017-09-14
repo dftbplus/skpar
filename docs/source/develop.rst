@@ -6,7 +6,7 @@
 Development
 ====================
 
-Further development of SKOPT is along the following lines.
+Further development of SKPAR is along the following lines.
 
 External Model and Reference Database
 ----------------------------------------------------------------------
@@ -17,7 +17,7 @@ engine from the application specifics. To achieve this:
       sub-package and queries must be made to address an external database;
     * the task handling has to be done by an external task manager, which 
       can be application specific, and its setup may be still driven by
-      the input YAML file of SKOPT;
+      the input YAML file of SKPAR;
     * an external task-manager is needed to wrap the executables that yield
       model data and make them store that data in the external model database;
     * support for reference databases should complement the current mechanism
@@ -25,10 +25,10 @@ engine from the application specifics. To achieve this:
 
 A conceptual block-diagram of the intended development is shown below.
 
-.. figure:: _static/skopt.diagram--development.png
+.. figure:: _static/skpar.diagram--development.png
         :width: 55%
 
-        **Conceptual block diagram of SKOPT with external model database**
+        **Conceptual block diagram of SKPAR with external model database**
 
 Implementation should be straightforward, e.g. by deploying TinyDB_ or similar.
 
@@ -39,7 +39,7 @@ an example in this direction, short of putting data in a database.
 
 Parallelisation
 ----------------------------------------------------------------------
-The calculations done within SKOPT consume negligible time in comparison to
+The calculations done within SKPAR consume negligible time in comparison to
 the evaluation of the model.
 The executables embodying the model are computationally very intense but are
 typically parallelised. 

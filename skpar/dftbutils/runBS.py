@@ -3,8 +3,8 @@ import argparse
 import sys, os
 from os.path import abspath, normpath, expanduser
 from os.path import join as joinpath
-from skopt.dftbutils.utils import get_logger
-from skopt.core.tasks import RunTask
+from skpar.dftbutils.utils import get_logger
+from skpar.core.tasks import RunTask
 
 def set_bands_parser(parser=None):
     """Define parser options specific for band-structure calculations.
@@ -74,7 +74,7 @@ def main_bands(args):
     # Note that dftb+ (at least v1.2) exits with 0 status even if there are ERRORS
     # Therefore, below we ensure we stop in such case, rather than diffusing the 
     # problem through attempts of subsequent operations.
-    # check_dftblog is a bash script in skopt/bin/
+    # check_dftblog is a bash script in skpar/bin/
     tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
 
     tasks.append(RunTask(cmd=['cp', '-f', sccchg, bsdir], out=None))

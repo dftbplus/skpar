@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import numpy.testing as nptest
 import yaml
-from skopt.core.query import Query
+from skpar.core.query import Query
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')

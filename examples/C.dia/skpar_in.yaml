@@ -59,13 +59,13 @@ objectives:
             # k-pt_Number Distance  Kx  Ky  Kz  band1(1)  band2(1)...
             # The advantage of this is that the band with lowest energy
             # also has the lowest column index.
-            # But for visualisation, bands span horisontally, and SKOPT
+            # But for visualisation, bands span horisontally, and SKPAR
             # treats the bands-type of data as a 2D array where a band
             # is represented by a ROW in the array.
             # This is why, we must always transpose bands from dp_bands
             # or from vasputils, upon loading, and this is here accomplished
             # by the loader_args: {unpack: True} -- cf. numpy.loadtxt() for details.
-            file: ~/projects/skopt-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.000/bands.dat
+            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.000/bands.dat
             loader_args: {unpack: True}
             process:  
                 # indexes and ranges below refer to file, not array, 
@@ -103,7 +103,7 @@ objectives:
         doc: 'C.dia.hs-0.01: VB'
         models: 'C.dia.hs-0.01'
         ref:
-            file: ~/projects/skopt-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_-0.010/bands.dat
+            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_-0.010/bands.dat
             loader_args: {unpack: True}
             process:  
                 # indexes and ranges below refer to file, not array, 
@@ -130,7 +130,7 @@ objectives:
         doc: 'C.dia.hs-0.02: VB'
         models: 'C.dia.hs-0.02'
         ref:
-            file: ~/projects/skopt-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_-0.020/bands.dat
+            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_-0.020/bands.dat
             loader_args: {unpack: True}
             process:  
                 # indexes and ranges below refer to file, not array, 
@@ -157,7 +157,7 @@ objectives:
         doc: 'C.dia.hs+0.01: VB'
         models: 'C.dia.hs+0.01'
         ref:
-            file: ~/projects/skopt-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.010/bands.dat
+            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.010/bands.dat
             loader_args: {unpack: True}
             process:  
                 # indexes and ranges below refer to file, not array, 
@@ -184,7 +184,7 @@ objectives:
         doc: 'C.dia.hs+0.02: VB'
         models: 'C.dia.hs+0.02'
         ref:
-            file: ~/projects/skopt-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.020/bands.dat
+            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.020/bands.dat
             loader_args: {unpack: True}
             process:  
                 # indexes and ranges below refer to file, not array, 

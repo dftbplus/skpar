@@ -5,7 +5,7 @@
 
 Tasks
 ======================================================================
-SKOPT features dynamic model definition by the user, which greatly
+SKPAR features dynamic model definition by the user, which greatly
 enhances its flexibility. The model is defined by a sequence of tasks,
 which represent the steps needed to obtaining model data. 
 The tasks are declared in the input file and are executed in the given 
@@ -60,7 +60,7 @@ default work-directory is ``.`` if not explicitly specified.
 
 The most important feature of the set task is its ability to update 
 template files -- ``optional_templates``, according to the dictionary of 
-parameters used in SKOPT.
+parameters used in SKPAR.
 The following rules apply in this respect:
 
     * ``optinonal_templates`` is a filename or a list of filenames with
@@ -88,7 +88,7 @@ Run Tasks
         - run: [command, work_directory, input, output]
 
 Run-tasks help to define model that must be optimised in a flexible
-way, depending on the specific problem *without* modifying SKOPT.
+way, depending on the specific problem *without* modifying SKPAR.
 
 The mandatory ``command`` argument is a string or list of strings and
 may include options and arguments of an external executable, 
@@ -130,27 +130,27 @@ Available get-functions
 .........................
 
 The ``get_function`` must be one of those accessible to the user, as
-as listed in :py:mod:`skopt/core/taskdict.py`:
+as listed in :py:mod:`skpar/core/taskdict.py`:
 
 .. list-table::
 
     * - **Generic**
       -
-    * - :py:func:`get_model_data <skopt.core.taskdict.get_model_data>`
+    * - :py:func:`get_model_data <skpar.core.taskdict.get_model_data>`
       - Generic routine based on ``numpy.loadtxt()``
 
     * - **Specialised: DFTB+**
       -
-    * - :py:func:`get_dftbp_data <skopt.dftbutils.queryDFTB.get_dftbp_data>` 
+    * - :py:func:`get_dftbp_data <skpar.dftbutils.queryDFTB.get_dftbp_data>` 
       - Get data resulting from a DFTB+ calculation, e.g. in `detailed.out`.
 
-    * - :py:func:`get_dftbp_bs <skopt.dftbutils.queryDFTB.get_bandstructure>` 
+    * - :py:func:`get_dftbp_bs <skpar.dftbutils.queryDFTB.get_bandstructure>` 
       - Get all data from DFTB+/dp_bands calculation of bandstructure.
 
-    * - :py:func:`get_dftbp_meff <skopt.dftbutils.queryDFTB.get_effmasses>`
+    * - :py:func:`get_dftbp_meff <skpar.dftbutils.queryDFTB.get_effmasses>`
       - Extract effective masses from DFTB+/dp_bands calculation of bandstructure.
 
-    * - :py:func:`get_dftbp_Ek <skopt.dftbutils.queryDFTB.get_special_Ek>`
+    * - :py:func:`get_dftbp_Ek <skpar.dftbutils.queryDFTB.get_special_Ek>`
       - Extract named *E-k* points from DFTB+/dp_bands calculation of bandstructure.
 
 Source and Destination
@@ -209,10 +209,10 @@ from the table below (follow hyperlinks for details):
 
 .. list-table::
 
-    * - :py:func:`plot_objvs <skopt.core.taskdict.plot_objvs>`
+    * - :py:func:`plot_objvs <skpar.core.taskdict.plot_objvs>`
       - generic plotting of 1D or 2D data
 
-    * - :py:func:`plot_bs <skopt.dftbutils.plot.plotBS>` 
+    * - :py:func:`plot_bs <skpar.dftbutils.plot.plotBS>` 
       - specialised routine to plot bandstructures
 
 Plot-Task Examples:

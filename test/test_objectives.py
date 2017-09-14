@@ -3,9 +3,9 @@ import logging
 import numpy as np
 import numpy.testing as nptest
 import yaml
-from skopt.core import objectives as oo
-from skopt.core.query import Query
-from skopt.core.evaluate import relerr
+from skpar.core import objectives as oo
+from skpar.core.query import Query
+from skpar.core.evaluate import relerr
 np.set_printoptions(precision=3, formatter={'float_kind':lambda x: "%.2f" % x})
 
 logging.basicConfig(level=logging.DEBUG)
@@ -648,11 +648,11 @@ class ObjectiveTypesTest(unittest.TestCase):
         
 
 class SetObjectivesTest(unittest.TestCase):
-    """Check if we can create objectives from skopt_in.yaml"""
+    """Check if we can create objectives from skpar_in.yaml"""
 
     def test_setobjectives(self):
         """Can we create a number of objectives from input spec?"""
-        with open("skopt_in.yaml", 'r') as ff:
+        with open("skpar_in.yaml", 'r') as ff:
             try:
                 spec = yaml.load(ff)['objectives']
             except yaml.YAMLError as exc:

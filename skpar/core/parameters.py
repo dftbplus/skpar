@@ -1,5 +1,5 @@
 """
-Module for handling parameters in the context of SKF optimisation for DFTB via SKOPT.
+Module for handling parameters in the context of SKF optimisation for DFTB via SKPAR.
 The following assumptions are made:
 
     * whatever optimiser is used, it is unaware of the actual meaning of 
@@ -19,11 +19,11 @@ The following assumptions are made:
 """
 import logging
 import os.path
-from skopt.core.utils import get_logger
+from skpar.core.utils import get_logger
 
 DEFAULT_PARAMETER_FILE='current.par'
 
-module_logger = get_logger('skopt.parameters')
+module_logger = get_logger('skpar.parameters')
 
 def get_parameters(spec):
     """

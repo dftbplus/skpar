@@ -17,11 +17,12 @@ _workdir*
 _test*
 _example*
 
-# skopt logs from running tests etc.
+# skpar logs from running tests etc.
 docs/*.log
-test/skopt*.log
+test/skpar*.log
 test/test_*/*.log
 test/test_plot/
+./*.log
 
 # dropbox
 *.DS_Store

@@ -1,15 +1,15 @@
 # mandatory imports
 import sys
 from deap.base import Toolbox
-# skopt
-from skopt.core.utils import get_logger
-from skopt.core.evaluate import Evaluator
-from skopt.core.pso import PSO, pso_dflts, pso_args, report_stats
-from skopt.core.parameters import get_parameters
+# skpar
+from skpar.core.utils import get_logger
+from skpar.core.evaluate import Evaluator
+from skpar.core.pso import PSO, pso_dflts, pso_args, report_stats
+from skpar.core.parameters import get_parameters
 
 optengines = {'pso': PSO}
 
-module_logger = get_logger('skopt.optimise')
+module_logger = get_logger('skpar.optimise')
 
 def get_optargs(spec):
     """

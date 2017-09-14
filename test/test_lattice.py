@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from skopt.dftbutils.lattice import Lattice, repr_lattice, get_dftbp_klines
+from skpar.dftbutils.lattice import Lattice, repr_lattice, get_dftbp_klines
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
