@@ -60,15 +60,5 @@ setup(name=name,
             'pyyaml',
             'matplotlib'
           ],
-      classifiers=[
-        'Intended Audience :: Developers',
-        'Intended Audience :: Education',
-        'Intended Audience :: Science/Research',
-        'Environment :: Console',
-        'Operating System :: OS Independent',
-        'License :: OSI Approved :: MIT',
-        'Programming Language :: Python :: 3',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Software :: Development',
-        ],
+      classifiers=[],
 )
