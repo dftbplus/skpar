@@ -1,5 +1,0 @@
-deap
-pyyaml
-numpy
-matplotlib
-

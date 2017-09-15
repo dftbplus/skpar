@@ -4,6 +4,7 @@
 
 # Setuptools distribution folder.
 /dist/
+/build/
 
 # Sphinx build folder
 /docs/build/
