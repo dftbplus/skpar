@@ -21,7 +21,7 @@ short_description = ('Optimisation of Slater-Koster files (.skf) '+
 long_description  = open('README.txt').read()
 name         = 'skpar'
 # todo: try to regenerate ./skpar/__init__.py to include the version stated here
-version      = '0.2.0'
+version      = '0.2'
 
 package_dir  = {'skpar': 'skpar',}
 
@@ -47,7 +47,8 @@ setup(name=name,
       version=version,
       description=short_description,
       long_description=long_description,
-      url='https://bitbucket.org/stanmarkov/skpar',
+      url='https://github.com/smarkov/skpar',
+      download_url = 'https://github.com/smarkov/skpar/archive/0.2.3.tar.gz'
       maintainer='Stanislav Markov, The University of Hong Kong',
       maintainer_email='figaro@hku.hk',
       keywords=['dftb', 'slater-koster integrals', 'dftb+', 'lodestar', 'particle swarm optimisation', 'optimisation', 'pso', 'skpar'],
