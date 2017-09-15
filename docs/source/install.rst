@@ -6,10 +6,20 @@
 Install
 ====================
 
-The latest release of SKPAR can be found on `Bitbucket`_.
+The latest release of SKPAR can be found on `GitHub`_.
 
-.. _Bitbucket: https://bitbucket.org/stanmarkov/skpar/
+.. _GitHub: https://github.com/smarkov/skpar/
 
+User (w/o sudo or root privilege):
+
+.. code:: bash
+
+        pip3 install --upgrade --user skpar
+
+Please omit the `--user` option above if installing within a virtual environment.
+        
+
+Developer:
 
 Clone the repository and go to the newly created directory of the repository.
 
@@ -17,7 +27,7 @@ Issue the following command from the root directory of the repository.
 
 .. code:: bash
 
-        pip3 install --upgrade --user -r requirements.txt -e .
+        pip3 install --upgrade --user -e .
 
 Please omit the `--user` option above if installing within a virtual environment.
 
@@ -47,8 +57,9 @@ SKPAR's operation requires:
 
 Test
 ===================
-Once installation of SKPAR and its dependencies is complete, it is
-important to ensure that the test suite runs without failures, so:
+If cloning the repository, once installation of SKPAR and its dependencies 
+is complete, it is important to ensure that the test suite runs without 
+failures, so:
 
 .. code:: bash
 
