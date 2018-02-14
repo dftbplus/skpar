@@ -4,10 +4,11 @@ from deap.base import Toolbox
 # skpar
 from skpar.core.utils import get_logger
 from skpar.core.evaluate import Evaluator
-from skpar.core.pso import PSO, pso_dflts, pso_args, report_stats
+from skpar.core.pso import PSO
+from skpar.core.pscan import PSCAN
 from skpar.core.parameters import get_parameters
 
-optengines = {'pso': PSO}
+optengines = {'pso': PSO, 'pscan': PSCAN }
 
 module_logger = get_logger('skpar.optimise')
 
