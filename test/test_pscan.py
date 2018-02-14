@@ -3,13 +3,7 @@ import numpy as np
 import numpy.testing as nptest
 from numpy.polynomial.polynomial import polyval
 import logging
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.rcParams.update({'font.size': 20, 'font.family': 'sans'})
 import os, sys
-from deap import base
-from deap import creator
-from deap import tools
 from skpar.core.pscan import PSCAN, pformat
 
 logging.basicConfig(level=logging.DEBUG)
@@ -78,84 +72,6 @@ class PscanTest(unittest.TestCase):
 
         nptest.assert_allclose(population.best, c[:3], rtol=0.1, verbose=True)
         self.assertTrue(population.best.fitness.values[0] < 0.2)
-
-class ParticleTest(unittest.TestCase):
-    """Test creation and evolution of particles for the PSO
-    """
-    def test_create_particle(self):
-        """Can we create a particle?"""
-        # 1D particle
-        creator.create("pFitness", base.Fitness, weights=(1,))
-        creator.create("Particle", list, fitness=creator.pFitness, speed=list, past=list,
-                   smin=None, smax=None, best=None, norm=list, shift=list, renormalized=list,
-                   strict_bounds=True, prange=list)
-        prange = [[0, 2]]
-        p1 = createParticle(prange)
-        self.assertTrue(-1. <= p1[0] <= 1.)
-        print('\nCreated P1: {}'.format(prange))
-        print(pformat(p1))
-        # 2D particle
-        prange = [[0, 2], [-3, 3]]
-        p2 = createParticle(prange)
-        self.assertTrue(-1. <= p2[0] <= 1.)
-        self.assertTrue(-1. <= p2[1] <= 1.)
-        print('\nCreated P2: {}'.format(prange))
-        print(pformat(p2))
-
-    def test_evolve_particle_escape(self):
-        """Can we evolve the particle and let it escape the initial range?"""
-        creator.create("pFitness", base.Fitness, weights=(1,))
-        creator.create("Particle", list, fitness=creator.pFitness, speed=list, past=list,
-                   smin=None, smax=None, best=None, norm=list, shift=list, renormalized=list,
-                   strict_bounds=True, prange=list)
-        # 1D particle
-        prange = [[0, 2]]
-        p1 = createParticle(prange, strict_bounds=False)
-        p1.best = [0.8,]
-        self.assertTrue(-1. <= p1[0] <= 1.)
-        print('\nCreated P1: {}'.format(prange))
-        print(pformat(p1))
-        gbest = [3,]
-        evolveParticle(p1, gbest)
-        print('\nEvolution 1: P1: {}'.format(prange))
-        print(pformat(p1))
-        evolveParticle(p1, gbest)
-        print('\nEvolution 2: P1: {}'.format(prange))
-        print(pformat(p1))
-        self.assertTrue(p1[0] > 1)
-
-    def test_evolve_strict_bounds(self):
-        """Can we evolve the particle but maintaining strict bounds?"""
-        creator.create("pFitness", base.Fitness, weights=(1,))
-        creator.create("Particle", list, fitness=creator.pFitness, speed=list, past=list,
-                   smin=None, smax=None, best=None, norm=list, shift=list, renormalized=list,
-                   strict_bounds=True, prange=list)
-        # 1D particle
-        prange = [[0, 2]]
-        p1 = createParticle(prange, strict_bounds=True)
-        p1.best = [0.8,]
-        self.assertTrue(all([-1. <= pp <= 1. for pp in p1]))
-        print('\nCreated P1: {}'.format(id(p1)))
-        print(pformat(p1))
-        gbest = [3,]
-
-        print('\nEvolution 1 -- P1: {}'.format(id(p1)))
-        evolveParticle(p1, gbest)
-        print(pformat(p1))
-
-        print('\nEvolution 2 -- P1: {}'.format(id(p1)))
-        evolveParticle(p1, gbest)
-        print(id(p1))
-        print(pformat(p1))
-        self.assertTrue(all([-1. <= pp <= 1. for pp in p1]))
-        self.assertTrue(all([rr[0] <= pp <= rr[1] for pp,rr in zip(p1.renormalized, prange)]))
-
-        print('\nEvolution 3 -- P1: {}'.format(id(p1)))
-        evolveParticle(p1, gbest)
-        print(id(p1))
-        print(pformat(p1))
-        self.assertTrue(all([-1. <= pp <= 1. for pp in p1]))
-        self.assertTrue(all([rr[0] <= pp <= rr[1] for pp,rr in zip(p1.renormalized, prange)]))
 
 if __name__ == '__main__':
     unittest.main()
