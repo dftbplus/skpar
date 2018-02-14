@@ -93,6 +93,30 @@ def create_population(positions):
     population.inext = 0
     return population
 
+def report_stats(stats):
+    """
+    """
+    logger = module_logger
+    statsHeader = "".join([
+    '{0:>10s}'.format('Min.'),
+    '{0:>10s}'.format('Max.'),
+    '{0:>10s}'.format('Avg.'),
+    '{0:>10s}'.format('Std.'),
+    ])
+    logger.info('')
+    logger.info("Fitness statistics follow:")
+    logger.info(statsHeader)
+    logger.info('============================================================')
+    s = stats[0]
+    logger.info("".join([
+    '{0:>10.4f}'.format(s['Fitness']['Min']),
+    '{0:>10.4f}'.format(s['Fitness']['Max']),
+    '{0:>10.4f}'.format(s['Fitness']['Avg']),
+    '{0:>10.4f}'.format(s['Fitness']['Std']),
+        ]))
+    logger.info('============================================================')
+
+
 
 class PSCAN(object):
     """Class defining a scanner over a set of positions.
@@ -171,5 +195,16 @@ class PSCAN(object):
         self.stats_record.append(self.mstats.compile(self.population))
         return self.population, self.stats_record
             
+    def report(self):
+        report_stats(self.stats_record)
+        self.logger.info("Best position    : {}".format(self.population.ibest))
+        self.logger.info("Best fitness     : {}".format(self.population.best.fitness.values))
+        if self.parnames:
+            self.logger.info("Best parameters:\n"+
+                "\n".join(["{:>20s}  {}".format(name, val) 
+                for (name, val) in zip(self.parnames, self.population.best)]))
+        else:
+            self.logger.info("Best parameters  : {}".format(self.population.best))
+
     def __call__(self, *args, **kwargs):
         return self.optimise(*args, **kwargs)
