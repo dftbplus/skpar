@@ -381,12 +381,13 @@ class PlotTask (object):
         if iteration is not None:
             try:
                 # should work if iteration is a tuple
-                plotname = "{:s}_{:d}-{:d}".format(self.plotname, *iteration)
-                title    = "{:s} ({:d}-{:d})".format(os.path.split(self.plotname)[-1], *iteration)
+                plotname = '{:s}_{:s}'.format(self.plotname, '-'.join([str(it) for it in iteration]))
+                title    = '{:s} ({:s})'.format(os.path.split(self.plotname)[-1],
+                        '_'.joint([str(it) for it in iteration]))
             except TypeError:
                 # if iteration is a single integer, rather than a sequence
                 plotname = "{:s}_{:d}".format(self.plotname, iteration)
-                title    = "{:s} ({:d})".format(os.path.split(self.plotname)[-1], *iteration)
+                title    = "{:s} ({:d})".format(os.path.split(self.plotname)[-1], iteration)
         else:
             plotname = self.plotname
             title    = os.path.split(self.plotname)[-1]
