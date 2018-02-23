@@ -77,7 +77,6 @@ import random
 import operator
 import sys
 import numpy as np
-from copy import copy, deepcopy
 
 from deap import base
 from deap import creator

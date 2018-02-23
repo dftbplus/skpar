@@ -220,7 +220,10 @@ def get_workdir(iteration, workroot):
         if iteration is None:
             myworkdir = 'noiter'
         else:
-            myworkdir = '-'.join([str(it) for it in iteration])
+            try:
+                myworkdir = '-'.join([str(it) for it in iteration])
+            except TypeError:
+                myworkdir = str(iteration)
         workdir = os.path.abspath(os.path.join(workroot, myworkdir))
     return workdir
 
