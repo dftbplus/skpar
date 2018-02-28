@@ -41,7 +41,7 @@ def set_evol_parser(parser=None):
             "-dftb", type=str, default='dftb+', action="store", 
             help="(dflt: dftb+) dftb executable")
     if subparser:
-        parser.set_defaults(func=main_bands)
+        parser.set_defaults(func=main_evol)
         return None
     else:
         return parser
@@ -89,8 +89,7 @@ def main_evol(args):
     # Therefore, below we ensure we stop in such case, rather than diffusing the 
     # problem through attempts of subsequent operations.
     # check_dftblog is a bash script in skpar/bin/
-        tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
-        tasks.append(RunTask(cmd=[bands, 'band.out', 'bands'], wd=bsdir, out=bandslog))
+        tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=wd, out='chk.log'))
 
     # align the loggers (could be done above in the initialization)
     for tt in tasks:

@@ -21,6 +21,7 @@ _example*
 # skpar logs from running tests etc.
 docs/*.log
 test/skpar*.log
+test/dftbutils*.log
 test/test_*/*.log
 test/test_plot/
 ./*.log

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from skpar.core.utils import get_ranges, get_logger
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
+from skpar.dftbutils.queryDFTB import get_dftbp_evol
 from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 from skpar.dftbutils.plot import plotBS
 
@@ -195,6 +196,7 @@ def plot_objvs(plotname, xx, yy, colors=None, markers='', ylabels=None,
 gettaskdict = {
         'get_model_data': get_model_data,
         'get_dftbp_data': get_dftbp_data,
+        'get_dftbp_evol': get_dftbp_evol,
         'get_dftbp_bs'  : get_bandstructure,
         'get_dftbp_meff': get_effmasses,
         'get_dftbp_Ek'  : get_special_Ek,

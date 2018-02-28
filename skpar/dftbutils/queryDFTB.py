@@ -1,12 +1,13 @@
 import os
 import logging
-from os.path import normpath, expanduser, isdir
+from os.path import abspath, normpath, expanduser, isdir
 from os.path import join as joinpath
 from math import pi
 import numpy as np
 from collections import OrderedDict
 from skpar.dftbutils.lattice import Lattice, getSymPtLabel
 from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
+from skpar.dftbutils.utils import get_logger
 
 logger = logging.getLogger(__name__)
 
@@ -109,15 +110,66 @@ class DetailedOut (dict):
 def get_dftbp_data(source, destination, workdir='.', *args, **kwargs):
     """Load whatever data can be obtained from detailed.out of dftb+.
     """
+    # setup logger
+    # -------------------------------------------------------------------
+    logger   = get_logger(name='dftbutils', filename='dftbutils.evol.log',  
+                          verbosity=logging.DEBUG)
     assert isinstance(source, str), \
         "src must be a string (filename or directory name), but is {} instead.".format(type(src))
     if isdir(source):
         ff = normpath(expanduser(joinpath(source, 'detailed.out')))
     else:
         ff = normpath(expanduser(joinpath(workdir, source)))
+    logger.debug('Getting DFTB+ data from {:s}.'.format(ff))
     data = DetailedOut.fromfile(ff)
     destination.update(data)
 
+def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
+                    *args, **kwargs):
+    """Upload the data from DFTB+ SCC calculation for all models.
+    
+    This is a compound task that augments the source path to include
+    individual local directories for different cell volumes, based
+    on the assumption that these directories are named by 3 digits.
+    Similar assumption applies for the destination, where the name
+    of the base model is augmented by the 3-digit directory number.
+
+    parameters:
+        workroot(string): base directory where model directories are found.
+        source (string): model directory
+        destination (dictionary): model database, where data goes
+        datafile (string): optional filename holding the data.
+    """
+    # setup logger
+    # -------------------------------------------------------------------
+#    loglevel = logging.DEBUG if args.verbose else logging.INFO
+    # this log file will appear under the iteration directory
+    loglevel = logging.INFO
+    logger   = get_logger(name='dftbutils', filename='dftbutils.evol.log',  
+                          verbosity=loglevel)
+    # In order to collect the tags that identify individual directories
+    # corresponding to a given cell-volume, we must go in the base
+    # directory, which includes workroot/source
+    cwd = os.getcwd()
+    modeldir = joinpath(abspath(expanduser(workroot)), source)
+    logger.info('Looking for Energy-Volume data in {:s}'.format(modeldir))
+    os.chdir(modeldir)
+    sccdirs = [dd for dd in os.listdir() if dd.isdigit()]
+    # make sure we return back
+    os.chdir(cwd)
+    # go over individual volume directories and obtain the data
+    Etot = []
+    # It is pivotal that the names are sorted, so that correspondence 
+    # with reference data can be established!
+    for dd in sorted(sccdirs):
+        ff = joinpath(modeldir, dd, datafile)
+        logger.info('Reading {:s}'.format(ff))
+        data = DetailedOut.fromfile(ff)
+        logger.info('Done. Data: {}'.format(data))
+        Etot.append(data['Etot'])
+    destination['Etot(Vol)'] = Etot
+    logger.info('Done. Etot(Vol): {}'.format(destination['Etot(Vol)']))
+    
 
 # ----------------------------------------------------------------------
 # Band structure data (including Detailed Output data)

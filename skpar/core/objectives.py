@@ -44,7 +44,7 @@ def parse_weights_keyval(spec, data, normalised=True):
         Log warning if a key in `spec` (other than 'dflt') is not found
         in `data`.
     """
-    if isinstance(spec, list) or type(spec).__module__ == np.__name__:
+    if isinstance(spec, list) or isinstance(spec, np.ndarray):
         # if spec enumerates weights as a list or array, nothing to do
         assert len(spec)==len(data) 
         ww = spec
@@ -127,8 +127,7 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0, normalised=True,
         rikeys = []
     if rfkeys is None:
         rfkeys = []
-    if isinstance(spec, list) and len(spec)==nn or\
-        type(spec).__module__ == np.__name__:
+    if isinstance(spec, list) or isinstance(spec, np.ndarray):
         # Assume spec enumerates weights as a list or array
         ww = np.atleast_1d(spec)
     else:
@@ -375,7 +374,10 @@ class ObjValues(Objective):
     """
     def __init__(self, spec, **kwargs):
         super().__init__(spec, **kwargs)
-        nmod = len(self.model_names)
+        # if we check len(self.model_names), it returns the string length
+        # in the case of single string
+        nmod = len(self.model_weights)
+        self.nmod = nmod
         # coerce ref-data to 1D array if it is extracted from a 2D array
         if self.ref_data.ndim == 2 and self.ref_data.shape == (1,nmod):
             self.ref_data = self.ref_data.reshape((nmod,))
@@ -390,7 +392,8 @@ class ObjValues(Objective):
             self.normalised = self.options.get('normalise', True)
 
         if subweights is not None:
-            self.subweights = parse_weights(subweights, nn=nmod, 
+            self.subweights = parse_weights(subweights, 
+                    refdata=self.ref_data, nn=nmod, 
                     normalised=self.normalised,
                     # these are optional, and generic enough
                     ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
@@ -401,10 +404,9 @@ class ObjValues(Objective):
     def get(self):
         """
         """
-        self.model_data = self.query()
-        if len(self.model_names) > 1:
-            assert self.model_data.shape == self.subweights.shape,\
-                    "{} {}".format(self.model_data.shape, self.subweights.shape)
+        self.model_data = np.atleast_1d(self.query())
+        assert self.model_data.shape == self.subweights.shape,\
+                "{} {}".format(self.model_data.shape, self.subweights.shape)
         return super().get()
 
 
