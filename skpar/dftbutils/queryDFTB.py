@@ -167,8 +167,14 @@ def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
         data = DetailedOut.fromfile(ff)
         logger.info('Done. Data: {}'.format(data))
         Etot.append(data['Etot'])
-    destination['Etot(Vol)'] = Etot
-    logger.info('Done. Etot(Vol): {}'.format(destination['Etot(Vol)']))
+    destination['energy_volume'] = Etot
+    logger.info('Done. energy_volume: {}'.format(destination['energy_volume']))
+    # note below that column_stack returns array of string type, because
+    # at least one of the arrays is; unfortunately we loose the ability to 
+    # format Etot the way we like
+    np.savetxt(joinpath(modeldir, 'energy_volume.dat'), 
+            np.column_stack([Etot, sccdirs]),
+            header='Energy[eV], Volume tag', fmt='%s')
     
 
 # ----------------------------------------------------------------------

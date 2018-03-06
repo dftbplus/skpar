@@ -1,0 +1,54 @@
+config:
+    templatedir: template
+    workroot: ./_workdir/
+    keepworkdirs: true
+
+executables:
+    evol: dftbutils evol                    # energy-vollume scan
+    repfit: skpar_splinerepfit              # fit a spline repulsive on given points
+    addrep: skpar_addrepulsive              # append repulsive.dat to A1-A2.template.skf
+
+tasks:
+    # Three types of tasks exist:
+    # - set: [parmeter_file, working_directory, optional_template_file(s)]
+    # - run: [command, working_directory]
+    # - get: [what, from_sourse(dir, file or dict), to_destination(dict), optional_kwargs]
+    #        `what` is essentially a function name (see Get-Tasks dictionary)
+    # -----------------------------------------------------------------------------
+    - set: [skf/fitpoints.template.dat]                       # update parameters -> skf/fitpoints.dat
+    - run: [repfit, skf]                                      # fit repulsive and produce repulsive.dat
+    - run: [[addrep, -e, Mo, S], skf]                         # add repulsive.dat -> 1-2.skf and 2-1.skf
+    - run: [evol, MoS2.ml-evol]                               # energy-volume calculation in the subfolders 
+                                                              # of GaN-Wurtzitac
+    - get: [get_dftbp_evol, MoS2.ml-evol, MoS2.ml]            # get total energy for all calculations in
+                                                              # Gan-Wurtzitac subfolders and associate data
+                                                              # with GaN-W-ac* models (using same tags as
+                                                              # subfolders in GaN-Wurtzitac
+
+objectives:
+    - energy_volume:
+        doc: MoS2.ml Energy-Volume dependence
+        models: MoS2.ml
+        ref:
+            file: refdata/toten-MoS2.ml.dat # ./ is where this .yaml is
+            loader_args:
+                usecols: 0 # Etot[eV]; col[1] is % of equil.lat.const.
+        options:
+            align_ref: 5
+            align_model: 5
+            subweights: [ 2,2, 3,3,3,3,3,3, 2,2,2, 1,1,1,1]
+        eval: [rms, relerr]
+
+
+optimisation:
+    algo: PSO   # particle swarm optimisation
+    options:
+        npart: 1   # number of particles
+        ngen : 1   # number of generations
+    parameters:
+        # how do we choose the range for the spline values?
+        - s1: [3, 10]
+        - s2: [2, 9]
+        - s3: [1, 8]
+        - s4: [1, 8]
+        - s5: [1, 8]

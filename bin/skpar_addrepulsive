@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+import argparse
+from skpar.dftbutils.repfit import append_spline
+
+workdir = '.'
+
+def main():
+    # argument parsing 
+    # -------------------------------------------------------------------
+    parser = argparse.ArgumentParser(
+            description="Script that takes an existing SK-file and a "
+                        "spline file and combines them in a new SK-file"
+            )
+    parser.add_argument(
+            '-i', dest='skin', action='store',
+            metavar='INPUT', help="Input SK-file"
+            )
+    parser.add_argument(
+            '-o', dest='skout', action='store',
+            metavar='OUTPUT', help="Output SK-file"
+            )
+    parser.add_argument(
+            '-s', dest='spl', default='repulsive.dat', action='store',
+            metavar='SPLINE', 
+            help="Spline file; Must have the 'Spline' tag included on top!"
+            )
+    parser.add_argument(
+            '-e', dest='elements', nargs=2, default=None, action='store',
+            metavar=('A1', 'A2'), 
+            help="Pair of chemical elements whose SKF is patched with a repulsive"
+            )
+    args = parser.parse_args()
+    if args.elements is not None:
+        e1, e2 = args.elements
+        fin1 = "{:s}-{:s}.template.skf".format(e1, e2)
+        fout1 = "{:s}-{:s}.skf".format(e1, e2)
+        append_spline(fin=fin1, fspl=args.spl, fout=fout1)
+        if e1 != e2:
+            fin2 = "{:s}-{:s}.template.skf".format(e2, e1)
+            fout2 = "{:s}-{:s}.skf".format(e2, e1)
+            append_spline(fin=fin2, fspl=args.spl, fout=fout2)
+    else:
+        append_spline(fin=args.skin, fspl=args.spl, fout=args.skout)
+
+if __name__ == '__main__':
+    main()

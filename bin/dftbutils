@@ -27,7 +27,7 @@ def main():
             parents=[], help='Calculate bandstructure')
     set_bands_parser(parser_bands)
 
-    # Band-structure calculation
+    # Energy-volume scan 
     parser_evol = subparsers.add_parser('evol',
             parents=[], help='Do energy-volume scan in a given directory')
     set_evol_parser(parser_evol)

@@ -50,8 +50,18 @@ def parse_input(filename, verbose=False):
     # setup stuff, and these typically are separate.
     #module_logger.debug("Parse input parameters: {}".format(parameters))
     #module_logger.debug("Parse input parnames  : {}".format(parnames))
-    tasks      = set_tasks      (spec['tasks'], exedict, parnames)
-    objectives = set_objectives (spec['objectives'], verbose=verbose)
+    try:
+        _spec = spec['tasks']
+    except KeyError:
+        module_logger.error('It seems that "tasks:" is missing in the input yaml')
+        sys.exit(1)
+    tasks      = set_tasks      (_spec, exedict, parnames)
+    try:
+        _spec = spec['objectives']
+    except KeyError:
+        module_logger.error('It seems that "objectives:" is missing in the input yaml')
+        sys.exit(1)
+    objectives = set_objectives (_spec, verbose=verbose)
     # Any dependencies of tasks on objectives or vice virsa could be 
     # resolved here, before proceeding with execution
     # Plot-task depend on objectives, i.e. need references to objectives

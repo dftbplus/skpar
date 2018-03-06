@@ -1,0 +1,9 @@
+# Fitting points: x-val y-val
+# Last line: r_damp, r_cutoff
+4.00 %(s1)f
+4.32 %(s2)f
+4.64 %(s3)f
+4.96 %(s4)f
+5.0  %(s5)f
+0.0 7.0
+

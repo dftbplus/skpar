@@ -1,0 +1,5 @@
+Geometry = GenFormat {
+  <<< "POS.gen"
+}
+
+<<+ "../common.hsd"
