@@ -133,9 +133,13 @@ def createParticle(prange, strict_bounds=True):
     part.speed = [random.uniform(smin, smax) for _ in range(size)]
     part.smin = smin
     part.smax = smax
-    part.prange = prange
-    part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in prange]
-    part.shift = [0.5 * (r[1] + r[0]) for r in prange]
+    if prange is not None:
+        part.prange = prange
+    else:
+        part.prange = [(pmin, pmax)]*size
+        print (part.prange)
+    part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in part.prange]
+    part.shift = [0.5 * (r[1] + r[0]) for r in part.prange]
     part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
     part.strict_bounds = strict_bounds
     return part
