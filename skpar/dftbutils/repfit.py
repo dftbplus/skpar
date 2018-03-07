@@ -234,7 +234,8 @@ def splinerepfit(ftargets='fitpoints.dat', fout='repulsive.spl'):
     # Fit spline
     rspline = rfit
     erepc = yfit
-    rr = np.arange(rspline[0], rspline[-1] + EPSILON, GRID_FINE)
+    rrange = rspline[-1] - rspline[0]
+    rr = np.linspace(rspline[0], rspline[-1], int(rrange/GRID_FINE)+1)
     splcoeffs = get_spline_coeffs(rspline, erepc, boundary='not-a-knot')
     splval = get_spline_values(splcoeffs, rspline, rr)
     write_as_nxy('splinefit.dat', 'Spline fitted on polynomial fit',
@@ -243,7 +244,8 @@ def splinerepfit(ftargets='fitpoints.dat', fout='repulsive.spl'):
     # Fit exponential start to spline
     splderivs = get_splineval012(splcoeffs[0], rspline[0], rspline[0])
     expcoeffs = get_expcoeffs(splderivs, rspline[0])
-    rexp = np.arange(rspline[0] - 0.5, rspline[0] + EPSILON, GRID_FINE)
+    expbuf = 0.5
+    rexp = np.linspace(rspline[0]-expbuf, rspline[0], int(expbuf/GRID_FINE)+1)
     expvals = get_exp_values(expcoeffs, rexp)
     write_as_nxy('headfit.dat', 'Exponentail head', (rexp, expvals),
                  ('rr', 'exponential head'))
@@ -251,7 +253,8 @@ def splinerepfit(ftargets='fitpoints.dat', fout='repulsive.spl'):
     # Fit 5th order polynomial tail
     derivs = get_splineval012(splcoeffs[-1], rspline[-2], rspline[-1])
     poly5coeffs = get_poly5coeffs(derivs, rspline[-1], rcut)
-    rpoly5 = np.arange(rspline[-1], rcut + EPSILON, GRID_FINE)
+    p5range = rcut - rspline[-1]
+    rpoly5 = np.linspace(rspline[-1], rcut, int(p5range/GRID_FINE)+1)
     poly5vals = get_poly5_values(poly5coeffs, rspline[-1], rpoly5)
     write_as_nxy('tailfit.dat', '5th order spline tail', (rpoly5, poly5vals),
                  ('rr', '5th order spline'))
