@@ -1,9 +1,13 @@
 # Fitting points: x-val y-val
-# Last line: r_damp, r_cutoff
-4.00 %(s1)f
-4.32 %(s2)f
-4.64 %(s3)f
-4.96 %(s4)f
-5.0  %(s5)f
-0.0 7.0
-
+# Last line: r_damp(ignored), r_cutoff
+# NOTABENE: 1. Exponential head is fitted from x[0]-0.5 to x[0]  au.
+#           2. 5-th order polynomial extends from x[-1] to rcutoff.
+#           3. For the available refdata, Mo-S bond varies between
+#           4.35 au (2.3 A) and 4.97 au (2.63 A).
+#           
+4.0 %(s1)f
+4.41 %(s2)f
+4.67 %(s3)f
+4.84 %(s4)f
+5.00 %(s5)f
+0.0 5.5

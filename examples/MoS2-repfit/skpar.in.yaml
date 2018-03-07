@@ -19,14 +19,13 @@ tasks:
     - run: [repfit, skf]                                      # fit repulsive and produce repulsive.dat
     - run: [[addrep, -e, Mo, S], skf]                         # add repulsive.dat -> 1-2.skf and 2-1.skf
     - run: [evol, MoS2.ml-evol]                               # energy-volume calculation in the subfolders 
-                                                              # of GaN-Wurtzitac
+                                                              # of MoS2.ml-evol under _workdir/iteration/
     - get: [get_dftbp_evol, MoS2.ml-evol, MoS2.ml]            # get total energy for all calculations in
-                                                              # Gan-Wurtzitac subfolders and associate data
-                                                              # with GaN-W-ac* models (using same tags as
-                                                              # subfolders in GaN-Wurtzitac
+                                                              # MoS2.ml-evol subfolders and associate data
+                                                              # with MoS2.ml model
 
 objectives:
-    - energy_volume:
+    - totalenergy_volume:
         doc: MoS2.ml Energy-Volume dependence
         models: MoS2.ml
         ref:
@@ -43,12 +42,22 @@ objectives:
 optimisation:
     algo: PSO   # particle swarm optimisation
     options:
-        npart: 1   # number of particles
-        ngen : 1   # number of generations
+        npart: 7   # number of particles
+        ngen : 100   # number of generations
     parameters:
         # how do we choose the range for the spline values?
-        - s1: [3, 10]
-        - s2: [2, 9]
-        - s3: [1, 8]
-        - s4: [1, 8]
-        - s5: [1, 8]
+        - s1: [0.04, 0.08]
+        - s2: [0.015, 0.04]
+        - s3: [0.01, 0.02]
+        - s4: [0.002, 0.015]
+        - s5: [0, 0.01]
+
+#   INFO: GBest iteration   : (8, 4)
+#   INFO: GBest fitness     : (0.2948349220386814,)
+#   INFO: GBest parameters:
+#                  s1  0.054166544773121786
+#                  s2  0.02743151671192476
+#                  s3  0.012499232452091459
+#                  s4  0.0053899960548623276
+#                  s5  0.0031473351376836304
+#   INFO: Done.

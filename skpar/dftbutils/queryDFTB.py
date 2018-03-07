@@ -112,7 +112,7 @@ def get_dftbp_data(source, destination, workdir='.', *args, **kwargs):
     """
     # setup logger
     # -------------------------------------------------------------------
-    logger   = get_logger(name='dftbutils', filename='dftbutils.evol.log',  
+    logger   = get_logger(name='dftbutils', filename='dftbutils.detailed.log',  
                           verbosity=logging.DEBUG)
     assert isinstance(source, str), \
         "src must be a string (filename or directory name), but is {} instead.".format(type(src))
@@ -159,6 +159,7 @@ def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
     os.chdir(cwd)
     # go over individual volume directories and obtain the data
     Etot = []
+    Eelec = []
     # It is pivotal that the names are sorted, so that correspondence 
     # with reference data can be established!
     for dd in sorted(sccdirs):
@@ -167,14 +168,16 @@ def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
         data = DetailedOut.fromfile(ff)
         logger.info('Done. Data: {}'.format(data))
         Etot.append(data['Etot'])
-    destination['energy_volume'] = Etot
-    logger.info('Done. energy_volume: {}'.format(destination['energy_volume']))
-    # note below that column_stack returns array of string type, because
-    # at least one of the arrays is; unfortunately we loose the ability to 
-    # format Etot the way we like
-    np.savetxt(joinpath(modeldir, 'energy_volume.dat'), 
-            np.column_stack([Etot, sccdirs]),
-            header='Energy[eV], Volume tag', fmt='%s')
+        Eelec.append(data['Eel'])
+    destination['totalenergy_volume'] = Etot
+    destination['elecenergy_volume'] = Eelec
+    logger.info('Done. totalenergy_volume: {}'.format(destination['totalenergy_volume']))
+    logger.info('Done. elecenergy_volume: {}'.format(destination['elecenergy_volume']))
+    outstr = ['# Total Energy[eV], Electronic Energy[eV], Volume tag']
+    for et, ee, tag in zip(Etot, Eelec, sccdirs):
+        outstr.append('{:12.6g} {:10.6g} {:>10s}'.format(et, ee, tag))
+    with open(joinpath(modeldir, 'energy_volume.dat'), 'w') as fp:
+        fp.writelines('\n'.join(outstr)+'\n')
     
 
 # ----------------------------------------------------------------------

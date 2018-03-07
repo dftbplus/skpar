@@ -18,13 +18,15 @@ _workdir*
 _test*
 _example*
 
-# skpar logs from running tests etc.
+# skpar logs from running tests and examples etc.
 docs/*.log
 test/skpar*.log
 test/dftbutils*.log
 test/test_*/*.log
 test/test_plot/
 ./*.log
+examples/*/*.log
+examples/*/nohup.out
 
 # dropbox
 *.DS_Store
