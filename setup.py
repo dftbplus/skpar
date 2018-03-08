@@ -57,6 +57,7 @@ setup(name=name,
       data_files=data_files,
       install_requires = [
             'numpy',
+            'scipy',
             'deap',
             'pyyaml',
             'matplotlib'
