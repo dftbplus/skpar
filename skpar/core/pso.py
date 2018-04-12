@@ -133,9 +133,12 @@ def createParticle(prange, strict_bounds=True):
     part.speed = [random.uniform(smin, smax) for _ in range(size)]
     part.smin = smin
     part.smax = smax
-    part.prange = prange
-    part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in prange]
-    part.shift = [0.5 * (r[1] + r[0]) for r in prange]
+    if prange is not None:
+        part.prange = prange
+    else:
+        part.prange = [(pmin, pmax)]*size
+    part.norm = [(pmax - pmin) / (r[1] - r[0]) for r in part.prange]
+    part.shift = [0.5 * (r[1] + r[0]) for r in part.prange]
     part.renormalized = list(map(operator.add, list(map(operator.truediv, part, part.norm)), part.shift))
     part.strict_bounds = strict_bounds
     return part
@@ -268,14 +271,15 @@ def evolveParticle(part, best, inertia=0.7298, acceleration=2.9922, degree=2):
 
 # init arguments: 
 pso_init_args = ["npart", "objectives", "parrange", "evaluate"]
-pso_optinit_args   = ['ngen', 'ErrTol'] 
+pso_optinit_args   = ['ngen', 'ErrTol', 'strict_bounds'] 
 
 # call arguments
 pso_call_args      = []
 pso_optcall_args   = ['ngen', "ErrTol", ] 
 
 pso_dflts = {'npart': 10, 'ngen': 200, 'ErrTol': 0.001, 
-                'objective_weights': (-1,)}
+                'objective_weights': (-1,), 
+                'strict_bounds': True, }
 
 
 def pso_args(**kwargs):
@@ -369,9 +373,11 @@ class PSO(object):
                 "every element of which is either a tuple (min_value, max_value)\n"
                 "or a class with attributes minv and maxv!")
             parrange = parameters
+        # see if the pso is allowed to cross over defined range for particles
+        strict_bounds = kwargs.get('strict_bounds', True)
         # define the particle and the methods associated with its creation, evolution and fitness evaluation
         declareTypes(objective_weights)
-        self.toolbox.register("create", createParticle, prange=parrange)
+        self.toolbox.register("create", createParticle, prange=parrange, strict_bounds=strict_bounds)
         self.toolbox.register("evolve", evolveParticle, inertia=self.pInertia, acceleration=self.pAcceleration)
         self.toolbox.register("evaluate", evaluate)
         # create a swarm from particles with the above defined properties
