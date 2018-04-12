@@ -28,8 +28,8 @@ def get_labels(ss):
     else:
         lss = list(ss)
         ixs = [i for i,c in enumerate(lss) if c != c.lower()]
-        assert len(ixs) == 2
-        assert ixs[0] == 0
+        assert len(ixs) == 2, ixs
+        assert ixs[0] == 0, ixs
         labels = [''.join(lss[:ixs[1]]), ''.join(lss[ixs[1]:])]
     return labels
 
@@ -59,7 +59,10 @@ class DetailedOut (dict):
             ("Total Mermin free energy:", "Emermin"), ]
     # float values, allowing for fractional number [input, output]
     nelec_tags = [
-            ("Input/Output electrons (q):", ("nei", "neo")) ]
+            # dftb 1.2
+            ("Input/Output electrons (q):", ("nei", "neo")),
+            # dftb 18.1 : "Input / Output electrons (q):"
+            ("electrons (q):", ("nei", "neo")) ]
     # logical value
     conv_tags = [
             ("iSCC", ('nscc', 'scc_err')),
@@ -199,7 +202,7 @@ def get_bandstructure(workroot, source, destination,
         latticeinfo=None, *args, **kwargs):
     """Load whatever data can be obtained from detailed.out of dftb+ and bands_tot.dat of dp_bands.
     """
-    assert isdir(source)
+    assert isdir(expanduser(joinpath(workroot, source)))
     f1 = normpath(expanduser(joinpath(workroot, source, detailfile)))
     f2 = normpath(expanduser(joinpath(workroot, source, bandsfile)))
     f3 = normpath(expanduser(joinpath(workroot, source, hsdfile)))
@@ -477,6 +480,10 @@ def get_effmasses(workroot, source, destination, directions=None,
             lbl2, indx2 = kLines[i+1]
             if indx2 - indx1 > 5:
                 directions.append('-'.join([lbl1, lbl2]))
+    else:
+        # make directions into a list of string, even if single direction given
+        if not isinstance(directions, list):
+            directions = [directions,]
     for direction in directions:
         logger.debug(direction)
         endpoints = get_labels(direction)
@@ -495,6 +502,7 @@ def get_effmasses(workroot, source, destination, directions=None,
         assert ix0 is not None
         assert ix1 is not None
         kEndPts = [lattice.SymPts_k[point[0]] for point in kLineEnds]
+        logger.debug(kEndPts)
 
         # hole masses
         # NOTABENE the reverse indexing of bands, so that mh_*_0 is the top VB
