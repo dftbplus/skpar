@@ -383,7 +383,7 @@ class PlotTask (object):
                 # should work if iteration is a tuple
                 plotname = '{:s}_{:s}'.format(self.plotname, '-'.join([str(it) for it in iteration]))
                 title    = '{:s} ({:s})'.format(os.path.split(self.plotname)[-1],
-                        '_'.joint([str(it) for it in iteration]))
+                        '_'.join([str(it) for it in iteration]))
             except TypeError:
                 # if iteration is a single integer, rather than a sequence
                 plotname = "{:s}_{:d}".format(self.plotname, iteration)
