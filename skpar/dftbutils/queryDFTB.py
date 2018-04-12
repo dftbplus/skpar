@@ -62,7 +62,8 @@ class DetailedOut (dict):
             # dftb 1.2
             ("Input/Output electrons (q):", ("nei", "neo")),
             # dftb 18.1 : "Input / Output electrons (q):"
-            ("electrons (q):", ("nei", "neo")) ]
+            ("Input / Output electrons (q):", ("nei", "neo")) 
+            ]
     # logical value
     conv_tags = [
             ("iSCC", ('nscc', 'scc_err')),
