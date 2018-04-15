@@ -7,22 +7,10 @@ import logging
 
 module_logger = logging.getLogger(__name__)
 
-def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None, 
-        xlim=None, ylim=[-13, 13], figsize=(6, 7), title=None,
-        withmarkers=False, **kwargs):
-
-    """Specialised magic routine for plotting band-structure.
-    """
-    # ------------------------------
-    # Extra data may contain necessary info, if not supplied by primary args
-    # ------------------------------
-    extra_data = kwargs.get('extra_data', {})
-
-    # ------------------------------
-    # Plot appearance
-    # ------------------------------
-    matplotlib.rcParams.update({'axes.titlesize': kwargs.get('fontsize', 20),\
-                                'font.size': kwargs.get('fontsize', 20),\
+def set_mplrcpar(**kwargs):
+    """Configure matplotlib rcParams."""
+    matplotlib.rcParams.update({'axes.titlesize': kwargs.get('fontsize', 18),\
+                                'font.size': kwargs.get('fontsize', 18),\
                                 'font.family': kwargs.get('fontfamily', 'sans-serif'),
                                 'font.sans-serif': kwargs.get('font', 
                                 ['Arial', 'DejaVu Sans', 'Bitstream Vera Sans', 'Lucida Grande', 
@@ -30,38 +18,24 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
     plt.rc('lines', linewidth=2)
     plt.rc('savefig', bbox='tight')
     plt.rc('savefig', transparent='True')
-    fig, ax = plt.subplots(figsize=figsize)
 
-    # ------------------------------
-    # Axes decoration
-    # ------------------------------
-    ax.set_xlabel('Wave-vector')
-    ax.set_ylabel('Energy, eV')
-    # check either kwargs or extra_data for ticks/ticklabels
-    xticklabels = kwargs.get('xticklabels', None)
-    yticklabels = kwargs.get('yticklabels', None)
-    if xticklabels is None:
-        # try to get it from extra_data
-        try:
-            xticklabels = extra_data.get('kticklabels', None)
-            # note that items in extra_data may be lists (e.g. item per bands set)
-            # but not necessarily, so try to figure that out.
-            try:
-                # split first label and tick, assuming xticklabels is in a list
-                l, t = xticklabels[0][0]
-                # obviously we can use only one set of labels and ticks
-                xticklabels = xticklabels[0]
-            except (ValueError, TypeError) as e:
-                # Need more than one value to unpack if xticklabels not in a list.
-                # Use directly in such case
-                # TypeError if xticklabels is None -- still pass
-                pass
-        except (KeyError, IndexError) as e:
-            pass
+def set_axes(ax, xlabel, ylabel, xticklabels=None, yticklabels=None,
+            extend_xticks=False, extend_yticks=False):
+    """Configure axes -- labels and ticks/ticklabels.
+    
+    Args:
+        ax: matplotlib axis object
+        xlabel, ylabel (str): labels for the x and y axis
+        xticklabels, yticklabels: list of [(value, 'label'), ] for 
+            each explicit position of ticks and their labels
+        extend_xticks, extend_yticks (bool): extend_x/yticks entire graph
+    """
     if xticklabels:
         xticks, xtlabels  = zip(*xticklabels)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xtlabels)
+        if extend_xticks:
+            [ax.axvline(t, color='k', lw=0.5) for t in xticks]
     else:
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         xticks = None
@@ -70,226 +44,235 @@ def plotBS(plotname, xx, yy, colors=None, markers='', ylabels=None,
         yticks, ytlabels  = zip(*yticklabels)
         ax.set_yticks(yticks)
         ax.set_yticklabels(ytlabels)
+        if extend_yticks:
+            [ax.axhline(t, color='k', lw=0.5) for t in yticks]
     else:
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         yticks = None
         ytlabels = None
+    return 
 
-    # ------------------------------
-    # Figure out how to handle data
-    # ------------------------------
-    isset = True if isinstance(yy, list) else False
-    if isset:
-        module_logger.debug('Plotting a set of {} items:'.format(len(yy)))
-        module_logger.debug(' '.join(['{}'.format(item.shape) for item in yy]))
-    else:
-        module_logger.debug('Plotting an item of length {}:'.format(len(yy)))
-    xval = np.asarray(xx).copy()
-    # DO NOT DO THAT (line below): if yy is a list of arrays of different shape, 
-    # e.g. (4,80), (4,80), (2,80), (2,80), we get garbage: 
-    # yval.shape = (len(yy),), in this case, yval.shape=(4,) 
-    # instead of (4,?,80), for obvious reasons -- incompatible dim 1 (4 or 2?)
-    # The result seems to be an array holding only references to the original arrays.
-    # Note that we can still slice it along axis 0 and get job done, but
-    # any reference to its higher dimensions will yield mysterious errors!
-    #yval = np.asarray(yy).copy()
-    if isset:
-        yval = []
-        for aa in yy:
-            yval.append(aa.copy())
-            yval[-1].flags.writeable = True
-        yval = np.asarray(yval)
-    else:
-        # assume it is a single array or a list of floats
-        yval = np.asarray(yy).copy()
-    # the line below fails in the scenario above, which is common if we
-    # combine objectives of different dimensions, e.g. CB and VB with different bands.
-    # assert xval.shape[-1] == yval.shape[-1], (xval.shape, yval.shape)
-    if isset and xval.shape[0] != yval.shape[0]:
-        xval = np.tile(xval, len(yval)).reshape(len(yval), len(xval))
+def set_xylimits(ax, xval, yval, xlim=None, ylim=None, issetx=False, issety=False):
+    """Set x and y axis limits to exactly fit the data if not explicit.
     
-    # ------------------------------
-    # Dirty hack to open a band-gap
-    # ------------------------------
-    # assume that yval is:
-    # Egap, VB, CB or
-    # Egap(ref), Egap(model), VB(ref), VB(model), CB(ref), CB(model)
-    rmix = []
-    for i in range(len(yval)):
-        if yval[i].shape == (1,):
-            if yval[i-1].shape == (1,) or yval[i+1].shape == (1,):
-                module_logger.info('Including band-gap in BS plot')
-                yval[i+4] += yval[i][0]
-            else:
-                module_logger.info('Including band-gap in BS plot')
-                yval[i+2] += yval[i][0]
-            rmix.append(i)
-    yval = np.delete(yval, rmix, 0)
-    xval = np.delete(xval, rmix, 0)
+    ax: matplotlib axis object
+    xval, yval: array (could be record array), lists of arrays
+    xlim, ylim: tupple of (min,max) - explicit axis limits
+    issetx, issety (bool): used if xlim or ylim is None, in which case
+        these flags serve to tell us to find min and max of the
+        xval and yval even if these are record arrays where broadcasting
+        won't work. (e.g. yval is an array of two 1D arrays of different shape)
+    """
+    if ylim:
+        ax.set_ylim(ylim)
+    else:
+        if issety:
+            _ymin = [np.min(y) for y in yval]
+            _ymax = [np.max(y) for y in yval]
+            ax.set_ylim((np.min(_ymin), np.max(_ymax)))
+        else:
+            ax.set_ylim((np.min(yval), np.max(yval)))
+    if xlim:
+        ax.set_xlim(xlim)
+    else:
+        if issetx:
+            _xmin = [np.min(x) for x in xval]
+            _xmax = [np.max(x) for x in xval]
+            ax.set_xlim(np.min(_xmin), np.max(_xmax))
+        else:
+            ax.set_xlim((np.min(xval), np.max(xval)))
+    
+def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
+        xticklabels=None, yticklabels=None, xlim=None, ylim=None, 
+        xlabel='Wave-vector', ylabel='Energy (eV)', filename=None,
+        legendloc=0, **kwargs):
+    """Routine for plotting band-structure.
+    
+    Accepts one or more sets of k-vector and corresponding bands,
+    but the k-vector may be shared too.
+    If you supply a set of ticks and labels for specific k-points, 
+    it will put them on X axis and will extend the xticks over 
+    all Y as thin lines; see xticklabels below.
+    
+    Args:
+        xx: 1D array or a list of such; k-points.shape = nk
+        yy: 2D array or a list of such; bands.shape = nk, nE
+            Notabene: each band is a column in its respective array
+                      so that the lowest band is leftmost.
+        colors: list of colors, one per 2D array of bands; if None, 
+                default matplotlib Vega/D3 set of colours is used.
+        linelabels: list of strings to label each set of bands in legend
+        title: figure title
+        figsize: tupple for figure dimensions, in inches; defaults to (6,7)
+        xlim, ylim: tupple of limits for X-axis, or Y-axis
+        xlabel, ylabel: axes labels
+        xticklabels, yticklabels: a list of explicit X- or Y-axis ticks
+                and labels, e.g. [('label',x), ...]
+        filename (str): filename (incl directory as needed); if present
+            the figure is saved to that file.
 
+    Kwargs:
+        no kwargs are interpreted, but no exception is generated if supplied.
+    
+    Returns:
+        fig, ax: matplotlib objects holding the plot
+    """
+    set_mplrcpar()
+    fig, ax = plt.subplots(figsize=figsize)
+    set_axes(ax, xlabel, ylabel, xticklabels, yticklabels,
+                extend_xticks=True)
+        
+    # Clolors for each line
+    # this is somewhat primitive approach to choosing colors per set
+    # with clear defaults
+    # cval = ['k', 'r', 'b', 'g', 'c', 'm', 'y'] # colors in old cycler
+    # use Vega & D3 color cycler as default (which is now default in matplotlib)
     # ------------------------------
-    # Deal with colors, markers and labels
-    # ------------------------------
-    # Get as many colours as necessary; replace with user explicit preferences; 
-    # Potentially repeated colors; think about a cure (check if user color in cval)
-    #cmap = plt.get_cmap('Set1')
-    #cval = [cmap(j) for j in np.linspace(0, 1, 9)]
-    cval = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
+    cval = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+              '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+              '#bcbd22', '#17becf']
     if colors:
         for i in range(len(np.atleast_1d(colors))):
             cval[i] = np.atleast_1d(colors)[i]
-    #
-    if withmarkers:
-        mval = [mmap[i%len(mmap)] for i in range(len(yval))]
-        for i in range(len(np.atleast_1d(markers))):
-            mval[i] = np.atleast_1d(markers)[i]
-    else:
-        mval = ['']*len(yval)
-    ms = kwargs.get('markersize', 7)
-    #
-    if ylabels:
-        ylab = ylabels
-        if not len(ylab) == len(yval):
-            module_logger.warning('Missing ylabels: {} needed but {} found'.
-                    format(len(yval), len(ylab)))
-            ylab.extend(['']*(len(yval)-len(ylab)))
-    else:
-        ylab = ['']*len(yval)
 
     # ------------------------------
-    # Plot the data
+    # Figure out how to handle data and plot it
+    # yy is either a 2D array or a list of such
+    # xs is either a 1D array or a list of such
     # ------------------------------
+    if isinstance(xx, list) and type(xx[0]) is np.ndarray:
+        assert xx[0].ndim == 1
+        issetx = True
+    else:
+        assert xx.ndim == 1
+        issetx = False
+    if isinstance(yy, list) and type(yy[0]) is np.ndarray:
+        assert yy[0].ndim == 2, yy[0].shape
+        issety = True
+    else:
+        assert yy.ndim == 2, yy.shape
+        issety = False
+    
+    if linelabels:
+        if not isinstance(linelabels, list):
+            linelabels = [linelabels,]
+        if issety and len(linelabels) < len(yy):
+            # we've got sets
+            # make sure the list of lables matches the number of sets
+            module_logger.warning(
+                'Missing line labels: {} needed (one per set) but {} found'.
+                    format(len(yy), len(linelabels)))
+            linelabels.extend(['']*(len(yy)-len(linelabels)))
+    else:
+        linelabels = [''] * len(yy)
+        
     legenditems = []
-    for x, y, c, m, l in zip(xval, yval, cval, mval, ylab):
-        if y.ndim == 2:
-            lines = ax.plot(x, y.transpose(), color=c, marker=m, label=l, ms=ms)
-        else:
-            lines = ax.plot(x, y, color=c, marker=m, label=l, ms=ms)
-        if l:
+    if (issety):
+        # iterate within sets
+        for i in range(len(yy)):
+            yval = yy[i]
+            if (issetx):
+                assert len(xx) == len(yy), (len(xx), len(yy))
+                xval = xx[i]
+            else:
+                xval = xx
+            # make sure number of available x-coordinates correspond to the 
+            # number of data y-values in each band (line of data):
+            # if we have a set of bands: 
+            #   yval.shape = nsets, nE, nk
+            #   xval.shape = nsets, nk or xval.shape = nk
+            assert xval.shape[-1] == yval.shape[-1], (xval.shape, yval.shape)
+            lines = ax.plot(xval, yval.transpose(), color=cval[i], label=linelabels[i])
             legenditems.append(lines[0])
-
-    # plot vertical lines at special symmetry points if these are known
-    if xticks:
-        [ax.axvline(t, color='k', lw=1.0) for t in xticks]
-
-    # plot reference Ek points with markers if given
-#    if scatterpts is not None:
-#        if isinstance(scatterpts, list):
-#            _Ek = np.stack(scatterpts).transpose()
-#        else:
-#            _Ek = scatterpts.transpose()
-#        ax.plot(_Ek[0], _Ek[1], color=colEkpts, marker='o', ls='', lw='1',
-#                markersize=kwargs.get('markersize', 7))
+    else:
+        assert not issetx
+        xval = xx
+        yval = yy
+        lines = ax.plot(xval, yval.transpose(), color=cval[0], label=linelabels[0])
+        legenditems.append(lines[0])
 
     # set limits at the end, to make sure no artist tries to expand
-    ax.set_ylim(ylim)
-    ax.set_xlim(xlim)
+    set_xylimits(ax, xx, yy, xlim, ylim, issetx, issety)
+    
     if title:
         ax.set_title(title, fontsize=16)
-    if ylabels:
-        ax.legend(legenditems, ylab, fontsize=14, loc=kwargs.get('legendloc', 0))
-    fig.savefig(plotname+'.pdf')
-    if kwargs.get('returnfigure', False):
-        return fig
-    else:
-        plt.close('all')
+    
+    if linelabels:
+        ax.legend(legenditems, linelabels, fontsize=14, loc=legendloc)
 
+    if filename:
+        fig.savefig(filename)
+        
+    return fig, ax 
 
-class Plotter(object):
+def magic_plot_bs(filename, xval, yval, **kwargs):
+    """A magic-wrapper around the fundamental back-end plot_bs function.
+
+    The magic is that if yval is a list of [Egap, VBand, CBand,...] the 
+    data is modified so that a band-gap, Egap, is open between cband and vband,
+    even if they are not properly aligned, e.g. if CB bottom is 0 at the same
+    time as VB top is 0. Note that the CB is moved, not the VB.
+    NOTABENE: the order must be Egap, VB, CB!
+
+    We do this here, so that we don't burden the PlotTask elsewhere with
+    knowledge of what band structure and band-gap is, and keep it
+    independent of what it is plotting. However, somewhere, the gap need
+    to be opened, if we've specified CB and VB as independent objectives,
+    and certainly the band-end plot_bs is not such a place due to its 
+    intended generality (of plotting band-structures unrelated to 
+    objectives, optimisation etc.).
+    
+    The magic happens only if yval contains an array shaped (1,), which is 
+    taken as a band-gap. If no such array is discovered, no shifts are applied
+    to the bands.
+
+    Args:
+        filename(str): valid filename to save the plot
+        xval(arr): k-points (1D array or a structured array of 1D arrays)
+        yval(arr): bands (2D-array or a structured array of 1D and 2D arrays)
+
+    Kwargs:
+        Check plot_bs for details as kwargs are passed directly to it.
+
+    Returns:
+        fig, ax: matplotlib figure and axes objects containing the plot
     """
-    This class plots the bandstructure contained in 'data' to a file 
-    named 'filename'. Energy range, and figure size may be controlled by
-    'Erange' and 'figsize' respectively.
-    'data' is a dictionary {'bands':values, 'kLines':values}; filename is a string.
-    'refEkpts' and 'refBands' can be plotted, if supplied, but
-    note that refBands must have the same number of k-points as data['bands']
-    'refEkpts' is a list of tupples....
-    'col' and 'colref' are used for data and ref* respectively.
-    'data' bands may be plotted with cycling colours too (cycle_colors=True).
-    """
-
-    def __init__(self, data=None, filename=None,
-                 Erange=[-13, +13], krange=None, figsize=(6, 7), log=logging.getLogger(__name__),
-                 refEkpts=None, refBands=None, col='darkred', withmarkers=False, 
-                 colref='blue', cycle_colors=False):
-        """
-        """
-        self.data = data or {}
-        self.filename = filename
-        self.Erange = Erange
-        self.krange = krange
-        self.figsize = figsize
-        self.refEkpts = refEkpts
-        self.refBands = refBands
-        self.log = log
-        self.col = col
-        self.withmarkers = withmarkers
-        self.colref = colref
-        self.cycle_colors = cycle_colors
-
-    def plot(self, *args, **kwargs):
-        """ 
-        This method attempt to plot and save a figure of the bandstructure contained in self.data.
-        self.data may be initialised at self.__init__() and the 'bands' and 'kLines' fields of data
-        may be independently updated. This allows one to call plot() without any arguments.
-        Alternatively, one may pass data explicitely using data = {'bands':values, 'kLines':values} 
-        where 'bands' values are the E-k dispersion, and 'kLines' are the labels for 
-        points of high symmetry.
-        plot() can be called also with two positional arguments: bands,kLines
-        or one positional arguments: data, or two key-value pairs: bands=..., kLines=...
-        """
-        if kwargs and 'filename' in kwargs:
-            self.filename = kwargs['filename']
-
-        if self.filename is None or not self.filename:
-            self.log.critical('No filename specified for bandstrcture plot. Aborting execution.')
-        else:
-            self.log.debug('Plotting bandstructure to {0}'.format(self.filename))
-
-        # here we allow plot() to be called with explicit data or
-        # with explicit (bands,kLines), but retain the capability of
-        # having self.data assigned during self.__init__() while its
-        # key-values may be independently updated (as mutable object)
-        # or by directly assigning Plotter.data = ... etc.
-        if len(args) == 2:
-            self.data['bandsPlt'] = args[0]
-            self.data['kLinesPlt'] = args[1]
-        if len(args) == 1:
-            self.data = args[0]
-
-        if kwargs:
-            if 'data' in kwargs:
-                self.data = kwargs['data']
-            if all([k in kwargs for k in ('bands', 'kLines')]):
-                self.data['bandsPlt'] = kwargs['bands']
-                self.data['kLinesPlt'] = kwargs['kLines']
-            if all([k in kwargs for k in ('bandsPlt', 'kLinesPlt')]):
-                self.data['bandsPlt'] = kwargs['bandsPlt']
-                self.data['kLinesPlt'] = kwargs['kLinesPlt']
-
-        try:
-            bands = self.data['bandsPlt']
-            kLines = self.data['kLinesPlt']
-        except KeyError:
-            try:
-                bands = self.data['bands']
-                kLines = self.data['kLines']
-            except:
-                self.log.critical('Plotter {0} has wrongly assigned data field'.format(self))
-
-        self.fig = plotBS(bands, kLines, Erange=self.Erange, krange=self.krange,
-                        figsize=self.figsize,
-                        refEkpts=self.refEkpts, refBands=self.refBands,
-                        col=self.col, withmarkers=self.withmarkers, 
-                        colref=self.colref, cycle_colors=self.cycle_colors,
-                        log=self.log)
-        self.fig.savefig(self.filename, bbox_inches='tight', pad_inches=0.01)
-        plt.close()
-
-        self.output = None
-        return self.output
-
-
-    def __call__(self, *args, **kwargs):
-        self.plot(*args, **kwargs)
-
+    # assume that yval is either:
+    # [Egap, VB, CB], or – if both model and reference present:
+    # [Egap(ref), Egap(model), VB(ref), VB(model), CB(ref), CB(model)], or,
+    # [Egap(model), VB(model), CB(model), Egap(ref), VB(ref), CB(ref)], or,
+    # [Egap(ref), VB(ref), CB(ref), Egap(model), VB(model), CB(model)]
+    # So, we must find if and where we have a single value (Egap) and record
+    # the corresponding indexes; later remove these entries from the yval
+    # array in preparation to calling the general bandstructure plotting
+    # functions.
+    # Note that we do not know the reference energy value for CB or VB –
+    # it may not be 0.
+    ieg = []  
+    for i in range(len(yval)):
+        if yval[i].shape == (1,):
+            ieg.append(i)
+            eg    = yval[i][0]
+            if yval[i+1].shape == (1,) or yval[i-1].shape == (1,):
+                # Eg1, Eg2, VB1, VB2, CB1, CB2
+                evtop = np.max(yval[i+2])
+                ecbot = np.min(yval[i+4])
+                delta = ecbot - evtop
+                yval[i+4] += eg - delta
+            else:
+                # Eg1, VB1, CB1, Eg2, VB2, CB2
+                evtop = np.max(yval[i+1])
+                ecbot = np.min(yval[i+2])
+                delta = ecbot - evtop
+                yval[i+2] += eg - delta
+            module_logger.info('Including band-gap in BS plot')
+    yval = np.delete(yval, ieg, 0)
+    xval = np.delete(xval, ieg, 0)
+    module_logger.debug('Calling plot_bs with xval.shape = {} and yval.shape = {}'.
+                        format(xval.shape, yval.shape))
+    # call the back-end bandstructure plotter with the updated yval
+    fig, ax = plot_bs(xval, yval, **kwargs)
+    # since we have fig and ax, we could use this to add things related
+    # to parameter and fitness by means of text or x-axis label, for example,
+    # if the values are communicated by the PlotTask caller.
+    fig.savefig(filename)

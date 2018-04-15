@@ -218,17 +218,41 @@ class GetTask (object):
 
 
 class PlotTask (object):
-    """Wrapper class to plot model and reference data associated with an objective."""
-
+    """Plot to file the model and reference data associated with one or more objectives.
+    
+    Note that model and reference data constitute the Y-coordinates (ordinates).
+    The X-coordinates (abscissas) are potentially held in a separate field of
+    the model data dictionary, and implicitly it is assumed that the X-coordinates
+    of the reference data are the same (else the model-vs-reference comparison
+    would make no sense).
+    The fundamental concept is that we want to visualise our objectives.
+    So the ordinate can be obtained by the user's stating which objectives is
+    to be visualised.
+    The challenge is that a definition of objective contains no info about the
+    abscissa, so it has to be explicitly specified by the user or else the
+    default indexing of the reference or model data items will be used as
+    abscissa.
+    The whole mechanism must work with the simplest possible (default)
+    plotting routine, as well as with a more specialised plotter object.
+    The initialisation of the PlotTask should establish what dictionary
+    items are to be plotted as abscissas and ordinates and from which
+    model dictionary, and how the latter are matched to the corresponding
+    reference data. Recall however, that objectives may not be visible
+    at the time the task is initialised. So at init time, we merely 
+    record the user's directions. Later – at call time – we do the data
+    queries and call the plot function with the latest model data.
+    """
     def __init__(self, func, plotname, objectives, abscissa_key, **kwargs):
+        """Establish which dictionary items make for abscissas and ordinates.
+        """
         self.func = func
         self.logger = module_logger
         # How to get the ordinates: from objectives
         # Notabene: the tasks do not have direct visibility of objectives
-        # In fact, objectives may not be declared/initialise at the time
+        # In fact, objectives may not be declared/initialised at the time
         # of PlotTask initialisation.
         # Therefore, a higher authority must deal with the assignment.
-        # Here we can only record users selection rules.
+        # Here we can only record user's selection rules.
         #if isinstance(objectives, list): doesn't work if we give only one objective
         if islistoflists(objectives) or isinstance(objectives[0], int):
             self.objv_selectors = objectives
@@ -241,7 +265,8 @@ class PlotTask (object):
         self.abscissa_key = abscissa_key
         self.absc_queries = []
         # Extra queries serve to pass extra data to plotting routine,
-        # e.g. k-labels and ticks etc.
+        # for the decoration of the x and y axes, e.g. k-ticks and 
+        # k-labels for a bandstructure plot, etc.
         self.extra_query_keys = kwargs.get('queries', None)
         if self.extra_query_keys and not isinstance(self.extra_query_keys, list):
                 self.extra_query_keys = [self.extra_query_keys,]
@@ -249,10 +274,20 @@ class PlotTask (object):
         self.plotname = plotname
         # The following are passed to the back end plotting routine
         # (e.g. matplotlib) so pass them directly upon call
+        del kwargs['queries']
         self.kwargs = kwargs
 
     def pick_objectives(self, objectives):
         """Get the references corresponding to the objective tags.
+
+        This function acquired the reference data that must be plotted,
+        by analysing the objectives referred to in the definition of
+        the plot task. It is not called within the init of the plot task
+        itself, since at the time the plot task is being declared,
+        the objectives may not yet be. So a separate agency is suppoosed
+        to call this method once both objectives and task are declared.
+        Currently this happens within input.py -- at the end of processing
+        of the input file.
         """
         if isinstance(self.objv_selectors[0], int):
             # Since objectives are declared via a list, indexing is viable
@@ -296,6 +331,11 @@ class PlotTask (object):
 
     def __call__(self, iteration):
         """Prepare data for the plot and tag the plot-name with iteration.
+        
+        At the time of call, the model data has been updated and can be
+        obtained by querying the model data dictionary.
+        Also, iteration number, possibly fitness and parameter values can
+        be passed to the backend plotting routine
         """
         # get xy for plotting
         abscissas  = []
@@ -303,7 +343,7 @@ class PlotTask (object):
         subweights = []
         for i, item in enumerate(self.objectives):
             # keep the subweights separate
-            objvdata = item.get()  # model_data, ref_data, subweights
+            objvdata = item.get()  # returns model_data, ref_data, subweights
             # make sure ordinates are first, so as to plot ref below model
             ordinates.append((objvdata[1], objvdata[0])) # ref_data, model_data
             self.logger.debug("Ordinates shape for plotted Objective {}: {}{}".
@@ -363,8 +403,7 @@ class PlotTask (object):
                 qdata = query(atleast_1d=False)
                 # note that plotting routines will not have knowledge
                 # about model names, hence pass on only query key and data
-                extradata[qk].append(qdata)
-            self.kwargs['extra_data'] = extradata
+                self.kwargs[qk] = qdata
 
         # Set colors: draw all objectives with the same color, distinguish
         # only ref vs model unless explicit user spec is given
@@ -372,12 +411,12 @@ class PlotTask (object):
             colors = []
             for i in range(int(len(yval)/2)):
                 # note how yval is composed above:
-                # y1 is ref (blue) y2 is model (red)
-                colors.append('b')
-                colors.append('r')
+                # y1 is ref (blue) y2 is model (orange)
+                colors.append('#1f77b4')
+                colors.append('#ff7f0e') 
             self.kwargs['colors'] = colors
 
-        # tag the plot-name by iteration
+        # tag the plot-name by iteration number; embed it in the plot title
         if iteration is not None:
             try:
                 # should work if iteration is a tuple
@@ -394,9 +433,14 @@ class PlotTask (object):
         self.kwargs['title'] = title
         # set legend labels (only 2 labels by default, consistent with
         # the colour setting
-        self.kwargs['ylabels'] = ['ref', 'model']
-        # try to plot
-        # ignore subweights for the moment
+        self.kwargs['linelabels'] = ['ref', 'model']
+        # Try to plot
+        # Ignore subweights for the moment, although these may decorate later,
+        # e.g. width of the model bands.
+        # The following self.kwargs are passed:
+        # title, linelabels, colors, extra queries and extra incoming kwargs.
+        # The extra incoming kwargs may contain plot specific stuff, like 
+        # x/ylimits, etc.
         self.func(plotname, xval, yval, **self.kwargs)
 
     def __repr__(self):

@@ -8,7 +8,7 @@ from matplotlib.ticker import AutoMinorLocator
 from skpar.core.utils import get_ranges, get_logger
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
-from skpar.dftbutils.plot import plotBS
+from skpar.dftbutils.plot import magic_plot_bs
 
 module_logger = get_logger('skpar.tasks')
 
@@ -202,5 +202,5 @@ gettaskdict = {
 
 plottaskdict = {
         'plot_objvs': plot_objvs,
-        'plot_bs'   : plotBS
+        'plot_bs'   : magic_plot_bs
         }
