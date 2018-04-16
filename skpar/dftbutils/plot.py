@@ -141,10 +141,10 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
     # xs is either a 1D array or a list of such
     # ------------------------------
     if isinstance(xx, list) and type(xx[0]) is np.ndarray:
-        assert xx[0].ndim == 1
+        assert xx[0].ndim == 1, (xx[0].shape, xx[0].ndim)
         issetx = True
     else:
-        assert xx.ndim == 1
+        assert xx.ndim == 1, (xx.shape, xx.ndim)
         issetx = False
     if isinstance(yy, list) and type(yy[0]) is np.ndarray:
         assert yy[0].ndim == 2, yy[0].shape
@@ -162,7 +162,7 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
             module_logger.warning(
                 'Missing line labels: {} needed (one per set) but {} found'.
                     format(len(yy), len(linelabels)))
-            linelabels.extend(['']*(len(yy)-len(linelabels)))
+            linelabels.extend([None]*(len(yy)-len(linelabels)))
     else:
         linelabels = [''] * len(yy)
         
@@ -183,13 +183,15 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
             #   xval.shape = nsets, nk or xval.shape = nk
             assert xval.shape[-1] == yval.shape[-1], (xval.shape, yval.shape)
             lines = ax.plot(xval, yval.transpose(), color=cval[i], label=linelabels[i])
-            legenditems.append(lines[0])
+            if linelabels[i]:
+                legenditems.append(lines[0])
     else:
         assert not issetx
         xval = xx
         yval = yy
         lines = ax.plot(xval, yval.transpose(), color=cval[0], label=linelabels[0])
-        legenditems.append(lines[0])
+        if linelabels[0]:
+            legenditems.append(lines[0])
 
     # set limits at the end, to make sure no artist tries to expand
     set_xylimits(ax, xx, yy, xlim, ylim, issetx, issety)
@@ -202,8 +204,8 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
 
     if filename:
         fig.savefig(filename)
-        
-    return fig, ax 
+
+    return fig, ax
 
 def magic_plot_bs(filename, xval, yval, **kwargs):
     """A magic-wrapper around the fundamental back-end plot_bs function.
@@ -228,8 +230,8 @@ def magic_plot_bs(filename, xval, yval, **kwargs):
 
     Args:
         filename(str): valid filename to save the plot
-        xval(arr): k-points (1D array or a structured array of 1D arrays)
-        yval(arr): bands (2D-array or a structured array of 1D and 2D arrays)
+        xval(arr): k-points (1D array or a list of values and 1D arrays)
+        yval(arr): bands (2D-array or a list values and 2D arrays)
 
     Kwargs:
         Check plot_bs for details as kwargs are passed directly to it.
@@ -248,30 +250,44 @@ def magic_plot_bs(filename, xval, yval, **kwargs):
     # functions.
     # Note that we do not know the reference energy value for CB or VB –
     # it may not be 0.
-    ieg = []  
+    shift = []  
+    xx, yy = [],[]
     for i in range(len(yval)):
         if yval[i].shape == (1,):
-            ieg.append(i)
             eg    = yval[i][0]
             if yval[i+1].shape == (1,) or yval[i-1].shape == (1,):
                 # Eg1, Eg2, VB1, VB2, CB1, CB2
                 evtop = np.max(yval[i+2])
                 ecbot = np.min(yval[i+4])
-                delta = ecbot - evtop
-                yval[i+4] += eg - delta
+                shift.append((i+2, 0))     
+                shift.append((i+4, eg - (ecbot - evtop)))
             else:
                 # Eg1, VB1, CB1, Eg2, VB2, CB2
                 evtop = np.max(yval[i+1])
                 ecbot = np.min(yval[i+2])
-                delta = ecbot - evtop
-                yval[i+2] += eg - delta
-            module_logger.info('Including band-gap in BS plot')
-    yval = np.delete(yval, ieg, 0)
-    xval = np.delete(xval, ieg, 0)
-    module_logger.debug('Calling plot_bs with xval.shape = {} and yval.shape = {}'.
-                        format(xval.shape, yval.shape))
+                shift.append((i+1, 0))     
+                shift.append((i+2, eg - (ecbot - evtop)))
+    # sort shift according to i above, so that shifted bands match
+    # the order unshifted once, to maintain correspondence with 
+    # colors and labels!
+    shift.sort(key=lambda x: x[0])
+    if shift:
+        module_logger.debug('Including band-gap in BS plot; shift: {}'.
+                format(shift))
+        for i, s in shift:
+            yy.append(yval[i] + s)
+            if len(xval) == len(yval):
+                xx.append(xval[i])
+            else:
+                assert len(xval) == len(shift), len(xval)
+                xx = xval
+    else:
+        xx = xval
+        yy = yval
+    module_logger.debug('Calling plot_bs with len(xval)={} and len(yval)={}'.
+                        format(len(xx), len(xx)))
     # call the back-end bandstructure plotter with the updated yval
-    fig, ax = plot_bs(xval, yval, **kwargs)
+    fig, ax = plot_bs(xx, yy, **kwargs)
     # since we have fig and ax, we could use this to add things related
     # to parameter and fitness by means of text or x-axis label, for example,
     # if the values are communicated by the PlotTask caller.

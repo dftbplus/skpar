@@ -409,7 +409,7 @@ class PlotTask (object):
         # only ref vs model unless explicit user spec is given
         if self.kwargs.get('colors', None) is None:
             colors = []
-            for i in range(int(len(yval)/2)):
+            for i in range(int(len(yval)/2.)):
                 # note how yval is composed above:
                 # y1 is ref (blue) y2 is model (orange)
                 colors.append('#1f77b4')

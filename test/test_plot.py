@@ -35,7 +35,7 @@ class BandstructurePlotTest(unittest.TestCase):
 
     def test_plot_bs_1(self):
         """Can we plot a bandsturcture, given as a x, and y array?"""
-        filename, bsdata = init_test_plot_bs('test_plot_bs_1a.pdf')
+        filename, bsdata = init_test_plot_bs('test_plot_bs_1.pdf')
         xx1 = bsdata[0]
         yy1 = bsdata[1:]
         xtl = None
@@ -46,7 +46,7 @@ class BandstructurePlotTest(unittest.TestCase):
 
     def test_plot_bs_2(self):
         """Can we plot a two bandsturctures with shared k-points?"""
-        filename, bsdata = init_test_plot_bs('test_plot_bs_1b.pdf')
+        filename, bsdata = init_test_plot_bs('test_plot_bs_2.pdf')
         xx1 = bsdata[0]
         yy1 = bsdata[1:]
         jitter = .1 * (0.5 - random(yy1.shape))
@@ -59,7 +59,7 @@ class BandstructurePlotTest(unittest.TestCase):
 
     def test_plot_bs_3(self):
         """Can we plot a two bandsturctures with 2 sets of k-points?"""
-        filename, bsdata = init_test_plot_bs('test_plot_bs_1c.pdf')
+        filename, bsdata = init_test_plot_bs('test_plot_bs_3.pdf')
         xx1 = bsdata[0]
         yy1 = bsdata[1:]
         jitter = .1 * (0.5 - random(yy1.shape))
@@ -72,19 +72,66 @@ class BandstructurePlotTest(unittest.TestCase):
 
     def test_plot_bs_4(self):
         """Can we plot a two bandsturctures with 2 different of k-points?"""
-        filename, bsdata = init_test_plot_bs('test_plot_bs_1d.pdf')
+        filename, bsdata = init_test_plot_bs('test_plot_bs_4.pdf')
         xx1 = bsdata[0]
         yy1 = bsdata[1:]
         j = 6
         jitter = .1 * (0.5 - random(yy1[:j, :8].shape))
         yy2 = yy1[:j, :8] + jitter
         xx2 = xx1[:8]
-        logger.info('yy1.shape {}, yy2.shape  {}'.format(yy1.shape, yy2.shape))
         xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
         fig, ax = plot_bs([xx1, xx2], [yy1, yy2], ylim=(-2.5, 2.5), 
                 xticklabels=xtl, linelabels=['ref', 'model'],
                 title='Test 2 bands 2 (different) kpts', xlabel=None,
                 filename=filename)
+
+    def test_magic_plot_bs_1(self):
+        """Can we call the magic without the need for magic?"""
+        filename, bsdata = init_test_plot_bs('test_magic_plot_bs_1.pdf')
+        xx1 = bsdata[0]
+        yy1 = bsdata[1:]
+        jitter = .1 * (0.5 - random(yy1.shape))
+        yy2 = yy1 + jitter
+        xx2 = xx1
+        xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
+        magic_plot_bs(filename, [xx1, xx2], [yy1, yy2], 
+                ylim=(-2.5, 2.5), 
+                xticklabels=xtl, linelabels=['ref', 'model'],
+                title='Test magic without gap', xlabel=None)
+
+    def test_magic_plot_bs_2(self):
+        """Can we call the magic with gap?"""
+        filename, bsdata = init_test_plot_bs('test_magic_plot_bs_2.pdf')
+        xx1 = bsdata[0]
+        yy1 = bsdata[1:]
+        jitter = .1 * (0.5 - random(yy1.shape))
+        yy2 = yy1 + jitter
+        xx2 = xx1
+        xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
+        eg1 = np.atleast_1d(0.3)
+        eg2 = np.atleast_1d(0.4)
+        magic_plot_bs(filename, [xx1, xx2, xx1, xx2], 
+                [eg1, eg2, yy1[:4], yy2[:4], yy1[4:], yy2[4:]], 
+                ylim=(-2.5, 2.5), colors = ['b','darkred','b','darkred'],
+                xticklabels=xtl, linelabels=['ref', 'model'],
+                title='Test magic 2 Eg Eg VB VB CB CB', xlabel=None)
+
+    def test_magic_plot_bs_3(self):
+        """Can we call the magic with gap (alternative yval order)?"""
+        filename, bsdata = init_test_plot_bs('test_magic_plot_bs_3.pdf')
+        xx1 = bsdata[0]
+        yy1 = bsdata[1:]
+        jitter = .1 * (0.5 - random(yy1.shape))
+        yy2 = yy1 + jitter
+        xx2 = xx1
+        xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
+        eg1 = np.atleast_1d(0.3)
+        eg2 = np.atleast_1d(0.4)
+        magic_plot_bs(filename, [xx1, xx1, xx2, xx2], 
+                [eg1, yy1[:4], yy1[4:], eg2, yy2[:4], yy2[4:]], 
+                ylim=(-2.5, 2.5), colors=['b','b','r','r'],
+                xticklabels=xtl, linelabels=['ref', None, 'model', None],
+                title='Test magic 3 Eg VB CB Eg VB CB', xlabel=None)
 
 class GenericPlotTaskTest(unittest.TestCase):
     """Test generic plot-task from tasksdict for  1D and 2D plots"""
