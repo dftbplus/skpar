@@ -20,6 +20,7 @@ _example*
 
 # skpar logs from running tests etc.
 docs/*.log
+test/*.log
 test/skpar*.log
 test/test_*/*.log
 test/test_plot/

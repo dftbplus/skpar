@@ -6,8 +6,6 @@ config:
 tasks:
     - set: [template.parameters.dat]
     - run: [mypy model_poly3.py]
-#    - set: [current.par, test_optimise, template.parameters.py ]
-#    - run: [mypy model_poly3.py, test_optimise ]
     - get: [get_model_data, model_poly3_out.dat,  poly3, yval]
     - get: [get_model_data, model_poly3_out.dat,  poly3-2, yval]
     - get: [get_model_data, model_poly3_xval.dat, poly3, xval]
@@ -28,7 +26,7 @@ objectives:
     - bands:
         models: fakemodel
         ref: 
-            # here path is relative to SKPAR invokation directory
+            # path is relative to SKPAR invokation directory
             file: ./reference_data/fakebands.dat
             loader_args: {unpack: True}
             process:

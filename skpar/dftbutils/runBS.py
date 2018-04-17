@@ -1,10 +1,14 @@
 import logging
 import argparse
+import json
 import sys, os
+import numpy as np
 from os.path import abspath, normpath, expanduser
 from os.path import join as joinpath
 from skpar.dftbutils.utils import get_logger
-from skpar.core.tasks import RunTask
+from skpar.core.tasks import RunTask, GetTask
+from skpar.dftbutils.queryDFTB import get_bandstructure
+from skpar.dftbutils.plot import plot_bs
 
 def set_bands_parser(parser=None):
     """Define parser options specific for band-structure calculations.
@@ -33,6 +37,14 @@ def set_bands_parser(parser=None):
             '-p', "--plot", dest="plot", default=False, action="store_true", 
             help="Plot the band-structure.")
     parser.add_argument(
+            '-y', "--ylimit", dest="ylim", nargs=2, default=None, 
+            action="store", type=float,
+            help="A tuple: Y axis limits if -p is specified (dftt.: None).")
+    parser.add_argument(
+            '-l', '--latticeinfo', dest='latticeinfo', default=None, 
+            action='store', type=json.loads, help='Lattice info, e.g.:'
+            '{"type": FCC, "param": 5.43}')
+    parser.add_argument(
             "-wd", dest='workdir', type=str, default='.', action="store", 
             help="(dflt: .) Working directory with atoms, scc/ and bs/")
     parser.add_argument(
@@ -58,8 +70,10 @@ def main_bands(args):
     logger   = get_logger(name='dftbutils', filename='dftbutils.bands.log',  
                           verbosity=loglevel)
 
+    logger.info(args)
     # deal with bands-specific arguments if any
     # --------------------------------------------------
+    workroot = '.'
     workdir = abspath(expanduser(args.workdir))
     sccdir  = abspath(joinpath(workdir, 'scc'))
     sccchg  = abspath(joinpath(sccdir, 'charges.bin'))
@@ -70,17 +84,17 @@ def main_bands(args):
     bandslog = 'dp_bands.log'
     # Create the task list
     tasks = []
-    tasks.append(RunTask(cmd=dftb, wd=sccdir, out=dftblog))
+#    tasks.append(RunTask(cmd=dftb, wd=sccdir, out=dftblog))
     # Note that dftb+ (at least v1.2) exits with 0 status even if there are ERRORS
     # Therefore, below we ensure we stop in such case, rather than diffusing the 
     # problem through attempts of subsequent operations.
     # check_dftblog is a bash script in skpar/bin/
-    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
+#    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
 
-    tasks.append(RunTask(cmd=['cp', '-f', sccchg, bsdir], out=None))
-    tasks.append(RunTask(cmd=dftb, wd=bsdir, out=dftblog))
-    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
-    tasks.append(RunTask(cmd=[bands, 'band.out', 'bands'], wd=bsdir, out=bandslog))
+#    tasks.append(RunTask(cmd=['cp', '-f', sccchg, bsdir], out=None))
+#    tasks.append(RunTask(cmd=dftb, wd=bsdir, out=dftblog))
+#    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
+#    tasks.append(RunTask(cmd=[bands, 'band.out', 'bands'], wd=bsdir, out=bandslog))
 
     # align the loggers (could be done above in the initialization)
     for tt in tasks:
@@ -90,4 +104,20 @@ def main_bands(args):
     for tt in tasks:
         logger.debug(tt)
         if not args.dry_run:
-            tt(workroot='.')
+            tt(workroot=workroot)
+
+    if args.plot:
+        # hack the plotting directly, not via tasks, to avoid needing objectives
+        bsdata = {}
+        get_bandstructure(workroot, bsdir, bsdata, latticeinfo=args.latticeinfo)
+        logger.info('Band-gap (eV) = {:.3f}'.format(bsdata['Egap']))
+        yy1 = bsdata['bands'] - bsdata['Evb']
+        if args.latticeinfo:
+            xx1 = bsdata['kvector']
+            xtl = bsdata['kticklabels']
+        else:
+            xx1 = np.asarray(range(yy1.shape[1]))
+            xtl = None
+        filename = os.path.join(workroot, workdir, 'bs.pdf')
+        fig, ax = plot_bs(xx1, yy1, filename=filename, ylim=args.ylim, 
+                        xticklabels=xtl)

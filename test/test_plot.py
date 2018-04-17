@@ -11,7 +11,7 @@ import logging
 from skpar.dftbutils.lattice import Lattice
 from skpar.dftbutils.queryDFTB import get_bandstructure
 from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
-from skpar.core.taskdict import plot_objvs
+from skpar.core.taskdict import skparplot
 from skpar.dftbutils.plot import plot_bs, magic_plot_bs
 np.set_printoptions(precision=2, suppress=True)
 
@@ -94,7 +94,7 @@ class BandstructurePlotTest(unittest.TestCase):
         yy2 = yy1 + jitter
         xx2 = xx1
         xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
-        magic_plot_bs(filename, [xx1, xx2], [yy1, yy2], 
+        magic_plot_bs([xx1, xx2], [yy1, yy2], filename=filename, 
                 ylim=(-2.5, 2.5), 
                 xticklabels=xtl, linelabels=['ref', 'model'],
                 title='Test magic without gap', xlabel=None)
@@ -110,8 +110,9 @@ class BandstructurePlotTest(unittest.TestCase):
         xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
         eg1 = np.atleast_1d(0.3)
         eg2 = np.atleast_1d(0.4)
-        magic_plot_bs(filename, [xx1, xx2, xx1, xx2], 
+        magic_plot_bs([xx1, xx2, xx1, xx2],
                 [eg1, eg2, yy1[:4], yy2[:4], yy1[4:], yy2[4:]], 
+                filename=filename,
                 ylim=(-2.5, 2.5), colors = ['b','darkred','b','darkred'],
                 xticklabels=xtl, linelabels=['ref', 'model'],
                 title='Test magic 2 Eg Eg VB VB CB CB', xlabel=None)
@@ -127,8 +128,9 @@ class BandstructurePlotTest(unittest.TestCase):
         xtl = [(1, 'X'), (6, 'Gamma'), (8, 'K'), (11, 'L')]
         eg1 = np.atleast_1d(0.3)
         eg2 = np.atleast_1d(0.4)
-        magic_plot_bs(filename, [xx1, xx1, xx2, xx2], 
+        magic_plot_bs([xx1, xx1, xx2, xx2],
                 [eg1, yy1[:4], yy1[4:], eg2, yy2[:4], yy2[4:]], 
+                filename=filename,
                 ylim=(-2.5, 2.5), colors=['b','b','r','r'],
                 xticklabels=xtl, linelabels=['ref', None, 'model', None],
                 title='Test magic 3 Eg VB CB Eg VB CB', xlabel=None)
@@ -136,26 +138,26 @@ class BandstructurePlotTest(unittest.TestCase):
 class GenericPlotTaskTest(unittest.TestCase):
     """Test generic plot-task from tasksdict for  1D and 2D plots"""
 
-    def test_plot_objvs(self):
+    def test_skparplot(self):
         """Can we plot a band-structure objectives?"""
         latticeinfo = {'type': 'FCC', 'param': 5.4315}
         DB = {}
-        plotname = '_workdir/test_plot/bs1.pdf'
+        filename = '_workdir/test_plot/bs1.pdf'
         get_bandstructure('.', 'test_dftbutils/Si/bs/', DB,
                           latticeinfo={'type': 'FCC', 'param': 5.4315})
         bands = DB['bands']
         eps = 0.25
         jitter = eps * (0.5 - random(bands.shape))
         altbands = bands + jitter
-        if os.path.exists(plotname):
-            os.remove(plotname)
+        if os.path.exists(filename):
+            os.remove(filename)
         else:
             os.makedirs('_workdir/test_plot', exist_ok=True)
-        plot_objvs('_workdir/test_plot/bs1', DB['kvector'], [altbands, bands], 
-                xticklabels=DB['kticklabels'],
-                axeslabels=['wave-vector', 'Energy, eV'], 
-                ylabels=['ref', 'model'], ylim=(-13, 6))
-        self.assertTrue(os.path.exists(plotname))
+        skparplot(DB['kvector'], [altbands, bands], 
+                filename=filename, xticklabels=DB['kticklabels'],
+                xlabel='wave-vector', ylabel='Energy, eV', 
+                linelabels=['ref', 'model'], ylim=(-13, 6))
+        self.assertTrue(os.path.exists(filename))
 
 if __name__ == '__main__':
     unittest.main()

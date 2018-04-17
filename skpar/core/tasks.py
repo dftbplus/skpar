@@ -274,8 +274,12 @@ class PlotTask (object):
         self.plotname = plotname
         # The following are passed to the back end plotting routine
         # (e.g. matplotlib) so pass them directly upon call
-        del kwargs['queries']
         self.kwargs = kwargs
+        # clean up the kwargs that has been processed here
+        try:
+            del self.kwargs['queries']
+        except KeyError:
+            pass
 
     def pick_objectives(self, objectives):
         """Get the references corresponding to the objective tags.
@@ -441,7 +445,7 @@ class PlotTask (object):
         # title, linelabels, colors, extra queries and extra incoming kwargs.
         # The extra incoming kwargs may contain plot specific stuff, like 
         # x/ylimits, etc.
-        self.func(plotname, xval, yval, **self.kwargs)
+        self.func(xval, yval, filename=plotname+'.pdf', **self.kwargs)
 
     def __repr__(self):
         """Yield a summary of the task.
