@@ -288,6 +288,12 @@ class EkTest(unittest.TestCase):
         self.assertAlmostEqual(dst['Ev_K_2'],-4.963, places=3)
         self.assertAlmostEqual(dst['Ev_K_4'],-8.694, places=3)
         self.assertAlmostEqual(dst['Ev_K_6'],-9.8759, places=3)
+
+# TODO:
+# test for the executable with all bells and whistles,
+# prepare a directory with skf, scc and bs subdirectories,
+# and run dftbutils with all options exercised.
+
 if __name__ == '__main__':
     unittest.main()
 
