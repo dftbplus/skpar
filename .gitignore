@@ -17,6 +17,9 @@
 _workdir*
 _test*
 _example*
+example/*/*.log
+example/*/*.out
+example/*/*._work*
 
 # skpar logs from running tests etc.
 docs/*.log
