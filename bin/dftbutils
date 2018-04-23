@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 from skpar.dftbutils.runBS import set_bands_parser
+from skpar.dftbutils.evol  import set_evol_parser
 
 def main():
 
@@ -25,6 +26,11 @@ def main():
     parser_bands = subparsers.add_parser('bands',
             parents=[], help='Calculate bandstructure')
     set_bands_parser(parser_bands)
+
+    # Energy-volume scan 
+    parser_evol = subparsers.add_parser('evol',
+            parents=[], help='Do energy-volume scan in a given directory')
+    set_evol_parser(parser_evol)
 
     args = parser.parse_args()
 

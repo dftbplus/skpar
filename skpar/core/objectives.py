@@ -44,7 +44,7 @@ def parse_weights_keyval(spec, data, normalised=True):
         Log warning if a key in `spec` (other than 'dflt') is not found
         in `data`.
     """
-    if isinstance(spec, list) or type(spec).__module__ == np.__name__:
+    if isinstance(spec, list) or isinstance(spec, np.ndarray):
         # if spec enumerates weights as a list or array, nothing to do
         assert len(spec)==len(data) 
         ww = spec
@@ -127,8 +127,7 @@ def parse_weights(spec, refdata=None, nn=1, shape=None, i0=0, normalised=True,
         rikeys = []
     if rfkeys is None:
         rfkeys = []
-    if isinstance(spec, list) and len(spec)==nn or\
-        type(spec).__module__ == np.__name__:
+    if isinstance(spec, list) or isinstance(spec, np.ndarray):
         # Assume spec enumerates weights as a list or array
         ww = np.atleast_1d(spec)
     else:
@@ -375,22 +374,40 @@ class ObjValues(Objective):
     """
     def __init__(self, spec, **kwargs):
         super().__init__(spec, **kwargs)
-        nmod = len(self.model_names)
+        # if we check len(self.model_names), it returns the string length
+        # in the case of single string
+        nmod = len(self.model_weights)
+        self.nmod = nmod
         # coerce ref-data to 1D array if it is extracted from a 2D array
         if self.ref_data.ndim == 2 and self.ref_data.shape == (1,nmod):
             self.ref_data = self.ref_data.reshape((nmod,))
         self.ref_data.flags.writeable = False
         shape = self.ref_data.shape
-        # default options
-        subweights = None
-        self.normalised = True
-        # check if user had specified any options
+
+        # Process .options and set defaults, in case options is None, or key not present
         if self.options is not None:
             subweights = self.options.get('subweights', None)
             self.normalised = self.options.get('normalise', True)
+            align_ref     = self.options.get('align_ref', None)
+            align_model   = self.options.get('align_model', None)
+        else:
+            subweights = None
+            self.normalised = True
+            align_ref     = None
+            align_model   = None
+
+        # Once the ref_data is trimmed, its reference value may be changed
+        # so try to parse 'align_ref' option.
+        if align_ref is not None:
+            shift = get_refval_1d(self.ref_data, align_ref)
+            self.ref_data.flags.writeable = True
+            self.ref_data -= shift
+            self.ref_data.flags.writeable = False
+
 
         if subweights is not None:
-            self.subweights = parse_weights(subweights, nn=nmod, 
+            self.subweights = parse_weights(subweights, 
+                    refdata=self.ref_data, nn=nmod, 
                     normalised=self.normalised,
                     # these are optional, and generic enough
                     ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
@@ -398,13 +415,24 @@ class ObjValues(Objective):
         else:
             self.subweights = np.ones(shape)
         
+        # Prepare to shift the model_data values if required
+        # The actual shift is applied in the self.get() method
+        # since the data is not known at until objective query is
+        # executed to get the values of the model data
+        self.align_model = align_model
+
     def get(self):
+        """Get the model data, align/mask it etc, and return calculated cost.
         """
-        """
-        self.model_data = self.query()
-        if len(self.model_names) > 1:
-            assert self.model_data.shape == self.subweights.shape,\
-                    "{} {}".format(self.model_data.shape, self.subweights.shape)
+        # query data base
+        self.model_data = np.atleast_1d(self.query())
+        # apply shift: since model_data is not known in advance
+        #              the shift cannot be precomputed; we do it on the fly.
+        if self.align_model is not None:
+            shift = get_refval_1d(self.model_data, self.align_model)
+            self.model_data -= shift
+        assert self.model_data.shape == self.subweights.shape,\
+                "{} {}".format(self.model_data.shape, self.subweights.shape)
         return super().get()
 
 
@@ -467,6 +495,29 @@ def get_subset_ind(rangespec):
     for rr in pyrangespec:
         subset.extend(range(*rr))
     return np.array(subset)
+
+def get_refval_1d(array, align, ff={'min': np.min, 'max': np.max}):
+    """Return a reference (alignment) value selected from an array.
+    
+    Args:
+        array (1D numpy array): data from which to obtain a reference value.
+        align: specifier that could be and index, e.g. 3, or 'min', 'max' 
+        ff (dict): Dictionary mapping string names to functions that can
+                operate on an 1D array.
+
+    Returns:
+        value (float): the selected value
+    """
+    assert isinstance(align, int) or align in ['min', 'max'],\
+            '"align" must be int or "min" or "max".'
+    # Transform indexing to python-style, counting from 0, assuming 
+    # 'align' came from user specification, fortran-compatible, counting from 1
+    ik = align - 1  
+    try:
+        value = array[ik]
+    except TypeError:
+        value = ff[align](array)
+    return value
 
 def get_refval(bands, align, ff={'min': np.min, 'max': np.max}):
     """Return a reference (alignment) value selected from a 2D array.

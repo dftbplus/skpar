@@ -27,7 +27,8 @@ for dirname, dirnames, filenames in os.walk('skpar'):
 
 package_data = {}
 
-scripts=['bin/skpar', 'bin/dftbutils', 'bin/check_dftblog']
+scripts=['bin/skpar', 'bin/dftbutils', 'bin/check_dftblog', 
+        'bin/skpar_splinerepfit', 'bin/skpar_addrepulsive']
 
 ## try to cater for windows
 if 'sdist' in sys.argv or os.name in ['ce', 'nt']:
@@ -56,6 +57,7 @@ setup(name=name,
       data_files=data_files,
       install_requires = [
             'numpy',
+            'scipy',
             'deap',
             'pyyaml',
             'matplotlib'

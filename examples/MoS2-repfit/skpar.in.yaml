@@ -1,0 +1,63 @@
+config:
+    templatedir: template
+    workroot: ./_workdir/
+    keepworkdirs: true
+
+executables:
+    evol: dftbutils evol                    # energy-vollume scan
+    repfit: skpar_splinerepfit              # fit a spline repulsive on given points
+    addrep: skpar_addrepulsive              # append repulsive.dat to A1-A2.template.skf
+
+tasks:
+    # Three types of tasks exist:
+    # - set: [parmeter_file, working_directory, optional_template_file(s)]
+    # - run: [command, working_directory]
+    # - get: [what, from_sourse(dir, file or dict), to_destination(dict), optional_kwargs]
+    #        `what` is essentially a function name (see Get-Tasks dictionary)
+    # -----------------------------------------------------------------------------
+    - set: [skf/fitpoints.template.dat]                       # update parameters -> skf/fitpoints.dat
+    - run: [repfit, skf]                                      # fit repulsive and produce repulsive.dat
+    - run: [[addrep, -e, Mo, S], skf]                         # add repulsive.dat -> 1-2.skf and 2-1.skf
+    - run: [evol, MoS2.ml-evol]                               # energy-volume calculation in the subfolders 
+                                                              # of MoS2.ml-evol under _workdir/iteration/
+    - get: [get_dftbp_evol, MoS2.ml-evol, MoS2.ml]            # get total energy for all calculations in
+                                                              # MoS2.ml-evol subfolders and associate data
+                                                              # with MoS2.ml model
+
+objectives:
+    - totalenergy_volume:
+        doc: MoS2.ml Energy-Volume dependence
+        models: MoS2.ml
+        ref:
+            file: refdata/toten-MoS2.ml.dat # ./ is where this .yaml is
+            loader_args:
+                usecols: 0 # Etot[eV]; col[1] is % of equil.lat.const.
+        options:
+            align_ref: 5
+            align_model: 5
+            subweights: [ 2,2, 3,3,3,3,3,3, 2,2,2, 1,1,1,1]
+        eval: [rms, relerr]
+
+
+optimisation:
+    algo: PSO   # particle swarm optimisation
+    options:
+        npart: 7   # number of particles
+        ngen : 100   # number of generations
+    parameters:
+        # how do we choose the range for the spline values?
+        - s1: [0.04, 0.08]
+        - s2: [0.015, 0.04]
+        - s3: [0.01, 0.02]
+        - s4: [0.002, 0.015]
+        - s5: [0, 0.01]
+
+#   INFO: GBest iteration   : (8, 4)
+#   INFO: GBest fitness     : (0.2948349220386814,)
+#   INFO: GBest parameters:
+#                  s1  0.054166544773121786
+#                  s2  0.02743151671192476
+#                  s3  0.012499232452091459
+#                  s4  0.0053899960548623276
+#                  s5  0.0031473351376836304
+#   INFO: Done.
