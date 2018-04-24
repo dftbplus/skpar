@@ -112,13 +112,22 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
             the figure is saved to that file.
 
     Kwargs:
-        no kwargs are interpreted, but no exception is generated if supplied.
+        kticklabels: interpreted as xticklabels
+        eticklabels: interpreted as yticklabels
+        No other kwargs are interpreted, but no exception is generated 
+        if supplied.
     
     Returns:
         fig, ax: matplotlib objects holding the plot
     """
     set_mplrcpar()
     fig, ax = plt.subplots(figsize=figsize)
+    # it is likely to get kticklabels instead of xticklabels
+    # than it is xticklabels
+    if xticklabels is None:
+        xticklabels = kwargs.get('kticklabels', None)
+    if yticklabels is None:
+        yticklabels = kwargs.get('eticklabels', None)
     set_axes(ax, xlabel, ylabel, xticklabels, yticklabels,
                 extend_xticks=True)
         

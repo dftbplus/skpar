@@ -46,7 +46,8 @@ class DetailedOut (dict):
         destination_dict = DetailedOut.fromfile(filename)
     """
     energy_tags = [
-            ("Fermi energy:", "Ef"), 
+            ("Fermi energy:", "Ef"), # old DFTB+ 1.2
+            ("Fermi level:", "Ef"),  # new DFTB+ 18.1 +
             ("Band energy:", "Eband"),
             ("TS:", "Ets"),
             ("Band free energy (E-TS):", "Ebf"),
@@ -61,7 +62,7 @@ class DetailedOut (dict):
     # float values, allowing for fractional number [input, output]
     nelec_tags = [
             # dftb 1.2
-            ("Input/Output electrons (q):", ("nei", "neo")),
+            ("Inpu t/Output electrons (q):", ("nei", "neo")),
             # dftb 18.1 : "Input / Output electrons (q):"
             ("Input / Output electrons (q):", ("nei", "neo")) 
             ]
@@ -594,6 +595,8 @@ def get_effmasses(workroot, source, destination, directions=None,
             mav = np.mean([mm[0] for mm in meff_data.values()])
             masses.update({'me_av': mav})
         #
+        logger.debug('Adding the following items to destination:')
+        logger.debug(masses)
         destination.update(masses) 
     return masses
 
@@ -676,9 +679,9 @@ def greek (label):
             lbl = label
     return lbl
 
-def get_special_Ek(workroot, source, destination, sympts=None, 
+def get_special_Ek(workroot, source, destination=None, sympts=None, 
                     extract={'cb': [0, ], 'vb': [0, ]}, align='Ef', 
-                    *args, **kwargs):
+                    usebandindex=False, *args, **kwargs):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
     """
 
@@ -709,12 +712,22 @@ def get_special_Ek(workroot, source, destination, sympts=None,
     tagged_Ek = {}
     for label in Ek:
         for bandix in extract['cb']:
-            tag = 'Ec_{:s}_{:d}'.format(greek(label), bandix)
+            if usebandindex:
+                tag = 'Ec_{:s}_{:d}'.format(greek(label), bandix)
+            else:
+                tag = 'Ec_{:s}'.format(greek(label), bandix)
             value = Ek[label][nVBtop + 1 + bandix]
             tagged_Ek[tag] = value
         for bandix in extract['vb']:
-            tag = 'Ev_{:s}_{:d}'.format(greek(label), bandix)
+            if usebandindex:
+                tag = 'Ev_{:s}_{:d}'.format(greek(label), bandix)
+            else:
+                tag = 'Ev_{:s}'.format(greek(label), bandix)
             value = Ek[label][nVBtop  - bandix]
             tagged_Ek[tag] = value
+    if destination is None:
+        destination = source
+    logger.debug('Adding the following items to destination:')
+    logger.debug(tagged_Ek)
     destination.update(tagged_Ek)
     return tagged_Ek

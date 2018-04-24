@@ -363,9 +363,9 @@ class Objective(object):
         if hasattr(self, 'Model_data'):
             s.append ('{:9s}{:<15s}: {}'.format("", "Model data",
                     arr2s(self.model_data)))
-            s.append("{:9s}{:<15s}: {:s} / {:s}".
-                format("", "Cost/Err. func.", self.costf.__name__, self.errf.__name__))
-            s.append("{:9s}{:<15s}: {}".format("", "Weight", pformat(self.weight)))
+        s.append("{:9s}{:<15s}: {:s} / {:s}".
+            format("", "Cost/Err. func.", self.costf.__name__, self.errf.__name__))
+        s.append("{:9s}{:<15s}: {}".format("", "Weight", pformat(self.weight)))
         return "\n"+"\n".join(s)
 
 
