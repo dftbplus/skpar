@@ -32,6 +32,8 @@ def set_axes(ax, xlabel, ylabel, xticklabels=None, yticklabels=None,
             each explicit position of ticks and their labels
         extend_xticks, extend_yticks (bool): extend_x/yticks entire graph
     """
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     if xticklabels:
         xticks, xtlabels  = zip(*xticklabels)
         ax.set_xticks(xticks)

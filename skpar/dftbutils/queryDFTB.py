@@ -160,22 +160,28 @@ def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
     logger.info('Looking for Energy-Volume data in {:s}'.format(modeldir))
     os.chdir(modeldir)
     sccdirs = [dd for dd in os.listdir() if dd.isdigit()]
+    # These come in a disordered way 
+    # But it is pivotal that the names are sorted, so that correspondence 
+    # with reference data can be established!
+    sccdirs.sort()
+    logger.info('The following SCC directories are found: \n {}'.format(sccdirs))
     # make sure we return back
     os.chdir(cwd)
     # go over individual volume directories and obtain the data
     Etot = []
     Eelec = []
-    # It is pivotal that the names are sorted, so that correspondence 
-    # with reference data can be established!
-    for dd in sorted(sccdirs):
+    strain = []
+    for dd in sccdirs:
         ff = joinpath(modeldir, dd, datafile)
         logger.info('Reading {:s}'.format(ff))
         data = DetailedOut.fromfile(ff)
         logger.info('Done. Data: {}'.format(data))
         Etot.append(data['Etot'])
         Eelec.append(data['Eel'])
+        strain.append(float(dd) - 100)
     destination['totalenergy_volume'] = Etot
     destination['elecenergy_volume'] = Eelec
+    destination['strain'] = strain
     logger.info('Done. totalenergy_volume: {}'.format(destination['totalenergy_volume']))
     logger.info('Done. elecenergy_volume: {}'.format(destination['elecenergy_volume']))
     outstr = ['# Total Energy[eV], Electronic Energy[eV], Volume tag']

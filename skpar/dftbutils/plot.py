@@ -30,6 +30,11 @@ def set_axes(ax, xlabel, ylabel, xticklabels=None, yticklabels=None,
             each explicit position of ticks and their labels
         extend_xticks, extend_yticks (bool): extend_x/yticks entire graph
     """
+    # for some reason None goes as a label; better avoid
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
     if xticklabels:
         xticks, xtlabels  = zip(*xticklabels)
         ax.set_xticks(xticks)
@@ -84,7 +89,7 @@ def set_xylimits(ax, xval, yval, xlim=None, ylim=None, issetx=False, issety=Fals
     
 def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
         xticklabels=None, yticklabels=None, xlim=None, ylim=None, 
-        xlabel='Wave-vector', ylabel='Energy (eV)', filename=None,
+        xlabel=None, ylabel='Energy (eV)', filename=None,
         legendloc=0, **kwargs):
     """Routine for plotting band-structure.
     
