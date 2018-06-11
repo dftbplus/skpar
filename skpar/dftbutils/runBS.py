@@ -57,6 +57,10 @@ def set_bands_parser(parser=None):
             "-bands", type=str, default='dp_bands', action="store", 
             help="(dflt: dp_bands) Tool to convert the output to "
                  "bandstructure file for plotting ")
+    parser.add_argument(
+            "-dos", type=str, nargs='?', const='dp_dos', action="store", 
+            help="(dflt: dp_dos) Tool to convert the output to "
+                 "DoS file for plotting ")
     if subparser:
         parser.set_defaults(func=main_bands)
         return None
@@ -84,6 +88,8 @@ def main_bands(args):
     dftb    = args.dftb
     dftblog = 'dftb.log'
     bands   = normpath(expanduser(args.bands))
+    if args.dos:
+        dos     = normpath(expanduser(args.dos))
     bandslog = 'dp_bands.log'
     # Create the task list
     tasks = []
@@ -93,6 +99,8 @@ def main_bands(args):
     # problem through attempts of subsequent operations.
     # check_dftblog is a bash script in skpar/bin/
     tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
+    if args.dos:
+        tasks.append(RunTask(cmd=[dos, 'band.out', 'dos_total.dat'], wd=sccdir, out=bandslog))
 
     tasks.append(RunTask(cmd=['cp', '-f', sccchg, bsdir], out=None))
     tasks.append(RunTask(cmd=dftb, wd=bsdir, out=dftblog))

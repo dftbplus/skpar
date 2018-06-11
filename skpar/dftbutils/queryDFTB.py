@@ -112,19 +112,17 @@ class DetailedOut (dict):
         return cls(tagvalues)
 
 
-def get_dftbp_data(source, destination, workdir='.', *args, **kwargs):
+def get_dftbp_data(workroot, source, destination, datafile='detailed.out', *args, **kwargs):
     """Load whatever data can be obtained from detailed.out of dftb+.
     """
     # setup logger
     # -------------------------------------------------------------------
+    loglevel = logging.INFO
     logger   = get_logger(name='dftbutils', filename='dftbutils.detailed.log',  
-                          verbosity=logging.DEBUG)
+                          verbosity=loglevel)
     assert isinstance(source, str), \
-        "src must be a string (filename or directory name), but is {} instead.".format(type(src))
-    if isdir(source):
-        ff = normpath(expanduser(joinpath(source, 'detailed.out')))
-    else:
-        ff = normpath(expanduser(joinpath(workdir, source)))
+        "src must be a string (directory name), but is {} instead.".format(type(src))
+    ff = joinpath(abspath(expanduser(workroot)), source, 'detailed.out')
     logger.debug('Getting DFTB+ data from {:s}.'.format(ff))
     data = DetailedOut.fromfile(ff)
     destination.update(data)
