@@ -106,7 +106,7 @@ class FCC(object):
     def __init__(self, param, setting='curtarolo'):
         try:
             a = param[0]
-        except TypeError:
+        except (TypeError, IndexError) as e:
             a = param
         self.constants = [a, a, a, pi/2, pi/2, pi/2]
         self.a = a
@@ -139,7 +139,7 @@ class BCC(object):
     def __init__(self, param, setting='curtarolo'):
         try:
             a = param[0]
-        except TypeError:
+        except (TypeError, IndexError) as e:
             a = param
         self.constants = [a, a, a, pi/2, pi/2, pi/2]
         self.a = a
