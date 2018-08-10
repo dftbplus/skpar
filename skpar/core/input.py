@@ -3,6 +3,7 @@ Routines to handle the input of skpar
 """
 import numpy as np
 import yaml
+import json
 #import pprint
 from collections import OrderedDict
 import logging
@@ -18,7 +19,6 @@ module_logger = get_logger('skpar.input')
 
 def get_input_yaml(filename):
     """Read yaml input; report exception for non-existent file.
-    
     """
     with open(filename, 'r') as fp:
         try:
@@ -28,12 +28,29 @@ def get_input_yaml(filename):
             raise
     return spec
 
+def get_input(filename):
+    """Read input; Exception for non-existent file.
+    """
+    with open(filename, 'r') as infile:
+        try:
+            spec = json.load(infile)
+        except ValueError as exc:  # raised if input is not a valid json
+        # except json.JSONDecodeError as exc: # available only python3.5 onwards
+            print ('Warning: Input not a valid JSON')
+            try:
+                spec = yaml.load(infile)
+            except yaml.YAMLError as exc:
+                print ('Error: Cannot handle {} as JSON or YAML file.'.
+                        format(filename))
+                raise
+    return spec
+
 def parse_input(filename, verbose=False):
     """Parse input filename and return the setup
 
     Currently only yaml input is supported.
     """
-    spec = get_input_yaml(filename)
+    spec = get_input(filename)
     exedict    = spec.get('executables', None)
     optspec    = spec.get('optimisation', None)
     if optspec is not None:

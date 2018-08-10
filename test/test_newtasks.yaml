@@ -1,0 +1,70 @@
+config:
+    templatedir: template
+    workroot: ./_workdir
+    keepworkdirs: true
+
+
+executables:
+    skgen: ./template/skf/skgen-opt.sh
+    bands: dftbutils bands
+
+tasks:
+    # - set: [skf/skdefs.template.py]
+    - substitute_parameters: files: skf/skdefs.template.py
+    # - run: [skgen, skf]
+    - skgen: workdir: skf
+    # - run: [bands, C.dia/hydrostatic-0.00]
+    - bands: workdir: C.dia/hydrostatic-0.00, update: C.dia.hs-0.00
+    - get: [get_dftbp_bs, C.dia/hydrostatic-0.00/bs, C.dia.hs-0.00, 
+            {latticeinfo: {type: 'FCC', param: 3.56208625213847}}]
+
+    # This will show both objectives for CB and VB, but no band-gap between them,
+    # and no k-vector labels either!
+    #    - plot: [plot_objvs, Si-diam/100/bs/bs, [bands, Si.diam.100], kvector]
+
+    # The plot_bs does magic when it sees the first objective being 'Egap'.shape==(1,)
+    # it shifts the band-gap, so the band-structure is properly shown.
+    # For this to happen, objectives declaration must be such that VB precedes CB!!!
+    # The plot_bs will also show k-ticks and labels if requested, as below
+    - plot: [plot_bs, C.dia/bands.hs-0.00, [bands, C.dia.hs-0.00], 
+                kvector, queries: [kticklabels]]
+
+    # Nota bene: supplying the Egap as objective is optional. VB and CB are printed
+    # as-is if Egap is not given (e.g. for metal or for a single 'bands' objective.
+    #    - plot: [plot_bs, Si-diam/100/bs/bs_3, [bands, Si.diam.100], kvector, queries: kticklabels]
+
+tasks:
+  - plot: {bands: ['C_vb', 'C_cb'], gap: C_Egap}
+
+
+objectives:
+
+  bs_diamond:
+    doc: Some compilicated things
+    values: MoS2_ml.totalenergy_volume
+    refs: MoS2_ml_vasp_pbe.totalenergy_volume
+    weight: 1.0
+    subweights: [1.0, 2.0, 3.0, 2.0, 1.0]
+    eval: [rms, relerr]
+
+
+    SiC_Eheat:
+      doc: We will calculate the SiC heat of formation
+      values: [SiC.Etot, Si.2.Etot, C.2.Etot]
+      factors: [0.5, -0.5, -0.5]
+      refs: [SiC_2_pbe_vasp.Etot, Si_2_pbe_vasp.Etot, C_2_pbe_vasp.Etot]
+      weight: 1.0
+      eval: [relerr]
+
+
+    C_vb:
+
+
+    C_cb:
+      
+
+    C_Egap:
+      values: ...
+        
+
+        

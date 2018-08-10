@@ -1,0 +1,36 @@
+
+tasks:
+  - plot: {bands: ['C_vb', 'C_cb'], gap: C_Egap}
+
+
+objectives:
+
+  bs_diamond:
+    doc: Some compilicated things
+    values: MoS2_ml.totalenergy_volume
+    refs: MoS2_ml_vasp_pbe.totalenergy_volume
+    weight: 1.0
+    subweights: [1.0, 2.0, 3.0, 2.0, 1.0]
+    eval: [rms, relerr]
+
+
+    SiC_Eheat:
+      doc: We will calculate the SiC heat of formation
+      values: [SiC.Etot, Si.2.Etot, C.2.Etot]
+      factors: [0.5, -0.5, -0.5]
+      refs: [SiC_2_pbe_vasp.Etot, Si_2_pbe_vasp.Etot, C_2_pbe_vasp.Etot]
+      weight: 1.0
+      eval: [relerr]
+
+
+    C_vb:
+
+
+    C_cb:
+      
+
+    C_Egap:
+      values: ...
+        
+
+        
