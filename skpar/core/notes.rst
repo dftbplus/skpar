@@ -45,6 +45,29 @@ Concept:
         model_db allows get(modelname, key) and update(modelname, key, value)
         objective allows get(objective), returning (ref, model) data
 
+        Do not use object references in initialisation: bad practice,
+        since the object may disappear etc.
+        Think about openmp and mpi parallelisation / read on thread safe.
+        Pass modifiable objects separately from environment.
+        Keep environment safe from possible user attempt to mistakenly
+        or not modify it.
+        Ideally, in functional programming style, the task get whatever
+        arguments they need at run time, so they are clearly thread
+        and mpi-safe, as their state is destroyed as soon as they
+        finish.
+        During initialization pass only strings and values. Do not
+        pass object references. Leave the task itself to do the job of 
+        get/set through the Data Object that is passed to it.
+        This may require a good deal of nested type of queries.
+        The Data Object must provide the interface of get/set/has,
+        so that even if Data back-end is changed, the tasks do not
+        need to be modified.
+
+        On aliases: better to introduce $var instead of current 
+        implementation, to avoid surprises where user decide to use 
+        an identifier that was already defined as an alias, leading
+        to random behaviour.
+
 Affected areas:
 
 in.yaml
