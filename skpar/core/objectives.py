@@ -783,6 +783,9 @@ def set_objectives(spec, **kwargs):
         list: a List of instances of the Objective sub-class, each 
             corresponding to a recognised objective type.
     """
+    if spec is None:
+        module_logger.error('Missing "objectives:" in user input: nothing to do. Bye!')
+        sys.exit(1)
     objectives = []
     # the spec list has definitions of different objectives
     for item in spec:

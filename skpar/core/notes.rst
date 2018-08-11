@@ -1,11 +1,17 @@
 Generalising tasks:
 ======================================================================
 
-Purpose: allow simple extensions via user modules without touching
-         the main code base
+Purpose: 
+--------------------------------------------------
+Allow simple extensions via user modules without touching
+the main code base
 
 
 Concept: 
+--------------------------------------------------
+
+Question: what does tasks initialisation result in; what is returned?
+
         A task initialisation signature is:
         
         task_name(self, environment=None, identifiers=None, options=None)
@@ -63,10 +69,15 @@ Concept:
         so that even if Data back-end is changed, the tasks do not
         need to be modified.
 
-        On aliases: better to introduce $var instead of current 
-        implementation, to avoid surprises where user decide to use 
-        an identifier that was already defined as an alias, leading
-        to random behaviour.
+:Aliases:        
+    Better to introduce $var instead of current 
+    implementation, to avoid surprises where user decide to use 
+    an identifier that was already defined as an alias, leading
+    to random behaviour.
+
+
+:parallelism:
+
 
 Affected areas:
 
@@ -117,3 +128,15 @@ input.py
 
 Refactor Objectives:
 ======================================================================
+
+
+Parameters
+======================================================================
+Currently, parameters is a list of Parameter instances from the onset,
+i.e. the time of parsing the input. This list is then passed to tasks
+upon their initialisation, as a reference; the contents of the list is
+updated on the fly. However, suppose we use per particle parallelism, 
+or want to pscan to be run parallel. Then we cannot use the same list 
+for different evaluations at the same time -- each evaluation must 
+produce its own list of parameters and its own list of objectives and
+its own list of tasks.

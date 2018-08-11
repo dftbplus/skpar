@@ -55,7 +55,7 @@ def main_evol(args):
     e.g. 099/ 100/ 101/ 102/, where the calculation for a specific volume
     is set up in advance.
 
-    Currently this implies serial operation. MPI parallelisation over the
+    Currently this implies serial operation. MPI parallelism over the
     different volumes is necessary, but not implemented yet.
     """
     # setup logger

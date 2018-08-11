@@ -24,6 +24,15 @@ def islistoflists(arg):
     return tf
 
 
+class Task(object):
+    """Generic wrapper over functions that work upon models or data.
+    """
+    def __init__(self, environment, objectives, modeldb, options):
+
+    def __call__(self, environment, objectives, modeldb, options):
+
+
+
 class RunTask (object):
     """Class for running an external executable."""
     
@@ -488,6 +497,10 @@ def set_tasks(spec, exedict=None, parnames=None):
 
     """
     #
+    if spec is None:
+        module_logger.error('Missing "tasks:" in user input: nothing to do. Bye!')
+        sys.exit(1)
+
     tasklist = []
     logger = module_logger
     # the spec list has definitions of different tasks

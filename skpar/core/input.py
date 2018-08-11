@@ -47,12 +47,12 @@ def get_input(filename):
 
 def parse_input(filename, verbose=False):
     """Parse input filename and return the setup
-
-    Currently only yaml input is supported.
     """
-    spec = get_input(filename)
-    exedict    = spec.get('executables', None)
-    optspec    = spec.get('optimisation', None)
+    userinp = get_input(filename)
+    # this should change by the introduction $variable substitution
+    exedict    = userinp.get('executables', None)
+    # 
+    optspec    = userinp.get('optimisation', None)
     if optspec is not None:
         algo, options, parameters = get_optargs(spec['optimisation'])
         optargs = [algo, options, parameters]
@@ -60,32 +60,13 @@ def parse_input(filename, verbose=False):
     else:
         optargs    = None
         parnames   = None
-    # TODO: revisit the initialisation of tasks.
-    # Current implementation here is not very neat for two reasons:
-    # the interpretation of the input spec requires prior interpretation 
-    # of other spec. Parsing of the input should be independent of subsequent
-    # setup stuff, and these typically are separate.
-    #module_logger.debug("Parse input parameters: {}".format(parameters))
-    #module_logger.debug("Parse input parnames  : {}".format(parnames))
-    try:
-        _spec = spec['tasks']
-    except KeyError:
-        module_logger.error('It seems that "tasks:" is missing in the input yaml')
-        sys.exit(1)
-    tasks      = set_tasks      (_spec, exedict, parnames)
-    try:
-        _spec = spec['objectives']
-    except KeyError:
-        module_logger.error('It seems that "objectives:" is missing in the input yaml')
-        sys.exit(1)
-    objectives = set_objectives (_spec, verbose=verbose)
-    # Any dependencies of tasks on objectives or vice virsa could be 
-    # resolved here, before proceeding with execution
-    # Plot-task depend on objectives, i.e. need references to objectives
-    for task in tasks:
-        if isinstance(task, PlotTask):
-            task.pick_objectives(objectives)
-
+    # 
+    tasksinp = userinp.get('tasks', None)
+    tasks = set_tasks(tasksinp)
+    #
+    objectivesinp = userinp.get('objectives', None)
+    objectives = set_objectives (objectivesinp, verbose=verbose)
+    #
     configinp = spec.get('config', None)
     config = get_config(configinp)
     

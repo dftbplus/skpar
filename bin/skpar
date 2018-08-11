@@ -13,7 +13,7 @@ def main():
             )
     parser.add_argument(
             "skpar_input", type=str, default="skpar_in.yaml", action="store", 
-            help="YAML input file: objectives, tasks, executables, optimisation options."
+            help="YAML or JSON input file."
             )
     parser.add_argument(
             '-v', '--verbose', dest='verbose', default=False, action='store_true',
