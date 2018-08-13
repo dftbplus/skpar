@@ -20,7 +20,7 @@ class SKPAR(object):
         self.logger = get_logger(name='skpar', filename='skpar.log',  
                                    verbosity=loglevel)
         # specific for numpy
-        np.set_printoptions(threshold = 100, linewidth= 75, suppress=True)
+        np.set_printoptions(threshold = 60, linewidth= 79, suppress=True)
 
         # Project work directory
         # -------------------------------------------------------------------

@@ -25,12 +25,13 @@ def islistoflists(arg):
 
 
 class Task(object):
-    """Generic wrapper over functions that work upon models or data.
+    """Generic wrapper over functions or executables.
     """
-    def __init__(self, environment, objectives, modeldb, options):
+    def __init__(self, userinp):
+        """Create a callable object from user input"""
 
-    def __call__(self, environment, objectives, modeldb, options):
-
+    def __call__(self, environment, objectives, modeldb):
+        """Execute the task"""
 
 
 class RunTask (object):
@@ -475,6 +476,82 @@ class PlotTask (object):
         return '\n'+'\n'.join(s)
 
 
+def get_tasklist(userinp):
+    """Return a list of task references.
+    """
+    if userinp is None:
+        module_logger.error('Missing "tasks:" in user input: nothing to do. Bye!')
+        sys.exit(1)
+    tasklist = []
+    logger = module_logger
+    # the spec list has definitions of different tasks
+    for item in spec:
+        (taskname, taskargs), = item.items()
+        tasklist.append
+        if 'set' == tasktype.lower():
+            try:
+                tasklist.append(SetTask(*taskargs, parnames=parnames))
+            except TypeError:
+                logger.debug('Cannot handle the following task specification:')
+                logger.debug(spec)
+                raise
+
+        if 'run' == tasktype.lower():
+            try:
+                tasklist.append(RunTask(*taskargs, exedict=exedict))
+            except TypeError:
+                logger.debug ('Cannot handle the following task specification:')
+                logger.debug(spec)
+                raise
+
+        if 'get' == tasktype.lower():
+            assert isinstance(taskargs, list)
+            # 1. Assign the real function to 1st arg
+            func = gettaskdict[taskargs[0]]
+            taskargs[0] = func
+            # 2. Check if we have optional dictionary of arguments
+            if isinstance(taskargs[-1], dict):
+                optkwargs = taskargs[-1]
+                del taskargs[-1]
+            else:
+                optkwargs = {}
+            #BA: Would be weird when source was a directory and not a key!
+            # 3. Check if we have a missing destination and assign the source
+            if len(taskargs) == 2:
+                taskargs.append(taskargs[1])
+            # 4. Register the task in the task-list
+            try:
+                tasklist.append(GetTask(*taskargs, **optkwargs))
+            except TypeError:
+                logger.debug ('Cannot handle the following task specification:')
+                logger.debug (spec)
+                raise
+
+        if 'plot' == tasktype.lower():
+            assert len(taskargs) >= 3,\
+                "A plot task must have at least 3 arguments:"\
+                "PlotFunction, Plotname, Objectives, Optional Abscissa-Key, Optional kwargs"
+            # 1. Assign the real function to 1st arg
+            func = plottaskdict[taskargs[0]]
+            taskargs[0] = func
+            # 2. Check if we have optional dictionary of arguments
+            if isinstance(taskargs[-1], dict):
+                optkwargs = taskargs[-1]
+                del taskargs[-1]
+            else:
+                optkwargs = {}
+            # 3. Check if we have an abscissa key or not
+            if len(taskargs) == 3:
+                taskargs.append(None)
+            # 4. Register the task in the task-list
+            try:
+                tasklist.append(PlotTask(*taskargs, **optkwargs))
+            except TypeError:
+                # end up here if unknown task type, which is mapped to None
+                logger.debug ('Cannot handle the following task specification:')
+                logger.debug (spec)
+                raise
+    return tasklist
 
 def set_tasks(spec, exedict=None, parnames=None):
     """Parse user specification of Tasks, and return a list of Tasks for execution.

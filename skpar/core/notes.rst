@@ -78,8 +78,35 @@ Question: what does tasks initialisation result in; what is returned?
 
 :parallelism:
 
+What tasks we can have:
+--------------------------------------------------
+:executables:
+    task name is 'execute'
+    task arguments: executable, command-line arguments
+    executed via os.subprocess 
+
+:core functions:
+    task name is the function name
+    task arguments are the function arguments
+    called directly
+    part of the code
+    declared in task_dictionary
+    
+
+:user functions:
+    task name is the function name
+    task arguments are the function arguments
+    called directly
+    imported via: import usertasks.py
+    usertasks.py must contain tasks_dictionary
+    :code:
+    skpar does core.task_dictionary = 
+        **core.task_dictionary + **usertasks.task_dictionary
+    which will update (potentially could replace) the global task dict.
+    declared in task_dictionary
 
 Affected areas:
+--------------------------------------------------
 
 in.yaml
         The way that tasks are specified

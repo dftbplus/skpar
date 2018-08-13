@@ -17,29 +17,18 @@ from skpar.core.optimise   import get_optargs
 
 module_logger = get_logger('skpar.input')
 
-def get_input_yaml(filename):
-    """Read yaml input; report exception for non-existent file.
-    """
-    with open(filename, 'r') as fp:
-        try:
-            spec = yaml.load(fp)
-        except yaml.YAMLError as exc:
-            module_logger.error(exc)
-            raise
-    return spec
-
 def get_input(filename):
     """Read input; Exception for non-existent file.
     """
     with open(filename, 'r') as infile:
         try:
-            spec = json.load(infile)
-        except ValueError as exc:  # raised if input is not a valid json
-        # except json.JSONDecodeError as exc: # available only python3.5 onwards
-            print ('Warning: Input not a valid JSON')
+            spec = yaml.load(infile)
+        except yaml.YAMLError as exc:
+            print ('Warning: Input not a valid YAML')
             try:
-                spec = yaml.load(infile)
-            except yaml.YAMLError as exc:
+                spec = json.load(infile)
+            except (ValueError, json.JSONDecodeError) as exc:  # raised if input is not a valid json
+            # json.JSONDecodeError is available only python3.5 onwards
                 print ('Error: Cannot handle {} as JSON or YAML file.'.
                         format(filename))
                 raise
@@ -62,7 +51,7 @@ def parse_input(filename, verbose=False):
         parnames   = None
     # 
     tasksinp = userinp.get('tasks', None)
-    tasks = set_tasks(tasksinp)
+    tasks = get_tasklist(tasksinp)
     #
     objectivesinp = userinp.get('objectives', None)
     objectives = set_objectives (objectivesinp, verbose=verbose)
