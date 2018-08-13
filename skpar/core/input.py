@@ -14,6 +14,8 @@ from skpar.core.objectives import set_objectives
 from skpar.core.query      import Query
 from skpar.core.tasks      import set_tasks, PlotTask
 from skpar.core.optimise   import get_optargs
+from skpar.core.taskdict   import tasksdict
+from skpar.core.usertasks  import update_taskdict
 
 module_logger = get_logger('skpar.input')
 
@@ -49,9 +51,12 @@ def parse_input(filename, verbose=False):
     else:
         optargs    = None
         parnames   = None
-    # 
+    #
+    usermodulesinp = userinp.get('usermodules', None)
+    taskdict = update_taskdict(usermodulesinp, taskdict)
+    #
     tasksinp = userinp.get('tasks', None)
-    tasks = get_tasklist(tasksinp)
+    tasks = get_tasklist(tasksinp, taskdict)
     #
     objectivesinp = userinp.get('objectives', None)
     objectives = set_objectives (objectivesinp, verbose=verbose)
