@@ -11,8 +11,9 @@ User can deposit his python modules in one of the following directories:
 or any other directory of his choice, or even has his python package installed.
 
 Any function that is intended to perform a task must be listed in a dictionary
-called `taskdict`, as 'task_name': 'callable_object' within the user module
+called `TASKDICT`, as 'task_name': 'callable_object' within the user module
 that is to be imported by skpar at run time.
+NOTE that TASKDICT is all capital letters!
 
 :task_name:
     task name used in skpar input file
@@ -82,7 +83,7 @@ def update_taskdict(userinp, taskdict):
     modules = import_modules(userinp)
     for mod in modules:
         try:
-            taskdict = taskdict.update(mod.taskdict)
+            taskdict = taskdict.update(mod.TASKDICT)
         except AttributeError:
             LOGGER.warning('User module %(name) has no taskdict and is ignored.',
                            name=mod.__name__)

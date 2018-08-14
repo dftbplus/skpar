@@ -1,7 +1,7 @@
 """Trivial user module."""
 
-def userfunc(say='Hi'): 
+def userfunc(say='Hi'):
     """Test func with one parameter."""
-    print ('SKPAR says {}'.format(say))
+    return 'SKPAR says {}'.format(say)
 
-taskdict = {'greet': userfunc}
+TASKDICT = {'greet': userfunc}

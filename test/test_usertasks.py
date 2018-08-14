@@ -1,9 +1,10 @@
 """Test import of user modules and taskdict update by user-defined tasks"""
 import unittest
 import os
+import sys
 import shutil
 
-from skpar.core.usertasks import import_user_module #, import_modules, update_taskdict
+from skpar.core.usertasks import import_user_module, import_modules, update_taskdict
 
 class UserTaskTest(unittest.TestCase):
     """Can we obtain taskdict from user modules"""
@@ -32,6 +33,27 @@ class UserTaskTest(unittest.TestCase):
         self.check_import(name, filename, path)
         shutil.rmtree(path)
 
+    def test_import_modules(self):
+        """can we import several modules given a namelist?"""
+        namelist = [('usermodule', '.')]
+        modulefile = './usermodule.py'
+        modules = import_modules(namelist)
+        self.assertEqual(len(modules), 1)
+        mod = modules[0]
+        self.assertEqual(mod.__name__, namelist[0][0])
+        self.assertEqual(mod.__file__, modulefile)
+
+    def test_update_taskdict(self):
+        """can we update taskdict from usermodule?"""
+        taskdict = {}
+        userinp = ['usermodule']
+        update_taskdict(userinp, taskdict)
+        func = sys.modules['usermodule'].userfunc
+        print(func)
+        self.assertDictEqual(taskdict, {'greet': func})
+        tasklist = [taskdict['greet']]
+        greeting = tasklist[0]('Hello!')
+        self.assertEqual(greeting, 'SKPAR says Hello!')
 
 if __name__ == '__main__':
     unittest.main()
