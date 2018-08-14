@@ -31,7 +31,7 @@ import sys
 import imp
 from skpar.core.utils import get_logger
 
-logger = get_logger(__name__)
+LOGGER = get_logger(__name__)
 
 USER_MODULES_PATH = ['.', os.path.expanduser('~/.local/share/skpar')]
 
@@ -43,15 +43,19 @@ def import_user_module(name, path=None):
     If this fails, let caller deal with it.
     """
     if path is None:
-        # Suppose user may have its own package already installed
+        # Suppose user may have the module along sys.path
         try:
             return sys.modules[name]
         except KeyError:
             pass
         # But if not installed, and no path, then search in common places
         path = USER_MODULES_PATH
-
+        LOGGER.info('Looking for user modules in %s', path)
+    else:
+        if isinstance(path, str):
+            path = [path]
     fmod, pathname, description = imp.find_module(name, path)
+    LOGGER.info('Found user module: %s in %s', fmod, pathname)
 
     try:
         return imp.load_module(name, fmod, pathname, description)
@@ -80,6 +84,6 @@ def update_taskdict(userinp, taskdict):
         try:
             taskdict = taskdict.update(mod.taskdict)
         except AttributeError:
-            logger.Warning('User module {} has no taskdict and is ignored.'.
-                        format(mod.__name__))
+            LOGGER.warning('User module %(name) has no taskdict and is ignored.',
+                           name=mod.__name__)
     return taskdict
