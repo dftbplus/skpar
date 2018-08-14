@@ -1,18 +1,37 @@
-import logging
+"""Tasks module, defining relevant classes and functions"""
 import os, sys, subprocess
 from os.path import abspath, normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
 import numpy as np
-from subprocess import STDOUT
-from pprint import pprint, pformat
+from pprint import pformat
 from skpar.core.query import Query
-from skpar.core.taskdict import GETTASKDICT, PLOTTASKDICT
+from skpar.core.taskdict import TASKDICT, GETTASKDICT, PLOTTASKDICT
 from skpar.core.parameters import update_parameters
 from skpar.core.utils import get_logger
 
-module_logger = get_logger('skpar.tasks')
+LOGGER = get_logger(__name__)
 
+def get_tasklist(userinp):
+    """Return a list of tuples of task names and task arguments."""
+    if userinp is None:
+        LOGGER.critical('Missing "tasks:" in user input; Nothing to do. Bye!')
+        sys.exit(1)
+    tasklist = []
+    for item in userinp:
+        # due to json/yaml specifics, task is represented as a dictionary with
+        # one item only, hence the comma after task, avoiding looping over items
+        task, = item.items()
+        tasklist.append(task)
+    return tasklist
+
+def check_tasks(tasklist, taskdict):
+    """Check task names are in the task dictionary; quit otherwise."""
+    for task in tasklist:
+        if task[0] not in taskdict.keys():
+            LOGGER.critical('Task %s not in TASKDIR; Cannot continue')
+            LOGGER.critical('Check spelling and verify import of user modules')
+            sys.exit(1)
 
 def islistoflists(arg):
     """Return True if item is a list of lists.
@@ -29,16 +48,18 @@ class Task(object):
     """
     def __init__(self, userinp):
         """Create a callable object from user input"""
+        pass
 
     def __call__(self, environment, objectives, modeldb):
         """Execute the task"""
+        pass
 
 
 class RunTask (object):
     """Class for running an external executable."""
     
     def __init__(self, cmd, wd='.', out='out.log', exedict=None):
-        self.logger = module_logger
+        self.logger = LOGGER
         self.wd = wd
         _cmd = cmd.split() if isinstance(cmd, str) else cmd
         assert isinstance(_cmd, list)
@@ -135,7 +156,7 @@ class RunTask (object):
 class SetTask(object):
     """Task for updating files with new parameter values. """
 
-    def __init__(self, *templates, parnames=None):
+    def __init__(self, parnames=None, *templates):
         """Creates a task that substiutes parameters in template files.
 
         Args:
@@ -148,7 +169,7 @@ class SetTask(object):
         """
         self.templates = templates
         self.parnames = [parnames] if isinstance(parnames, str) else parnames
-        self.logger = module_logger
+        self.logger = LOGGER
 
 
     def __call__(self, workroot, parameters, iteration=None):
@@ -199,7 +220,7 @@ class GetTask (object):
         self.dst  = Query.add_modelsdb(destination)
         self.args = args
         self.kwargs = kwargs
-        self.logger = module_logger
+        self.logger = LOGGER
 
 
     def __call__(self, workroot):
@@ -256,7 +277,7 @@ class PlotTask (object):
         """Establish which dictionary items make for abscissas and ordinates.
         """
         self.func = func
-        self.logger = module_logger
+        self.logger = LOGGER
         # How to get the ordinates: from objectives
         # Notabene: the tasks do not have direct visibility of objectives
         # In fact, objectives may not be declared/initialised at the time
@@ -476,83 +497,6 @@ class PlotTask (object):
         return '\n'+'\n'.join(s)
 
 
-def get_tasklist(userinp):
-    """Return a list of task references.
-    """
-    if userinp is None:
-        module_logger.error('Missing "tasks:" in user input: nothing to do. Bye!')
-        sys.exit(1)
-    tasklist = []
-    logger = module_logger
-    # the spec list has definitions of different tasks
-    for item in spec:
-        (taskname, taskargs), = item.items()
-        tasklist.append
-        if 'set' == tasktype.lower():
-            try:
-                tasklist.append(SetTask(*taskargs, parnames=parnames))
-            except TypeError:
-                logger.debug('Cannot handle the following task specification:')
-                logger.debug(spec)
-                raise
-
-        if 'run' == tasktype.lower():
-            try:
-                tasklist.append(RunTask(*taskargs, exedict=exedict))
-            except TypeError:
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug(spec)
-                raise
-
-        if 'get' == tasktype.lower():
-            assert isinstance(taskargs, list)
-            # 1. Assign the real function to 1st arg
-            func = GETTASKDICT[taskargs[0]]
-            taskargs[0] = func
-            # 2. Check if we have optional dictionary of arguments
-            if isinstance(taskargs[-1], dict):
-                optkwargs = taskargs[-1]
-                del taskargs[-1]
-            else:
-                optkwargs = {}
-            #BA: Would be weird when source was a directory and not a key!
-            # 3. Check if we have a missing destination and assign the source
-            if len(taskargs) == 2:
-                taskargs.append(taskargs[1])
-            # 4. Register the task in the task-list
-            try:
-                tasklist.append(GetTask(*taskargs, **optkwargs))
-            except TypeError:
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug (spec)
-                raise
-
-        if 'plot' == tasktype.lower():
-            assert len(taskargs) >= 3,\
-                "A plot task must have at least 3 arguments:"\
-                "PlotFunction, Plotname, Objectives, Optional Abscissa-Key, Optional kwargs"
-            # 1. Assign the real function to 1st arg
-            func = PLOTTASKDICT[taskargs[0]]
-            taskargs[0] = func
-            # 2. Check if we have optional dictionary of arguments
-            if isinstance(taskargs[-1], dict):
-                optkwargs = taskargs[-1]
-                del taskargs[-1]
-            else:
-                optkwargs = {}
-            # 3. Check if we have an abscissa key or not
-            if len(taskargs) == 3:
-                taskargs.append(None)
-            # 4. Register the task in the task-list
-            try:
-                tasklist.append(PlotTask(*taskargs, **optkwargs))
-            except TypeError:
-                # end up here if unknown task type, which is mapped to None
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug (spec)
-                raise
-    return tasklist
-
 def set_tasks(spec, exedict=None, parnames=None):
     """Parse user specification of Tasks, and return a list of Tasks for execution.
 
@@ -575,28 +519,28 @@ def set_tasks(spec, exedict=None, parnames=None):
     """
     #
     if spec is None:
-        module_logger.error('Missing "tasks:" in user input: nothing to do. Bye!')
+        LOGGER.error('Missing "tasks:" in user input: nothing to do. Bye!')
         sys.exit(1)
 
     tasklist = []
-    logger = module_logger
+    LOGGER = LOGGER
     # the spec list has definitions of different tasks
     for item in spec:
         (tasktype, taskargs), = item.items()
         if 'set' == tasktype.lower():
             try:
-                tasklist.append(SetTask(*taskargs, parnames=parnames))
+                tasklist.append(SetTask(parnames=parnames, *taskargs))
             except TypeError:
-                logger.debug('Cannot handle the following task specification:')
-                logger.debug(spec)
+                LOGGER.debug('Cannot handle the following task specification:')
+                LOGGER.debug(spec)
                 raise
 
         if 'run' == tasktype.lower():
             try:
                 tasklist.append(RunTask(*taskargs, exedict=exedict))
             except TypeError:
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug(spec)
+                LOGGER.debug ('Cannot handle the following task specification:')
+                LOGGER.debug(spec)
                 raise
 
         if 'get' == tasktype.lower():
@@ -618,8 +562,8 @@ def set_tasks(spec, exedict=None, parnames=None):
             try:
                 tasklist.append(GetTask(*taskargs, **optkwargs))
             except TypeError:
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug (spec)
+                LOGGER.debug ('Cannot handle the following task specification:')
+                LOGGER.debug (spec)
                 raise
 
         if 'plot' == tasktype.lower():
@@ -643,7 +587,7 @@ def set_tasks(spec, exedict=None, parnames=None):
                 tasklist.append(PlotTask(*taskargs, **optkwargs))
             except TypeError:
                 # end up here if unknown task type, which is mapped to None
-                logger.debug ('Cannot handle the following task specification:')
-                logger.debug (spec)
+                LOGGER.debug ('Cannot handle the following task specification:')
+                LOGGER.debug (spec)
                 raise
     return tasklist

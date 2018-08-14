@@ -1,13 +1,11 @@
-"""
-"""
+"""Evaluator engine of SKPAR."""
 import os
 import shutil
-import logging
 import numpy as np
 from skpar.core.utils import get_logger, normalise
-from skpar.core.tasks import SetTask, PlotTask
+from skpar.core.tasks import initialise_tasks
 
-module_logger = get_logger('skpar.evaluate')
+LOGGER = get_logger(__name__)
 
 DEFAULT_GLOBAL_COST_FUNC = "rms"
 
@@ -71,10 +69,10 @@ def eval_objectives(objectives):
 # the input parser coerces any capitalisation in advance
 
 # cost functions
-costf = {"rms": cost_RMS, }
+COSTF = {"rms": cost_RMS, }
 
 # error types
-errf = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
+ERRF = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 # ----------------------------------------------------------------------
 
 
@@ -97,12 +95,21 @@ class Evaluator (object):
        good to also return the max error, to be used as a stopping criterion.
 
     """
-    def __init__(self, objectives, tasks, config=None,
-                 costf=costf[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
+    def __init__(self, objectives, tasklist, taskdict, config=None,
+                 costf=COSTF[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
                  verbose=False, **kwargs):
         self.objectives = objectives
+        # ideally refdb does not change; should be passed as an object
+        # that contains get() and has()
+        # this is a temporary hack but not consistent with current
+        # implementation of objectives
+        self.refdb = {}
+        for objv in objectives:
+            self.refdb[objv.name] = objv.refdata
         self.weights = normalise([oo.weight for oo in objectives])
-        self.tasks = tasks
+        self.tasklist = tasklist # list of name,options pairs
+        self.taskdict = taskdict # name:function mapping
+        self.tasks = []          # callable objects
         self.config = config if config is not None else DEFAULT_CONFIG
         workroot = self.config['workroot']
         if workroot is not None:
@@ -116,21 +123,21 @@ class Evaluator (object):
             assert len(utopia) == len(objectives), (len(utopia), len(objectives))
             self.utopia = utopia
         self.verbose = verbose
-        self.logger = module_logger
-        # report all tasks and objectives
+        # configure logger
+        self.logger = LOGGER
         if self.verbose:
             self.msg = self.logger.info
         else:
             self.msg = self.logger.debug
-        for item in tasks:
-            self.msg(item)
+        # report objectives; these do not change over time
         for item in objectives:
             self.msg(item)
 
     def evaluate(self, parameters, iteration=None):
         """Evaluate the global fitness of a given point in parameter space.
 
-        This is the only object accessible to the optimiser.
+        This is the only object accessible to the optimiser, therefore only
+        two arguments can be passed.
 
         Args:
             parameters (list or dict): current point in design/parameter space
@@ -141,7 +148,7 @@ class Evaluator (object):
             fitness (float): global fitness of the current design point
         """
 
-        # Create particles individual working directory
+        # Create individual working directory for each evaluation
         origdir = os.getcwd()
         workroot = self.config['workroot']
         if workroot is None:
@@ -150,40 +157,35 @@ class Evaluator (object):
             workdir = get_workdir(iteration, workroot)
             create_workdir(workdir, self.config['templatedir'])
 
-        # Update models with new parameters.
-        # Updating the models should be the first task in the tasks list,
-        # but user may decide to omit it in some situations (e.g. if only
-        # interested in evaluating the set of models, not optimising).
-        jj = 0
-        task = self.tasks[jj]
-        if isinstance(task, SetTask):
-            if parameters is None:
-                self.logger.warning('Omitting task 1 due to None parameters:')
-                self.logger.debug(task)
-            else:
-                self.msg('Iteration : {}'.format(iteration))
-                self.msg('Parameters: {:s}'.format(", ".join(["{:.6f}".format(p) for p in parameters])))
-                os.chdir(workdir)
-                task(workdir, parameters, iteration)
-            jj = 1
+        # Initialise model database
+        # Do we really need to flush the modeldb?
+        self.logger.info('Initialising ModelDataBase.')
+        # modeldb may be something different that a dictionary, but
+        # whatever object it is, should have get(), set(), has()
+        # The point is that for every individual evaluation, we must
+        # have individual model DB, so evaluations can be done in parallel.
+        modeldb = {}
+
+        # Initialise tasks
+        self.tasks = initialise_tasks(self.tasklist, self.taskdict,
+                self.refdb, modeldb, iteration=iteration, parameters=parameters,
+                workdir=workdir)
+
         # Get new model data by executing the rest of the tasks
-        for ii, task in enumerate(self.tasks[jj:]):
-            kk = ii + jj
+        for i, task in enumerate(self.tasks):
             os.chdir(workdir)
             try:
-                if isinstance(task, PlotTask):
-                    task(iteration)
-                else:
-                    task(workdir)
+                task(workdir, iteration)
             except:
-                self.logger.critical('Evaluation FAILED at task {}:\n{}'.format(kk+1, task))
+                self.logger.critical('Evaluation FAILED at task {}:\n{}'.\
+                                     format(i, task))
                 raise
 
         # Evaluate individual fitness for each objective
-        self.objvfitness = eval_objectives(self.objectives)
+        objvfitness = eval_objectives(self.objectives)
         ref = self.utopia
         # evaluate global fitness
-        cost = self.costf(ref, self.objvfitness, self.weights)
+        cost = self.costf(ref, objvfitness, self.weights)
         self.msg('{:<15s}: {}\n'.format('Overall cost', cost))
 
         # Remove particle specific working dir if not needed:

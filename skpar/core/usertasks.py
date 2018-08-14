@@ -83,8 +83,8 @@ def update_taskdict(userinp, taskdict):
     modules = import_modules(userinp)
     for mod in modules:
         try:
-            taskdict = taskdict.update(mod.TASKDICT)
+            taskdict.update(mod.TASKDICT)
         except AttributeError:
-            LOGGER.warning('User module %(name) has no taskdict and is ignored.',
+            LOGGER.warning('User module %(name) has no taskdict; Ignored.',
                            name=mod.__name__)
     return taskdict
