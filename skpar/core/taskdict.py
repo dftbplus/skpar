@@ -1,34 +1,32 @@
-import logging
-import numpy as np
-import itertools
+"""Dictionary with default tasks and their underlying functions."""
 import os.path
 import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+import numpy as np
 from skpar.core.utils import get_ranges, get_logger
 from skpar.core.plot import skparplot
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from skpar.dftbutils.queryDFTB import get_dftbp_evol
 from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 from skpar.dftbutils.plot import magic_plot_bs
+matplotlib.use("Agg")
 
-module_logger = get_logger('skpar.tasks')
+LOGGER = get_logger('skpar.tasks')
+
+TASKDICT = {}
 
 def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
 
-    Use numpy.loadtxt to get the data from `src` file and 
-    write the data to `dst` dictionary under `data_key`. 
+    Use numpy.loadtxt to get the data from `src` file and
+    write the data to `dst` dictionary under `data_key`.
 
-    Applicable kwargs: 
+    Applicable kwargs:
 
         * loader_args: dictionary of np.loadtxt kwargs
 
         * process: dictionary of kwargs:
-            
-            + rm_columns: [ index, index, [ilow, ihigh], otherindex, [otherrange]] 
-            + rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]] 
+            + rm_columns: [ index, index, [ilow, ihigh], otherindex, [otherrange]]
+            + rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
             + scale : float=1
     """
     assert isinstance(src, str), \
@@ -43,18 +41,18 @@ def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
     # make sure we don't try to unpack a key-value data
     if 'dtype' in loader_args.keys() and\
         'names' in loader_args['dtype']:
-            loader_args['unpack'] = False
+        loader_args['unpack'] = False
     # read file
     try:
         array_data = np.loadtxt(fname, **loader_args)
     except ValueError:
         # `fname` was not understood
-        module_logger.critical('np.loadtxt cannot understand the contents of {}'.format(fname)+\
-                                'with the given loader arguments: {}'.format(**loader_args))
+        LOGGER.critical('np.loadtxt cannot understand the contents of %s'+\
+            'with the given loader arguments: %s', fname, **loader_args)
         raise
     except (IOError, FileNotFoundError):
         # `fname` was not understood
-        module_logger.critical('Data file {} cannot be found'.format(fname))
+        LOGGER.critical('Data file %s cannot be found', fname)
         raise
     # do some filtering on columns and/or rows if requested
     # note that file to 2D-array mapping depends on 'unpack' from
@@ -71,7 +69,7 @@ def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
         for axis, key in enumerate([key1, key2]):
             rm_rngs = postprocess.get(key, [])
             if rm_rngs:
-                indexes=[]
+                indexes = []
                 # flatten, combine and sort, then delete corresp. object
                 for rng in get_ranges(rm_rngs):
                     indexes.extend(list(range(*rng)))
@@ -82,16 +80,19 @@ def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
         array_data = array_data * scale
     dst[data_key] = array_data
 
-gettaskdict = {
-        'get_model_data': get_model_data,
-        'get_dftbp_data': get_dftbp_data,
-        'get_dftbp_evol': get_dftbp_evol,
-        'get_dftbp_bs'  : get_bandstructure,
-        'get_dftbp_meff': get_effmasses,
-        'get_dftbp_Ek'  : get_special_Ek,
-        }
+GETTASKDICT = {
+    'get_model_data': get_model_data,
+    'get_dftbp_data': get_dftbp_data,
+    'get_dftbp_evol': get_dftbp_evol,
+    'get_dftbp_bs'  : get_bandstructure,
+    'get_dftbp_meff': get_effmasses,
+    'get_dftbp_Ek'  : get_special_Ek,
+    }
 
-plottaskdict = {
-        'plot_objvs': skparplot,
-        'plot_bs'   : magic_plot_bs
-        }
+PLOTTASKDICT = {
+    'plot_objvs': skparplot,
+    'plot_bs'   : magic_plot_bs
+    }
+
+TASKDICT.update(GETTASKDICT)
+TASKDICT.update(PLOTTASKDICT)

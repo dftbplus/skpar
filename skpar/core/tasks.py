@@ -7,7 +7,7 @@ import numpy as np
 from subprocess import STDOUT
 from pprint import pprint, pformat
 from skpar.core.query import Query
-from skpar.core.taskdict import gettaskdict, plottaskdict
+from skpar.core.taskdict import GETTASKDICT, PLOTTASKDICT
 from skpar.core.parameters import update_parameters
 from skpar.core.utils import get_logger
 
@@ -507,7 +507,7 @@ def get_tasklist(userinp):
         if 'get' == tasktype.lower():
             assert isinstance(taskargs, list)
             # 1. Assign the real function to 1st arg
-            func = gettaskdict[taskargs[0]]
+            func = GETTASKDICT[taskargs[0]]
             taskargs[0] = func
             # 2. Check if we have optional dictionary of arguments
             if isinstance(taskargs[-1], dict):
@@ -532,7 +532,7 @@ def get_tasklist(userinp):
                 "A plot task must have at least 3 arguments:"\
                 "PlotFunction, Plotname, Objectives, Optional Abscissa-Key, Optional kwargs"
             # 1. Assign the real function to 1st arg
-            func = plottaskdict[taskargs[0]]
+            func = PLOTTASKDICT[taskargs[0]]
             taskargs[0] = func
             # 2. Check if we have optional dictionary of arguments
             if isinstance(taskargs[-1], dict):
@@ -602,7 +602,7 @@ def set_tasks(spec, exedict=None, parnames=None):
         if 'get' == tasktype.lower():
             assert isinstance(taskargs, list)
             # 1. Assign the real function to 1st arg
-            func = gettaskdict[taskargs[0]]
+            func = GETTASKDICT[taskargs[0]]
             taskargs[0] = func
             # 2. Check if we have optional dictionary of arguments
             if isinstance(taskargs[-1], dict):
@@ -627,7 +627,7 @@ def set_tasks(spec, exedict=None, parnames=None):
                 "A plot task must have at least 3 arguments:"\
                 "PlotFunction, Plotname, Objectives, Optional Abscissa-Key, Optional kwargs"
             # 1. Assign the real function to 1st arg
-            func = plottaskdict[taskargs[0]]
+            func = PLOTTASKDICT[taskargs[0]]
             taskargs[0] = func
             # 2. Check if we have optional dictionary of arguments
             if isinstance(taskargs[-1], dict):

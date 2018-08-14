@@ -1,12 +1,9 @@
 """
-Routines to handle the input of skpar
+Routines to handle the input file of skpar
 """
-import numpy as np
-import yaml
 import json
-#import pprint
+import yaml
 from collections import OrderedDict
-import logging
 import os
 import sys
 from skpar.core.utils      import normalise, get_logger
@@ -14,10 +11,10 @@ from skpar.core.objectives import set_objectives
 from skpar.core.query      import Query
 from skpar.core.tasks      import set_tasks, PlotTask
 from skpar.core.optimise   import get_optargs
-from skpar.core.taskdict   import tasksdict
+from skpar.core.taskdict   import TASKSDICT
 from skpar.core.usertasks  import update_taskdict
 
-module_logger = get_logger('skpar.input')
+LOGGER = get_logger(__name__)
 
 def get_input(filename):
     """Read input; Exception for non-existent file.
@@ -25,14 +22,13 @@ def get_input(filename):
     with open(filename, 'r') as infile:
         try:
             spec = yaml.load(infile)
-        except yaml.YAMLError as exc:
-            print ('Warning: Input not a valid YAML')
+        except (yaml.YAMLError) as exc:
+            LOGGER.warning('Input not a valid YAML')
             try:
                 spec = json.load(infile)
-            except (ValueError, json.JSONDecodeError) as exc:  # raised if input is not a valid json
+            except (ValueError, json.JSONDecodeError) as exc:
             # json.JSONDecodeError is available only python3.5 onwards
-                print ('Error: Cannot handle {} as JSON or YAML file.'.
-                        format(filename))
+                LOGGER.critical('Cannot handle %s as JSON or YAML file.', filename)
                 raise
     return spec
 
