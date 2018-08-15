@@ -10,9 +10,67 @@ from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 from skpar.dftbutils.plot import magic_plot_bs
 matplotlib.use("Agg")
 
-LOGGER = get_logger('skpar.tasks')
+LOGGER = get_logger(__name__)
 
-TASKDICT = {}
+def execute(workroot, cmd, cdir='.', outfile='out.log', logger=LOGGER, **kwargs):
+    """Wrapper over external executables.
+
+    Args:
+        workroot: root directory related to the task, typically not controlled
+            by user, but explicitly passed by caller.
+        cmd(list): command to be executed [0] and command line arguments [1:]
+        cdir: directory, relative to workroot, where executable should be run
+        outfile: output log file
+        logger: python logging logger
+
+    No kwargs are parsed or processed.
+    
+    Raises:
+        subprocess.CalledProcessError: if command fails during its execution
+        OSError: if command cannot be executed for some reason
+    """
+    def write_out(out, outfile):
+        """Write subprocess output to a file"""
+        if outfile is not None:
+            with open(outfile, 'w') as filep:
+                filep.write(out)
+            logger.debug("Output is in %s.\n", outfile)
+    #
+    origdir = os.getcwd()
+    workdir = os.path.normpath(os.path.join(workroot, cdir))
+    try:
+        os.chdir(workdir)
+    except:
+        # this should not happen; typically, the workdir should already
+        # be there and contain some input file and data
+        logger.critical("Cannot change to working directory %s", workdir)
+        raise
+    #
+    if outfile is not None:
+        outfile = os.path.normpath(os.path.join(workdir, outfile))
+    #
+    try:
+        logger.debug("Running %s in %s...", cmd, workdir)
+        out = subprocess.check_output(
+            cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+        logger.debug('Done.')
+        write_out(out, outfile)
+    #
+    except subprocess.CalledProcessError as exc:
+        logger.critical('The following task failed with exit status %s:\n',
+                        exc.returncode)
+        write_out(exc.output, outfile)
+        raise
+    #
+    except OSError as exc:
+        logger.critical("Abnormal termination: OS could not execute %s in %s",
+                        cmd, cdir)
+        logger.critical("If the command is a script, make sure there is a shebang!")
+        raise
+    #
+    finally:
+        # make sure we return to where we started from in any case!
+        os.chdir(origdir)
 
 def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
     """Get data from file and put it in a dictionary under a given key.
@@ -79,6 +137,8 @@ def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
         scale = postprocess.get('scale', 1)
         array_data = array_data * scale
     dst[data_key] = array_data
+
+TASKDICT = {'exe': execute}
 
 GETTASKDICT = {
     'get_model_data': get_model_data,

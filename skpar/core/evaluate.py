@@ -76,7 +76,7 @@ ERRF = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 # ----------------------------------------------------------------------
 
 
-class Evaluator (object):
+class Evaluator():
     """**Evaluator**
 
     The evaluator is the only thing visible to the optimiser.
@@ -158,9 +158,8 @@ class Evaluator (object):
             create_workdir(workdir, self.config['templatedir'])
 
         # Initialise model database
-        # Do we really need to flush the modeldb?
         self.logger.info('Initialising ModelDataBase.')
-        # modeldb may be something different that a dictionary, but
+        # modeldb may be something different than a dictionary, but
         # whatever object it is, should have get(), set(), has()
         # The point is that for every individual evaluation, we must
         # have individual model DB, so evaluations can be done in parallel.
@@ -168,17 +167,16 @@ class Evaluator (object):
 
         # Initialise tasks
         self.tasks = initialise_tasks(self.tasklist, self.taskdict,
-                self.refdb, modeldb, iteration=iteration, parameters=parameters,
-                workdir=workdir)
+                                      self.refdb, modeldb, iteration=iteration,
+                                      parameters=parameters, workdir=workdir)
 
         # Get new model data by executing the rest of the tasks
         for i, task in enumerate(self.tasks):
             os.chdir(workdir)
             try:
-                task(workdir, iteration)
+                task()
             except:
-                self.logger.critical('Evaluation FAILED at task {}:\n{}'.\
-                                     format(i, task))
+                self.logger.critical('Evaluation FAILED at task %i:\n%s', i, task)
                 raise
 
         # Evaluate individual fitness for each objective

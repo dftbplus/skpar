@@ -33,6 +33,65 @@ def check_tasks(tasklist, taskdict):
             LOGGER.critical('Check spelling and verify import of user modules')
             sys.exit(1)
 
+def initialise_tasks(tasklist, taskdict, implargs):
+    """Transform a tasklist into a list of callables as per taskdict.
+
+    Args:
+        tasklist(list): a list of (task-name, user-arguments) pairs
+        taskdict(dict): a dictionary mapping task names to actual functions
+        implargs(dict): a dictionary with implicit arguments
+
+    Returns:
+        tasks(list): callable objects, instances of Task class
+
+    Both user-arguments and implicit arguments are passed to the actual
+    function upon call().
+    """
+    tasks = []
+    for task in tasklist:
+        name = task[0]
+        func = taskdict[name]
+        fargs = task[1:]
+        tasks.append(Task(name, func, fargs, implargs))
+    return tasks
+
+
+class Task():
+    """Generic wrapper over functions or executables.
+    """
+    def __init__(self, name, func, fargs, implargs):
+        """Create a callable object from user input"""
+        def parse(fargs):
+            """Split given arguments into positional- and keyword-type
+            """
+            args = []
+            kwargs = {}
+            for arg in fargs:
+                try:
+                    (key, val), = arg
+                    if key == 'kwargs':
+                        kwargs.update(val)
+                except (TypeError, ValueError):
+                    args.append(arg)
+            return args, kwargs
+        self.name = name
+        self.func = func
+        self.args, self.kwargs = parse(fargs)
+        self.kwargs.update(implargs)
+    def __call__(self):
+        """Execute the task, let caller handle any exception raised by func"""
+        self.func(*self.args, **self.kwargs)
+    def __repr__(self):
+        """Yield a summary of the task.
+        """
+        srepr = []
+        srepr.append('{:s}'.format(self.name))
+        srepr.append('{:s}'.format(self.func))
+        srepr.append('{:s}'.format(self.args))
+        srepr.append('{:s}'.format(self.kwargs))
+        return "\n" + "\n".join(srepr)
+
+
 def islistoflists(arg):
     """Return True if item is a list of lists.
     """
@@ -41,18 +100,6 @@ def islistoflists(arg):
         if isinstance(arg[0], list):
             tf = True
     return tf
-
-
-class Task(object):
-    """Generic wrapper over functions or executables.
-    """
-    def __init__(self, userinp):
-        """Create a callable object from user input"""
-        pass
-
-    def __call__(self, environment, objectives, modeldb):
-        """Execute the task"""
-        pass
 
 
 class RunTask (object):
