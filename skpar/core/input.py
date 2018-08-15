@@ -9,7 +9,7 @@ from skpar.core.objectives import set_objectives
 from skpar.core.query      import Query
 from skpar.core.tasks      import get_tasklist, check_tasks
 from skpar.core.optimise   import get_optargs
-from skpar.core.taskdict   import TASKDICT
+#from skpar.core.taskdict   import TASKDICT
 from skpar.core.usertasks  import update_taskdict
 
 LOGGER = get_logger(__name__)
@@ -39,8 +39,11 @@ def parse_input(filename, verbose=False):
     optinp = userinp.get('optimisation', None)
     optimisation = get_optargs(optinp)
     #
+    taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
-    taskdict = update_taskdict(usermodulesinp, TASKDICT)
+    update_taskdict(usermodulesinp, taskdict)
+    update_taskdict('skpar.core.taskdict', taskdict)
+    update_taskdict('skpar.dftbutils.taskdict', taskdict)
     #
     taskinp = userinp.get('tasks', None)
     tasklist = get_tasklist(taskinp)

@@ -24,8 +24,13 @@ NOTE that TASKDICT is all capital letters!
 How to specify user modules in skpar input:
     usermodules: [mod1, (mod2,path), ]
 
-If path is not specified, sys.path and the above default directories
+If path is not specified, the above default directories and sys.path
 are checked for the named module (mod1 in the example above).
+
+
+NOTE: sys.path is not ever modified; Therefore, if the user module
+      contains import statements, these can only refer to modules
+      that are already on sys.path, or else such imports will fail!
 """
 import os
 import sys
@@ -34,22 +39,19 @@ from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
-USER_MODULES_PATH = ['.', os.path.expanduser('~/.local/share/skpar')]
+USER_MODULES_PATH = ['.',
+                     os.path.expanduser('~/.local/share/skpar'),
+                     sys.path,]
 
 def import_user_module(name, path=None):
     """Import a user module with a given name
 
-    If path is not given, sys.modules is checked first,
+    If path is not given, sys.path is tried first,
     then '.' and the '~/.local/share/skpar' directories in that order.
     If this fails, let caller deal with it.
     """
     if path is None:
-        # Suppose user may have the module along sys.path
-        try:
-            return sys.modules[name]
-        except KeyError:
-            pass
-        # But if not installed, and no path, then search in common places
+        # If no path, then search in common places
         path = USER_MODULES_PATH
         LOGGER.info('Looking for user modules in %s', path)
     else:
