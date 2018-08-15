@@ -4,6 +4,16 @@ import numpy as np
 import logging
 import os
 
+def islistoflists(arg):
+    """Return True if item is a list of lists.
+    """
+    claim = False
+    if isinstance(arg, list):
+        if isinstance(arg[0], list):
+            claim = True
+    return claim
+
+
 def f2prange(rng):
     """Convert fortran range definition to a python one.
     
