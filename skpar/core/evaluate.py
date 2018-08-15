@@ -164,17 +164,16 @@ class Evaluator():
         # The point is that for every individual evaluation, we must
         # have individual model DB, so evaluations can be done in parallel.
         modeldb = {}
-
+        # Wrap the environment in a single dict
+        env = {'workroot': workdir, 'logger': self.logger,
+                'parameters': parameters, 'iteration': iteration,}
         # Initialise tasks
-        self.tasks = initialise_tasks(self.tasklist, self.taskdict,
-                                      self.refdb, modeldb, iteration=iteration,
-                                      parameters=parameters, workdir=workdir)
-
+        self.tasks = initialise_tasks(self.tasklist, self.taskdict),
         # Get new model data by executing the rest of the tasks
         for i, task in enumerate(self.tasks):
             os.chdir(workdir)
             try:
-                task()
+                task(env, modeldb)
             except:
                 self.logger.critical('Evaluation FAILED at task %i:\n%s', i, task)
                 raise

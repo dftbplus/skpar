@@ -2,6 +2,7 @@
 import os.path
 import matplotlib
 import numpy as np
+import subprocess
 from skpar.core.utils import get_ranges, get_logger
 from skpar.core.plot import skparplot
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
@@ -12,23 +13,22 @@ matplotlib.use("Agg")
 
 LOGGER = get_logger(__name__)
 
-def execute(workroot, cmd, cdir='.', outfile='out.log', logger=LOGGER, **kwargs):
+def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
     """Wrapper over external executables.
 
     Args:
-        workroot: root directory related to the task, typically not controlled
-            by user, but explicitly passed by caller.
+        implargs(dict): implicit argument passed by the caller
         cmd(list): command to be executed [0] and command line arguments [1:]
-        cdir: directory, relative to workroot, where executable should be run
+        cdir(str): directory, relative to implargs[workroot], where executable
+            should be run; if workroot is not found, cdir is relative to '.'
         outfile: output log file
-        logger: python logging logger
 
-    No kwargs are parsed or processed.
-    
     Raises:
         subprocess.CalledProcessError: if command fails during its execution
         OSError: if command cannot be executed for some reason
     """
+    logger = implargs.get('logger', LOGGER)
+    #
     def write_out(out, outfile):
         """Write subprocess output to a file"""
         if outfile is not None:
@@ -37,6 +37,7 @@ def execute(workroot, cmd, cdir='.', outfile='out.log', logger=LOGGER, **kwargs)
             logger.debug("Output is in %s.\n", outfile)
     #
     origdir = os.getcwd()
+    workroot = implargs.get('workroot', '.')
     workdir = os.path.normpath(os.path.join(workroot, cdir))
     try:
         os.chdir(workdir)
@@ -65,59 +66,58 @@ def execute(workroot, cmd, cdir='.', outfile='out.log', logger=LOGGER, **kwargs)
     except OSError as exc:
         logger.critical("Abnormal termination: OS could not execute %s in %s",
                         cmd, cdir)
-        logger.critical("If the command is a script, make sure there is a shebang!")
+        logger.critical("If the command is a script,"\
+                        " make sure there is a shebang!")
         raise
     #
     finally:
         # make sure we return to where we started from in any case!
         os.chdir(origdir)
 
-def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
-    """Get data from file and put it in a dictionary under a given key.
 
-    Use numpy.loadtxt to get the data from `src` file and
-    write the data to `dst` dictionary under `data_key`.
+def get_model_data (implargs, database, src, dst, datakey,
+                    rm_columns=None, rm_rows=None, scale=1., **kwargs):
+    """Get data from file and put it in a database under a given key.
 
-    Applicable kwargs:
+    Use numpy.loadtxt to get the data from `src` file and write the data
+    to `database` under `dst`.`key` field. If `dst` does not exist, it is
+    created. All `kwargs` are directly passed to numpy.loadtxt. Additionally,
+    some post-processing can be done (removing rows or columns and scaling).
 
-        * loader_args: dictionary of np.loadtxt kwargs
-
-        * process: dictionary of kwargs:
-            + rm_columns: [ index, index, [ilow, ihigh], otherindex, [otherrange]]
-            + rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
-            + scale : float=1
+    Args:
+        implargs(dict): dictionary of implicit arguments from caller
+        database(object): must support dictionary-like insert/get/update()
+        src(str): file name (path is relative to `implargs['workroot']`)
+        dst(str): name of destination field in `database`
+        key(str): key under which to store the data in under `dst`
+        rm_columns: [ index, index, [ilow, ihigh], otherindex, [otherrange]]
+        rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
+        scale(float): multiplier of the data
     """
+    logger = implargs.get('logger', LOGGER)
+    workroot = implargs.get('workroot', '.')
     assert isinstance(src, str), \
         "src must be a filename string, but is {} instead.".format(type(src))
-    assert isinstance(data_key, str), \
-        "data_key must be a string naming the data, but is {} instead.".format(type(data_key))
-
-    fname = os.path.normpath(os.path.join(workroot, os.path.expanduser(src)))
-    loader_args = {} #{'unpack': False}
-    # overwrite defaults and add new loader_args
-    loader_args.update(kwargs.get('loader_args', {}))
-    # make sure we don't try to unpack a key-value data
-    if 'dtype' in loader_args.keys() and\
-        'names' in loader_args['dtype']:
-        loader_args['unpack'] = False
+    assert isinstance(datakey, str),\
+        "datakey must be a string naming the data, but is {} instead."\
+            .format(type(datakey))
     # read file
+    fname = os.path.normpath(os.path.join(workroot, src))
     try:
-        array_data = np.loadtxt(fname, **loader_args)
+        data = np.loadtxt(fname, **kwargs)
     except ValueError:
-        # `fname` was not understood
-        LOGGER.critical('np.loadtxt cannot understand the contents of %s'+\
-            'with the given loader arguments: %s', fname, **loader_args)
+        logger.critical('np.loadtxt cannot understand the contents of %s'+\
+            'with the given arguments: %s', fname, **kwargs)
         raise
     except (IOError, FileNotFoundError):
-        # `fname` was not understood
-        LOGGER.critical('Data file %s cannot be found', fname)
+        logger.critical('np.loadtxt cannot open %s', fname)
         raise
     # do some filtering on columns and/or rows if requested
     # note that file to 2D-array mapping depends on 'unpack' from
-    # loader_args, which transposes the loaded array.
-    postprocess = kwargs.get('process', {})
-    if postprocess:
-        if 'unpack' in loader_args.keys() and loader_args['unpack']:
+    # kwargs, which transposes the loaded array.
+    postprocess = {'rm_columns': rm_columns, 'rm_rows': rm_rows}
+    if not any(postprocess.values()):
+        if 'unpack' in kwargs.keys() and kwargs['unpack']:
             # since 'unpack' transposes the array, now row index
             # in the original file is along axis 1, while column index
             # in the original file is along axis 0.
@@ -133,10 +133,10 @@ def get_model_data (workroot, src, dst, data_key, *args, **kwargs):
                     indexes.extend(list(range(*rng)))
                 indexes = list(set(indexes))
                 indexes.sort()
-                array_data = np.delete(array_data, obj=indexes, axis=axis)
-        scale = postprocess.get('scale', 1)
-        array_data = array_data * scale
-    dst[data_key] = array_data
+                data = np.delete(data, obj=indexes, axis=axis)
+    data = data * scale
+    # this have to become more generic: database.update(dst.datakey, data)
+    database[dst][datakey] = data
 
 TASKDICT = {'exe': execute}
 

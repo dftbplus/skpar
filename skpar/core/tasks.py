@@ -33,171 +33,46 @@ def check_tasks(tasklist, taskdict):
             LOGGER.critical('Check spelling and verify import of user modules')
             sys.exit(1)
 
-def initialise_tasks(tasklist, taskdict, implargs):
+def initialise_tasks(tasklist, taskdict):
     """Transform a tasklist into a list of callables as per taskdict.
 
     Args:
         tasklist(list): a list of (task-name, user-arguments) pairs
         taskdict(dict): a dictionary mapping task names to actual functions
-        implargs(dict): a dictionary with implicit arguments
 
     Returns:
         tasks(list): callable objects, instances of Task class
-
-    Both user-arguments and implicit arguments are passed to the actual
-    function upon call().
     """
     tasks = []
     for task in tasklist:
         name = task[0]
         func = taskdict[name]
         fargs = task[1:]
-        tasks.append(Task(name, func, fargs, implargs))
+        tasks.append(Task(name, func, fargs))
     return tasks
 
 
-class Task():
+class Task(object):
     """Generic wrapper over functions or executables.
     """
-    def __init__(self, name, func, fargs, implargs):
+    def __init__(self, name, func, fargs):
         """Create a callable object from user input"""
-        def parse(fargs):
-            """Split given arguments into positional- and keyword-type
-            """
-            args = []
-            kwargs = {}
-            for arg in fargs:
-                try:
-                    (key, val), = arg
-                    if key == 'kwargs':
-                        kwargs.update(val)
-                except (TypeError, ValueError):
-                    args.append(arg)
-            return args, kwargs
         self.name = name
         self.func = func
-        self.args, self.kwargs = parse(fargs)
-        self.kwargs.update(implargs)
-    def __call__(self):
+        self.fargs = fargs
+    #
+    def __call__(self, coreargs, database):
         """Execute the task, let caller handle any exception raised by func"""
-        self.func(*self.args, **self.kwargs)
+        self.func(coreargs, database, self.fargs)
+    #
     def __repr__(self):
         """Yield a summary of the task.
         """
         srepr = []
         srepr.append('{:s}'.format(self.name))
         srepr.append('{:s}'.format(self.func))
-        srepr.append('{:s}'.format(self.args))
-        srepr.append('{:s}'.format(self.kwargs))
+        srepr.append('{:s}'.format(self.fargs))
         return "\n" + "\n".join(srepr)
-
-
-def islistoflists(arg):
-    """Return True if item is a list of lists.
-    """
-    tf = False
-    if isinstance(arg, list):
-        if isinstance(arg[0], list):
-            tf = True
-    return tf
-
-
-class RunTask (object):
-    """Class for running an external executable."""
-    
-    def __init__(self, cmd, wd='.', out='out.log', exedict=None):
-        self.logger = LOGGER
-        self.wd = wd
-        _cmd = cmd.split() if isinstance(cmd, str) else cmd
-        assert isinstance(_cmd, list)
-        exe  = _cmd[0]
-        args = _cmd[1:]
-        # remap the executable; accept even a command with args
-        if exedict is not None:
-            true_cmd  = exedict.get(exe, exe).split()
-            exe = true_cmd[0]
-            args = true_cmd[1:] + args
-        # We must analyse if there is a path component to the exe,
-        # and if so, make it absolute; alternatively, we assume the
-        # exe is on the PATH
-        if splitpath(exe)[0]:
-            exe = abspath(expanduser(exe))
-        self.cmd = [exe] + args
-        if out is not None:
-            self.outfile = os.path.normpath(os.path.join(self.wd, out))
-        else:
-            self.outfile = None
-        # Will contain output of command execution (used for unittests)
-        self.out = None
-
-
-    def __call__(self, workroot):
-        origdir = os.getcwd()
-        workdir = os.path.normpath(os.path.join(workroot, self.wd))
-        outfile = self.outfile
-        if outfile is not None:
-            outfile = os.path.normpath(os.path.join(workroot, self.outfile))
-
-        try:
-            os.chdir(workdir)
-        except:
-            self.logger.critical("Cannot change to working directory {}"\
-                                 .format(workdir))
-            raise
-
-        try:
-            msg = "Running {} in {}...".format(self.cmd, workdir)
-            self.logger.debug(msg)
-            self.out = subprocess.check_output(
-                self.cmd, universal_newlines=True, stderr=subprocess.STDOUT)
-
-            if outfile is not None:
-                with open(outfile, 'w') as fp:
-                    fp.write(self.out)
-                msg = "Done.  : output is in {}.\n"\
-                      .format(os.path.relpath(outfile))
-                self.logger.debug(msg)
-            else:
-                msg = "Done.  : outfile was None; output discarded.\n"
-                self.logger.debug(msg)
-
-        except subprocess.CalledProcessError as exc:
-            # report the issue and exit
-            msg = 'The following task failed with exit status {}:\n'\
-                  .format(exc.returncode)
-            self.logger.critical(msg)
-            self.logger.critical(self.__repr__())
-            self.out = exc.output
-            if outfile is not None:
-                with open(outfile, 'w') as fp:
-                    fp.write(self.out)
-            raise
-
-        except OSError as exc:
-            msg = "Abnormal termination -- OS could not handle the command of:"
-            self.logger.critical(msg)
-            msg = "If the command is a script, make sure there is a shebang!"
-            self.logger.critical(msg)
-            self.logger.critical(self.__repr__())
-            self.logger.debug(os.getcwd())
-            raise
-
-        finally:
-            os.chdir(origdir)
-
-
-    def __repr__(self):
-        """Yield a summary of the task.
-        """
-        s = []
-        s.append("{:9s}{:<15s}: {}".format("","RunTask in", os.path.relpath(self.wd)))
-        s.append("{:9s}{:<15s}: {}".format("","command", pformat(' '.join(self.cmd))))
-        if self.outfile is not None:
-            s.append("{:9s}{:<15s}: {}".format("","out/err", os.path.relpath(self.outfile)))
-        else:
-            s.append("{:9s}{:<15s}: {}".format("","out/err", "discarded"))
-        return "\n" + "\n".join(s)
-
 
 
 class SetTask(object):
