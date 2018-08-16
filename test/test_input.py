@@ -2,7 +2,7 @@ import unittest
 import logging
 import json
 from skpar.core.input import parse_input, get_input
-from skpar.core.taskdict import gettaskdict
+#from skpar.core.taskdict import gettaskdict
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -17,20 +17,19 @@ class ParseInputTest(unittest.TestCase):
         infile = 'test_in.yaml'
         # check we handle yaml with new routine
         data1 = get_input(infile)
-        print('data1:')
-        print (data1)
+        #print('data1:')
+        #print (data1)
 
         # check we handle json with new routine
         infile = 'test_in.json'
         data2 = get_input(infile)
-        print('data2:')
-        print (data2)
+        #print('data2:')
+        #print (data2)
         self.assertDictEqual(data1,data2)
 
 
     def test_parse_input(self):
         """Can we parse input and create all tasks, objectives, etc.?"""
-        filename = "skpar_in.yaml"
         filename = "test_optimise.yaml"
         _input = parse_input(filename)
         tasklist     = _input[0]

@@ -34,15 +34,19 @@ def parse_input(filename, verbose=False):
     """
     userinp = get_input(filename)
     #
+    configinp = userinp.get('config', None)
+    config = get_config(configinp)
+    #
     optinp = userinp.get('optimisation', None)
     optimisation = get_optargs(optinp)
     #
     taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
     # Tag the tasks from user modules like modulename.taskname
-    update_taskdict(usermodulesinp, taskdict, tag=True)
+    tag = config['tagimports']
+    if usermodulesinp:
+        update_taskdict(usermodulesinp, taskdict, tag=tag)
     update_taskdict('skpar.core.taskdict', taskdict)
-    update_taskdict('skpar.dftbutils.taskdict', taskdict)
     #
     taskinp = userinp.get('tasks', None)
     tasklist = get_tasklist(taskinp)
@@ -50,9 +54,6 @@ def parse_input(filename, verbose=False):
     #
     objectivesinp = userinp.get('objectives', None)
     objectives = set_objectives(objectivesinp, verbose=verbose)
-    #
-    configinp = userinp.get('config', None)
-    config = get_config(configinp)
     #
     return taskdict, tasklist, objectives, optimisation, config
 
@@ -70,4 +71,5 @@ def get_config(userinp):
         templatedir = os.path.abspath(os.path.expanduser(templatedir))
     config['templatedir'] = templatedir
     config['keepworkdirs'] = userinp.get('keepworkdirs', False)
+    config['tagimports'] = userinp.get('tagimports', True)
     return config

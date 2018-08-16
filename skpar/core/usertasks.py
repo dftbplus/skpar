@@ -77,7 +77,7 @@ def import_user_module(name, path=None):
                 LOGGER.info('Module %s not found in %s', name, filedir)
                 # continue searching along path
         else:
-            LOGGER.info('Omitting %s – non existent directory')
+            LOGGER.info('Omitting %s – non existent directory', filedir)
     try:
         return module
     except NameError:
@@ -110,6 +110,8 @@ def update_taskdict(userinp, taskdict, tag=False):
     Raises:
         AttributeError if an imported module do not have a TASKDICT dictionary.
     """
+    if isinstance(userinp, str):
+        userinp = [userinp]
     modules = import_modules(userinp)
     for mod in modules:
         try:

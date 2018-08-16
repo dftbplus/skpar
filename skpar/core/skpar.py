@@ -43,7 +43,7 @@ class SKPAR(object):
             algo, options, parameters = optimisation
             self.logger.info('Instantiating Optimiser')
             self.optimiser = Optimiser(algo, parameters, self.evaluator,
-                                       verbose=True, **options)
+                                       options, verbose=True)
         else:
             self.do_optimisation = False
 

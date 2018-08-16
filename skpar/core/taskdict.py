@@ -5,6 +5,7 @@ import matplotlib
 import numpy as np
 from skpar.core.utils import get_ranges, get_logger
 from skpar.core.plot import skparplot
+from skpar.core.parameter import update_parameters
 matplotlib.use("Agg")
 
 LOGGER = get_logger(__name__)
@@ -135,9 +136,42 @@ def get_model_data (implargs, database, src, dst, datakey,
     database[dst][datakey] = data
 
 
+def substitute_parameters(implargs, database, templatefiles, options, **kwargs):
+    """Substitute parameters (within implicit arguments) in given templates.
+    """
+    logger = implargs.get('logger', LOGGER)
+    workroot = implargs.get('workroot', '.')
+    iteration = implargs.get('iteration', None)
+    parameters = implargs.get('parameters', None)
+    if parameters is not None:
+        try:
+            # assume parameters are objects with names
+            parnames = [p.name for p in parameters]
+        except AttributeError:
+            try:
+                parnames = options['parnames']
+            except AttributeError:
+                logger.critical('No parameter names found. '\
+                                'Cannot proceed with parameter substitution.')
+                raise
+        logger.debug("Substituting parameters for iteration %s in %s.",\
+                     iteration, workroot)
+        update_parameters(workroot, templatefiles, parameters, parnames,
+                          **kwargs)
+
+
 TASKDICT = {
+    'set': substitute_parameters,
+    'sub': substitute_parameters,
+    'substitute': substitute_parameters,
+    #
+    'run': execute,
     'exe': execute,
     'execute': execute,
-    'get_model_data': get_model_data,
-    'plot_objvs': skparplot,
+    #
+    'get': get_model_data,
+    'get_data': get_model_data,
+    #
+    'plot': skparplot,
+    'plot_objectives': skparplot,
     }

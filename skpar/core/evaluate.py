@@ -76,14 +76,14 @@ ERRF = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 # ----------------------------------------------------------------------
 
 
-class Evaluator():
+class Evaluator(object):
     """**Evaluator**
 
     The evaluator is the only thing visible to the optimiser.
     It has several things to do:
 
-    1. Accept a list (or dict?) of parameter values (or key-value pairs),
-       and an iteration number (or a tuple: (generation,particle_index)).
+    1. Accept a list (or dict) of parameter values (or key-value pairs),
+       and an iteration number (or a tuple: (e.g. generation,particle_index)).
 
     2. Update tasks (and underlying models) with new parameter values.
 
@@ -99,17 +99,17 @@ class Evaluator():
                  costf=COSTF[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
                  verbose=False, **kwargs):
         self.objectives = objectives
-        # ideally refdb does not change; should be passed as an object
-        # that contains get() and has()
-        # this is a temporary hack but not consistent with current
-        # implementation of objectives
+        # Ideally refdb does not change; should be passed as an object
+        # that contains get() and has().
+        # This here is a temporary hack to make reference data available to
+        # tasks, but not consistent with current implementation of objectives.
         self.refdb = {}
         for objv in objectives:
             self.refdb[objv.name] = objv.refdata
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasklist = tasklist # list of name,options pairs
         self.taskdict = taskdict # name:function mapping
-        self.tasks = []          # callable objects
+        self.tasks = []          # callable objectsdd
         self.config = config if config is not None else DEFAULT_CONFIG
         workroot = self.config['workroot']
         if workroot is not None:

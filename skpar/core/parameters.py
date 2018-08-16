@@ -1,11 +1,12 @@
-"""
-Module for handling parameters in the context of SKF optimisation for DFTB via SKPAR.
+"""***Parameters***
+
+Module for handling parameters in the context of optimisation.
+
 The following assumptions are made:
 
-    * whatever optimiser is used, it is unaware of the actual meaning of 
-      the parameters
-    * from the perspective of the optimiser, parameters are just a list of values.
-    * the user must create an OrderedDict of parameter name:value pairs; 
+    * parameters have no meaning to the optimiser engine
+    * for the optimiser, parameters are just a list of values to be manipulated
+    * the user must create an OrderedDict of parameter name:value pairs;
       the OrderedDict eliminates automatically duplicate definitions of parameters,
       yielding the minimum possible number of degrees of freedom for the optimiser
     * the OrderedDictionary is built by parsing an skdefs.template file that
@@ -17,26 +18,28 @@ The following assumptions are made:
       from the input skdefs.template which is ready for creating the final skdefs
       file by string.format(dict(zip(ParNames,Parvalues)) substitution.
 """
-import logging
 import os.path
 from skpar.core.utils import get_logger
 
-DEFAULT_PARAMETER_FILE='current.par'
+LOGGER = get_logger('__name__')
 
-module_logger = get_logger('skpar.parameters')
+def get_parameters(userinp):
+    """Parse user input for definitions of parameters.
 
-def get_parameters(spec):
+    The definitions should be of the form ('name', 'optionally_something').
+    The optional part could in principle be one or more str/float/int.
     """
-    """
-    params=[]
-    for pardef in spec:
-        # module_logger.debug(pardef)
+    params = []
+    for pardef in userinp:
         try:
+            # Due to yaml/json representation, each parameter definition is a
+            # dictionary on its own, with one item. Using (key, val), we
+            # extract the one and only item in this dict.
             (pname, pdef), = pardef.items()
         except AttributeError:
-            # pardef is cannot be itemised => assume just pname
+            # pardef cannot be itemised => assume just pname
             pname = pardef
-            pdef  = ""
+            pdef = ""
         try:
             parstring = " ".join([pname,] + pdef.split())
         except AttributeError:
@@ -47,9 +50,8 @@ def get_parameters(spec):
             except TypeError:
                 # pdef not iterable; assume it is a single float
                 parstring = " ".join([pname, str(pdef)])
-        # module_logger.debug(parstring)
+        # initialise from string
         newpar = Parameter(parstring)
-        # module_logger.debug(newpar)
         params.append(newpar)
     return params
 
@@ -57,10 +59,10 @@ class Parameter(object):
     """
     A parameter object, that is initialised from a string.
 
-    ParmaeterName InitialValue MinValue Maxvalue [ParameterType]
-    ParmaeterName MinValue Maxvalue [ParameterType]
-    ParmaeterName InitialValue [ParameterType]
-    ParmaeterName [ParameterType]
+    ParameterName InitialValue MinValue Maxvalue [ParameterType]
+    ParameterName MinValue Maxvalue [ParameterType]
+    ParameterName InitialValue [ParameterType]
+    ParameterName [ParameterType]
 
     ParameterName must be alphanumeric, allowing _ too.
     Iinit/Min/MaxValue can be integer or float
@@ -93,7 +95,6 @@ class Parameter(object):
         # take away spaces, check format consistency and get type
         assert isinstance(parameterstring, str)
         words = parameterstring.split()
-        #module_logger.debug(len(words))
         if len(words) > 1:
             if words[-1] in list(Parameter.typedict.keys()):
                 self.ptype = Parameter.typedict[words[-1]]
@@ -138,8 +139,9 @@ class Parameter(object):
             self.__init_from_string(string)
 
     def __repr__(self):
-        return "Parameter {name} = {val}, range=[{minv},{maxv}]". \
-            format(name=self.name, val=self.value, minv=self.minv, maxv=self.maxv)
+        return "Parameter {name} = {val}, range=[{minv},{maxv}]".\
+            format(name=self.name, val=self.value,
+                   minv=self.minv, maxv=self.maxv)
 
 
 def substitute_template(parameters, parnames, templatefile, resultfile):
@@ -148,21 +150,21 @@ def substitute_template(parameters, parnames, templatefile, resultfile):
     Args:
         parameters (list): Parameter list, items being either floats or objects
             with .value and .name attributes.
-        parnames (list): If `parameters` is a list of floats, then 
+        parnames (list): If `parameters` is a list of floats, then
             parnames is the list of corresponding names.
         templatefile (str): Name of template file with substitution patterns.
         resultfile (str): Name of file to contain the substituted result.
     """
-    with open(templatefile, 'r') as fd:
-        template = fd.read()
+    with open(templatefile, 'r') as fin:
+        template = fin.read()
     try:
         pardict = dict([(p.name, p.value) for p in parameters])
     except AttributeError:
         pardict = dict([(name, val)
                         for (name, val) in zip(parnames, parameters)])
     updated = update_template(template, pardict)
-    with open(resultfile, 'w') as fd:
-        fd.write(updated)
+    with open(resultfile, 'w') as fout:
+        fout.write(updated)
 
 
 def update_template(template, pardict):
@@ -171,14 +173,14 @@ def update_template(template, pardict):
     Args:
         template (str): Template with old style Python format strings.
         pardict (dict): Dictionary of parameters to substitute.
-    
+
     Returns:
         str: String with substituted content.
     """
     return template % pardict
-    
 
-def update_parameters(workroot, templates, parameters, parnames):
+
+def update_parameters(workroot, templates, parameters, parnames=None):
     """Update relevant templates with new parameter values.
 
     Args:
@@ -189,19 +191,17 @@ def update_parameters(workroot, templates, parameters, parnames):
             the old string formatting of Python: $(ParameterName)ParameterType.
         parameters (list): Either a list of floats, or a list of objects
             (each having .value and .name attributes)
-        parnames (list): If `parameters` is a list of floats, then 
+        parnames (list): If `parameters` is a list of floats, then
             parnames is the list of corresponding names.
     """
-    logger = module_logger
-
     # Overwrite parnames with the names of the parameter objects, if available
     try:
         parnames = [p.name  for p in parameters]
     except AttributeError:
-        # parameters is a list of floats
+        # parameters is a list of floats; double check!
         assert all([isinstance(p, (float, int)) for p in parameters]), "{}".format(parameters)
         # test consistency if parnames is given (may be None)
-        if parnames:
+        if parnames is not None:
             assert len(parameters) == len(parnames)
     except TypeError:
         assert parameters is None

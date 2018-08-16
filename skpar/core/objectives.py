@@ -15,7 +15,7 @@ from pprint import pprint, pformat
 from skpar.core.utils import get_logger, normalise, arr2s
 from skpar.core.utils import get_ranges, f2prange
 from skpar.core.query import Query
-from skpar.core.evaluate import costf, errf
+from skpar.core.evaluate import COSTF, ERRF
 
 DEFAULT_COST_FUNC = "rms"
 DEFAULT_ERROR_FUNC = "abs"

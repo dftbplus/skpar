@@ -6,7 +6,6 @@ from os.path import split as splitpath
 import numpy as np
 from pprint import pformat
 from skpar.core.query import Query
-from skpar.core.taskdict import TASKDICT, GETTASKDICT, PLOTTASKDICT
 from skpar.core.parameters import update_parameters
 from skpar.core.utils import get_logger
 

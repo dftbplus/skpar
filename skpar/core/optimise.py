@@ -1,4 +1,5 @@
-# mandatory imports
+"""Defines a wrapper around user selectable optimisation engines.
+"""
 import sys
 from deap.base import Toolbox
 # skpar
@@ -8,20 +9,20 @@ from skpar.core.pso import PSO
 from skpar.core.pscan import PSCAN
 from skpar.core.parameters import get_parameters
 
-optengines = {'pso': PSO, 'pscan': PSCAN }
+OPTENGINES = {'pso': PSO, 'pscan': PSCAN}
 
-module_logger = get_logger('skpar.optimise')
+LOGGER = get_logger(__name__)
 
-def get_optargs(spec):
-    """
-    """
-    algo    = spec.get('algo', 'pso').lower()
-    options = spec.get('options', {})
+def get_optargs(userinp):
+    """Parse user input for optimisation related arguments."""
+    algo = userinp.get('algo', 'pso').lower()
+    options = userinp.get('options', {})
     try:
-        parameters = get_parameters(spec['parameters'])
+        parameters = get_parameters(userinp['parameters'])
     except KeyError as exc:
-        module_logger.critical('Parameters must be defined under "optimisation" in the input yaml.')
-        module_logger.critical(exc)
+        LOGGER.critical('Parameters must be defined under'\
+                        'optimisation" in the input file.')
+        LOGGER.critical(exc)
         sys.exit(2)
     return algo, options, parameters
 
@@ -29,23 +30,21 @@ def get_optargs(spec):
 class Optimiser(object):
     """Wrapper for different optimization engines.
     """
-    def __init__(self, algo, parameters, evaluate, *args, **kwargs):
+    def __init__(self, algo, parameters, evaluate, options=None, verbose=True):
         try:
-            self.optengine = optengines[algo]
+            self.optengine = OPTENGINES[algo]
         except KeyError:
-            print("Unsupported optimisation algorithm {}".format(algo))
+            LOGGER.critical("Unsupported optimisation algorithm %s", algo)
             sys.exit(2)
         self.evaluate = evaluate
         self.parameters = parameters
-        try:
-            self.optimise = optengines[algo](self.parameters, self.evaluate, **kwargs)
-        except KeyError:
-            print("Unsupported optimisation algorithm {}".format(algo))
-            sys.exit(2)
-        self.verbose = kwargs.get('verbose', False)
-        self.logger = module_logger
+        if options is None:
+            options = {}
+        self.optimise = OPTENGINES[algo](self.parameters, self.evaluate,
+                                         **options)
+        self.logger = LOGGER
         # report all tasks and objectives
-        if self.verbose:
+        if verbose:
             log = self.logger.info
         else:
             log = self.logger.debug
@@ -58,4 +57,9 @@ class Optimiser(object):
         return output
 
     def report(self, *args, **kwargs):
-        self.optimise.report(*args, **kwargs)
+        """Report optimiser state."""
+        try:
+            self.optimise.report(*args, **kwargs)
+        except AttributeError:
+            # assume optimiser does not have a report method
+            pass
