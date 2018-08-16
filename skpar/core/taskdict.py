@@ -1,14 +1,10 @@
 """Dictionary with default tasks and their underlying functions."""
 import os.path
+import subprocess
 import matplotlib
 import numpy as np
-import subprocess
 from skpar.core.utils import get_ranges, get_logger
 from skpar.core.plot import skparplot
-from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
-from skpar.dftbutils.queryDFTB import get_dftbp_evol
-from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
-from skpar.dftbutils.plot import magic_plot_bs
 matplotlib.use("Agg")
 
 LOGGER = get_logger(__name__)
@@ -138,21 +134,10 @@ def get_model_data (implargs, database, src, dst, datakey,
     # this have to become more generic: database.update(dst.datakey, data)
     database[dst][datakey] = data
 
-TASKDICT = {'exe': execute}
 
-GETTASKDICT = {
+TASKDICT = {
+    'exe': execute,
+    'execute': execute,
     'get_model_data': get_model_data,
-    'get_dftbp_data': get_dftbp_data,
-    'get_dftbp_evol': get_dftbp_evol,
-    'get_dftbp_bs'  : get_bandstructure,
-    'get_dftbp_meff': get_effmasses,
-    'get_dftbp_Ek'  : get_special_Ek,
-    }
-
-PLOTTASKDICT = {
     'plot_objvs': skparplot,
-    'plot_bs'   : magic_plot_bs
     }
-
-TASKDICT.update(GETTASKDICT)
-TASKDICT.update(PLOTTASKDICT)

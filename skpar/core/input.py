@@ -1,15 +1,13 @@
 """
 Routines to handle the input file of skpar
 """
+import os
 import json
 import yaml
-import os
-from skpar.core.utils      import normalise, get_logger
+from skpar.core.utils      import get_logger
 from skpar.core.objectives import set_objectives
-from skpar.core.query      import Query
 from skpar.core.tasks      import get_tasklist, check_tasks
 from skpar.core.optimise   import get_optargs
-#from skpar.core.taskdict   import TASKDICT
 from skpar.core.usertasks  import update_taskdict
 
 LOGGER = get_logger(__name__)
@@ -24,7 +22,7 @@ def get_input(filename):
             LOGGER.warning('Input not a valid YAML')
             try:
                 spec = json.load(infile)
-            except (ValueError, json.JSONDecodeError) as exc:
+            except (ValueError, json.JSONDecodeError):
             # json.JSONDecodeError is available only python3.5 onwards
                 LOGGER.critical('Cannot handle %s as JSON or YAML file.',
                                 filename)
@@ -41,7 +39,8 @@ def parse_input(filename, verbose=False):
     #
     taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
-    update_taskdict(usermodulesinp, taskdict)
+    # Tag the tasks from user modules like modulename.taskname
+    update_taskdict(usermodulesinp, taskdict, tag=True)
     update_taskdict('skpar.core.taskdict', taskdict)
     update_taskdict('skpar.dftbutils.taskdict', taskdict)
     #
