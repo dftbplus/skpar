@@ -12,9 +12,8 @@ class UserTaskTest(unittest.TestCase):
     def check_import(self, name, filename, path=None):
         """check helper"""
         module = import_user_module(name, path)
-        print(module)
         if path is None:
-            path = '.'
+            path = os.getcwd()
         self.assertEqual(module.__name__, name)
         self.assertEqual(module.__file__, os.path.join(path, filename))
 

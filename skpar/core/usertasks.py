@@ -33,39 +33,56 @@ NOTE: sys.path is not ever modified; Therefore, if the user module
       that are already on sys.path, or else such imports will fail!
 """
 import os
-import sys
-import imp
+import importlib
 from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
-USER_MODULES_PATH = ['.',
-                     os.path.expanduser('~/.local/share/skpar'),
-                     sys.path,]
+USER_MODULES_PATH = [os.path.expanduser('~/.local/share/skpar'),]
 
 def import_user_module(name, path=None):
     """Import a user module with a given name
 
-    If path is not given, sys.path is tried first,
-    then '.' and the '~/.local/share/skpar' directories in that order.
-    If this fails, let caller deal with it.
+    If path is not given, we try direct import, and if that fails, we
+    search sys.path, then '.', and the '~/.local/share/skpar' last.
+    If path is given, only there we search.
+    If all fails, let caller deal with it.
     """
     if path is None:
-        # If no path, then search in common places
-        path = USER_MODULES_PATH
-        LOGGER.info('Looking for user modules in %s', path)
+        try:
+            # this will work for module on sys.path or in '.'
+            module = importlib.import_module(name)
+            LOGGER.info('Found module file %s', module.__file__)
+            return module
+        except ModuleNotFoundError:
+            LOGGER.info('Module %s not installed', name)
+            # prepare to search in common places
+            path = USER_MODULES_PATH
     else:
-        if isinstance(path, str):
-            path = [path]
-    fmod, pathname, description = imp.find_module(name, path)
-    LOGGER.info('Found user module: %s in %s', fmod, pathname)
-
+        assert isinstance(path, str)
+        path = [path]
+    # search along path
+    LOGGER.info('Looking for %s in %s', name, path)
+    for filedir in path:
+        if os.path.isdir(filedir):
+            filepath = os.path.join(filedir, name+'.py')
+            spec = importlib.util.spec_from_file_location(name, filepath)
+            module = importlib.util.module_from_spec(spec)
+            # this is the actual attempt to read the module file!
+            try:
+                spec.loader.exec_module(module)
+                LOGGER.info('Found module file %s', module.__file__)
+                break
+            except FileNotFoundError:
+                LOGGER.info('Module %s not found in %s', name, filedir)
+                # continue searching along path
+        else:
+            LOGGER.info('Omitting %s – non existent directory')
     try:
-        return imp.load_module(name, fmod, pathname, description)
-    finally:
-        # Since we may exit via an exception, close fmod explicitly.
-        if fmod:
-            fmod.close()
+        return module
+    except NameError:
+        LOGGER.info('Unable to find %s module. Cannot continue!', name)
+        raise RuntimeError
 
 def import_modules(namelist):
     """Import user modules as specified in the name list.
@@ -79,14 +96,31 @@ def import_modules(namelist):
         modules.append(import_user_module(name, path))
     return modules
 
-def update_taskdict(userinp, taskdict):
-    """Update taskdict with tasks from user modules
+def update_taskdict(userinp, taskdict, tag=False):
+    """Update taskdict with TASKDICT from modules described in user input.
+
+    Args:
+        userinp(list): module names or tuples of (name,path)
+        taskdict(dict): dictionary to be updated
+        tag(bool): include module name when forming keys to be updated/inserted.
+
+    Returns:
+        None
+
+    Raises:
+        AttributeError if an imported module do not have a TASKDICT dictionary.
     """
     modules = import_modules(userinp)
     for mod in modules:
         try:
-            taskdict.update(mod.TASKDICT)
+            newdict = mod.TASKDICT
         except AttributeError:
-            LOGGER.warning('User module %(name) has no taskdict; Ignored.',
+            LOGGER.warning('Module %(name) has no TASKDICT; Ignored.',
                            name=mod.__name__)
-    return taskdict
+        if not tag:
+            taskdict.update(newdict)
+        else:
+            name = mod.__name__
+            for key, val in newdict.items():
+                taggedkey = '.'.join([name, key])
+                taskdict[taggedkey] = val
