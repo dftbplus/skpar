@@ -5,6 +5,7 @@ Classes and functions related to the:
     * setting the objectives for the optimizer, and,
     * evaluation of objectives.
 """
+import sys
 from os.path import normpath, expanduser
 from os.path import join as joinpath
 from os.path import split as splitpath
@@ -20,7 +21,7 @@ from skpar.core.evaluate import COSTF, ERRF
 DEFAULT_COST_FUNC = "rms"
 DEFAULT_ERROR_FUNC = "abs"
 
-module_logger = get_logger('skpar.objectives')
+LOGGER = get_logger(__name__)
 
 def parse_weights_keyval(spec, data, normalised=True):
     """Parse the weights corresponding to key-value type of data.
@@ -222,34 +223,6 @@ def get_type(n_models, ref, dflt_type='values'):
         obj_type = 'bands'
     return obj_type
 
-def plot(data, weights=None, figsize=(6, 7), outfile=None, 
-        Erange=None, krange=None):
-    """Visual representation of the band-structure and weights.
-    """
-    fig, ax = plt.subplots(figsize=figsize)
-    nb, nk = data.shape
-    xx = np.arange(nk)
-    ax.set_xlabel('$\mathbf{k}$-point')
-    ax.set_ylabel('Energy (eV)')
-    if Erange is not None:
-        ax.set_ylim(Erange)
-    if krange is not None:
-        ax.set_xlim(krange)
-    else:
-        ax.set_xlim(np.min(xx), np.max(xx))
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    if weights is not None and len(np.unique(weights))-1 > 0:
-        color = cm.jet((weights-np.min(weights))/
-                    (np.max(weights)-np.min(weights)))
-    else:
-        color = ['b']*nb
-    for yy, cc in zip(data, color):
-        ax.scatter(xx, yy, s=1.5, c=cc, edgecolor='None')
-    if plotfile is not None:
-        fig.savefig(outfile)
-    return fig, ax
-
-
 class Objective(object):
     """Decouples the declaration of an objective from its evaluation.
 
@@ -281,7 +254,7 @@ class Objective(object):
 
         Returns: None
         """
-        self.logger = module_logger
+        self.logger = LOGGER
         self.verbose = kwargs.get('verbose', False)
         if self.verbose:
             self.msg = self.logger.info
@@ -294,8 +267,8 @@ class Objective(object):
         self.model_weights = spec['model_weights']
         self.ref_data = spec['ref_data']
         _costf, _errf = spec.get('eval', [DEFAULT_COST_FUNC, DEFAULT_ERROR_FUNC])
-        self.costf = costf[_costf.lower()]
-        self.errf  = errf [_errf.lower()]
+        self.costf = COSTF[_costf.lower()]
+        self.errf  = ERRF[_errf.lower()]
         # optional fields
         self.weight = spec.get('weight', 1)
         self.options = spec.get('options', None)
@@ -784,7 +757,7 @@ def set_objectives(spec, **kwargs):
             corresponding to a recognised objective type.
     """
     if spec is None:
-        module_logger.error('Missing "objectives:" in user input: nothing to do. Bye!')
+        LOGGER.error('Missing "objectives:" in user input: nothing to do. Bye!')
         sys.exit(1)
     objectives = []
     # the spec list has definitions of different objectives

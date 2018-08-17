@@ -204,3 +204,33 @@ def skparplot(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
     return fig, ax
 
 
+# this routine was left over in objectives. should not be there
+# must be checked if it has any value and modified or discarded
+def plot(data, weights=None, figsize=(6, 7), outfile=None, 
+        Erange=None, krange=None):
+    """Visual representation of the band-structure and weights.
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    nb, nk = data.shape
+    xx = np.arange(nk)
+    ax.set_xlabel('$\mathbf{k}$-point')
+    ax.set_ylabel('Energy (eV)')
+    if Erange is not None:
+        ax.set_ylim(Erange)
+    if krange is not None:
+        ax.set_xlim(krange)
+    else:
+        ax.set_xlim(np.min(xx), np.max(xx))
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    if weights is not None and len(np.unique(weights))-1 > 0:
+        color = cm.jet((weights-np.min(weights))/
+                    (np.max(weights)-np.min(weights)))
+    else:
+        color = ['b']*nb
+    for yy, cc in zip(data, color):
+        ax.scatter(xx, yy, s=1.5, c=cc, edgecolor='None')
+    if plotfile is not None:
+        fig.savefig(outfile)
+    return fig, ax
+
+
