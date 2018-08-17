@@ -110,6 +110,8 @@ def update_taskdict(userinp, taskdict, tag=False):
     Raises:
         AttributeError if an imported module do not have a TASKDICT dictionary.
     """
+    # Make sure we always have a list to work on, else userinp will be
+    # decomposed into characters
     if isinstance(userinp, str):
         userinp = [userinp]
     modules = import_modules(userinp)

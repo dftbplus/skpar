@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 from skpar.core.utils import get_ranges, get_logger
 from skpar.core.plot import skparplot
-from skpar.core.parameter import update_parameters
+from skpar.core.parameters import update_parameters
 matplotlib.use("Agg")
 
 LOGGER = get_logger(__name__)
@@ -72,8 +72,8 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
         os.chdir(origdir)
 
 
-def get_model_data (implargs, database, src, dst, datakey,
-                    rm_columns=None, rm_rows=None, scale=1., **kwargs):
+def get_model_data(implargs, database, src, dst, datakey,
+                   rm_columns=None, rm_rows=None, scale=1., **kwargs):
     """Get data from file and put it in a database under a given key.
 
     Use numpy.loadtxt to get the data from `src` file and write the data
