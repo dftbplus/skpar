@@ -78,7 +78,7 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
         os.chdir(origdir)
 
 
-def get_model_data(implargs, database, src, dst, datakey,
+def get_model_data(implargs, database, item, src, dst,
                    rm_columns=None, rm_rows=None, scale=1., **kwargs):
     """Get data from file and put it in a database under a given key.
 
@@ -101,9 +101,9 @@ def get_model_data(implargs, database, src, dst, datakey,
     workroot = implargs.get('workroot', '.')
     assert isinstance(src, str), \
         "src must be a filename string, but is {} instead.".format(type(src))
-    assert isinstance(datakey, str),\
-        "datakey must be a string naming the data, but is {} instead."\
-            .format(type(datakey))
+    assert isinstance(item, str),\
+        "item must be a string naming the data, but is {} instead."\
+            .format(type(item))
     # read file
     fname = os.path.normpath(os.path.join(workroot, src))
     try:
@@ -138,8 +138,8 @@ def get_model_data(implargs, database, src, dst, datakey,
                 indexes.sort()
                 data = np.delete(data, obj=indexes, axis=axis)
     data = data * scale
-    # this have to become more generic: database.update(dst.datakey, data)
-    database[dst][datakey] = data
+    # this have to become more generic: database.update(dst.item, data)
+    database[dst][item] = data
 
 
 def substitute_parameters(implargs, database, templatefiles, options, **kwargs):

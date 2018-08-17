@@ -1,0 +1,22 @@
+config:
+    templatedir: test_optimise
+    workroot: _workdir/test_optimise
+    keep-workdirs: true
+    tag-imports: false
+
+tasks:
+    # single template file
+  - sub: [template.parameters.dat]
+    # list of template files (one or more items, incl. path)
+  - sub: [template-1.dat, template-2.dat]
+    #
+    # executable command without any further arguments, no need for ''
+  - run: [python3 model_poly3.py]
+    # executable command with optional workdir and outfile
+  - run: ['exe -someoption', somedir, somefile]
+    #
+    # get item from file, and put in DB(implicit) as destination.item
+  - get: [item, from_source, to_destination]
+    # get item named `key`, process as per options and put in DB[model][key]
+  - get: [key, source_file, modelname, {scale: 1.5, rm_rows: 2.0}]
+

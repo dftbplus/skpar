@@ -1,12 +1,9 @@
 """Tasks module, defining relevant classes and functions"""
-import os, sys, subprocess
-from os.path import abspath, normpath, expanduser
-from os.path import join as joinpath
-from os.path import split as splitpath
-import numpy as np
+import os
+import sys
 from pprint import pformat
+import numpy as np
 from skpar.core.query import Query
-from skpar.core.parameters import update_parameters
 from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
@@ -24,7 +21,7 @@ def get_tasklist(userinp):
         tasklist.append(task)
     return tasklist
 
-def check_tasks(tasklist, taskdict):
+def check_taskdict(tasklist, taskdict):
     """Check task names are in the task dictionary; quit otherwise."""
     for task in tasklist:
         if task[0] not in taskdict.keys():
@@ -32,7 +29,7 @@ def check_tasks(tasklist, taskdict):
             LOGGER.critical('Check spelling and verify import of user modules')
             sys.exit(1)
 
-def initialise_tasks(tasklist, taskdict):
+def initialise_tasks(tasklist, taskdict, report=False):
     """Transform a tasklist into a list of callables as per taskdict.
 
     Args:
@@ -46,33 +43,17 @@ def initialise_tasks(tasklist, taskdict):
     for task in tasklist:
         name = task[0]
         func = taskdict[name]
-        try:
-            # for simple cases that do not involve numerical values, the
-            # arguments may be entered as a single string, containing
-            # space or comma separators, not a list!
-            fargs = task[1:].split(',')
-            if fargs == tasks[1:]:
-                # no commas; assume space separator
-                fargs = fargs.split(' ')
-                if fargs == tasks[1:]:
-                    # no spaces either
-                    fargs = [fargs]
-            else:
-                # trim residual spaces around arguments
-                fargs = [arg.strip() for arg in fargs]
-        except AttributeError:
-            # fargs is a list w/o split()
-            pass
-        # currently we have no mechanism to provide a list of key:value pairs,
-        # i.e. task: [a1:v1, a2:v2], which yaml/json will return as
-        # {task: [{a1:v1}, {a2:v2}]}
-        # or, task: {a1:v1, a2:v2}, which yaml/json will return as 
-        # either {task: {a1:v1, a2:v2}} or {task:{a2:v2, a1:v1}}.
+        fargs = task[1:]
         tasks.append(Task(name, func, fargs))
+
+    if report:
+        LOGGER.info("The following tasks will be executed at each iteration.")
+        for i, task in enumerate(tasks):
+            LOGGER.info("Task %i:\t%s", i, pformat(task))
     return tasks
 
 
-class Task(object):
+class Task():
     """Generic wrapper over functions or executables.
     """
     def __init__(self, name, func, fargs):
@@ -89,105 +70,9 @@ class Task(object):
         """Yield a summary of the task.
         """
         srepr = []
-        srepr.append('{:s}'.format(self.name))
-        srepr.append('{:s}'.format(self.func))
-        srepr.append('{:s}'.format(self.fargs))
-        return "\n" + "\n".join(srepr)
-
-
-class SetTask(object):
-    """Task for updating files with new parameter values. """
-
-    def __init__(self, parnames=None, *templates):
-        """Creates a task that substiutes parameters in template files.
-
-        Args:
-            *templates (list of str): Template files containing placeholders of
-                Python's old string-formatting style -- %(Name)Type, which are
-                updated according to the parameters' names and values.
-            parnames (str or list of string, optional): Supplements the
-                `parameters` argument during a call if `parameters` is merely a
-                list of values (no names).
-        """
-        self.templates = templates
-        self.parnames = [parnames] if isinstance(parnames, str) else parnames
-        self.logger = LOGGER
-
-
-    def __call__(self, workroot, parameters, iteration=None):
-        """Substitutes parameters in relevant templates.
-
-        Args:
-            workroot (str): The root working directory for all relative output
-                directories.
-            parameters (list): Parameter values or parameter objects
-            iteration (int or tuple of ints): Iteration number; may be a tuple,
-                e.g. (generation, individual)
-        """
-        self.logger.debug("Setting parameters for iteration {} in {}."\
-                          .format(iteration, workroot))
-        update_parameters(workroot, self.templates, parameters, self.parnames)
-
-
-    def __repr__(self):
-        """Yields a summary of the task.
-        """
-        s = []
-        s.append("{:9s}{:<15s}".format("", "SetTask"))
-        if self.templates:
-            s.append("{:9s}{:<15s}: {}".format(
-                "", "Templ. files", " ".join(self.templates)))
-        if self.parnames:
-            s.append("{:9s}{:<15s}: {}".format(
-                "", "Param. names", pformat(self.parnames)))
-        return '\n' + '\n'.join(s)
-
-
-
-class GetTask (object):
-    """Wrapper class to declare tasks w/ arguments but calls w/o args"""
-
-    def __init__(self, func, source, destination, *args, **kwargs):
-        self.func = func
-        assert isinstance (source, str)
-        self.src_name = source
-        dbref = Query.get_modeldb(source)
-        # see if a database exists
-        if dbref is not None:
-            self.src = dbref
-        else:
-            # assume it is a directory or file, and `func` will handle it
-            self.src = source
-        self.dst_name = destination
-        self.dst  = Query.add_modelsdb(destination)
-        self.args = args
-        self.kwargs = kwargs
-        self.logger = LOGGER
-
-
-    def __call__(self, workroot):
-        try:
-            self.func(workroot, self.src, self.dst, *self.args, **self.kwargs)
-        except:
-            msg = "FAILED attempt to call {} with the following args:\n{} and "\
-                  "kwargs:\n{}".format(self.func.__name__, self.args,
-                                       self.kwargs)
-            self.logger.critical(msg)
-            raise
-
-
-    def __repr__(self):
-        """Yield a summary of the task.
-        """
-        s = []
-        s.append("{:9s}{:<15s}: {} ".format("", "GetTask", self.func.__name__))
-        s.append("{:9s}{:<15s}: {} ".format("", "func", self.func))
-        s.append("{:9s}{:<15s}: {:<15s} {:>10s} {:s}".format("", "from",
-            os.path.relpath(self.src_name), "to :", os.path.relpath(self.dst_name)))
-        s.append("{:9s}{:<15s}: {}".format("", "args", pformat(self.args)))
-        s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
-        return '\n'+'\n'.join(s)
-
+        srepr.append('{:s} ({})'.format(self.name, self.func))
+        srepr.append('\t{}'.format(self.fargs))
+        return "\n".join(srepr)
 
 
 class PlotTask (object):

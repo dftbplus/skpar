@@ -105,7 +105,7 @@ class Evaluator(object):
         # tasks, but not consistent with current implementation of objectives.
         self.refdb = {}
         for objv in objectives:
-            self.refdb[objv.name] = objv.refdata
+            self.refdb[objv.name] = objv.ref_data
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasklist = tasklist # list of name,options pairs
         self.taskdict = taskdict # name:function mapping

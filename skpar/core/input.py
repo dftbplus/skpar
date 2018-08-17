@@ -7,7 +7,8 @@ import json
 import yaml
 from skpar.core.utils      import get_logger
 from skpar.core.objectives import set_objectives
-from skpar.core.tasks      import get_tasklist, check_tasks
+from skpar.core.tasks      import get_tasklist, check_taskdict
+from skpar.core.tasks      import initialise_tasks
 from skpar.core.optimise   import get_optargs
 from skpar.core.usertasks  import update_taskdict
 
@@ -35,37 +36,37 @@ def parse_input(filename, verbose=False):
     """
     userinp = get_input(filename)
     #
+    # CONFIG
     configinp = userinp.get('config', None)
-    config = get_config(configinp)
+    config = get_config(configinp, report=True)
     #
+    # OPTIMISATION
     optinp = userinp.get('optimisation', None)
     optimisation = get_optargs(optinp)
     #
+    # TASKS
     taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
     # Tag the tasks from user modules like modulename.taskname
     tag = config['tagimports']
     if usermodulesinp:
         update_taskdict(usermodulesinp, taskdict, tag=tag)
-    update_taskdict('skpar.core.taskdict', taskdict)
-    for t in taskdict:
-        print(t)
+    update_taskdict('skpar.core.taskdict', taskdict, tag=False)
     #
     taskinp = userinp.get('tasks', None)
-    print (taskinp)
     tasklist = get_tasklist(taskinp)
-    check_tasks(tasklist, taskdict)
-    for t in tasklist:
-        print(t)
+    check_taskdict(tasklist, taskdict)
+    # do trial initialisation in order to report what and how's been parsed
+    # no assignment means we discard the tasks list here
+    initialise_tasks(tasklist, taskdict, report=True)
     #
+    # OBJECTIVES
     objectivesinp = userinp.get('objectives', None)
-    print (objectivesinp)
     objectives = set_objectives(objectivesinp, verbose=verbose)
-    sys.exit(0)
     #
     return taskdict, tasklist, objectives, optimisation, config
 
-def get_config(userinp):
+def get_config(userinp, report=True):
     """Parse the arguments of 'config' key in user input"""
     if userinp is None:
         userinp = {}
@@ -78,6 +79,11 @@ def get_config(userinp):
     if templatedir is not None:
         templatedir = os.path.abspath(os.path.expanduser(templatedir))
     config['templatedir'] = templatedir
-    config['keepworkdirs'] = userinp.get('keepworkdirs', False)
-    config['tagimports'] = userinp.get('tagimports', True)
+    config['keepworkdirs'] = userinp.get('keep-workdirs', False)
+    # related to interpretation of input file
+    config['tagimports'] = userinp.get('tag-imports', True)
+    if report:
+        LOGGER.info('The following configuration was understood:')
+        for key, val in config.items():
+            LOGGER.info('%s: %s', key, val)
     return config
