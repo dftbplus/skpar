@@ -1,12 +1,10 @@
 """Dictionary with default tasks and their underlying functions."""
 import os.path
 import subprocess
-import matplotlib
 import numpy as np
 from skpar.core.utils import get_ranges, get_logger
 from skpar.core.plot import skparplot
 from skpar.core.parameters import update_parameters
-matplotlib.use("Agg")
 
 LOGGER = get_logger(__name__)
 
@@ -49,6 +47,14 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
     #
     try:
         logger.debug("Running %s in %s...", cmd, workdir)
+        try:
+            # user may have entered the command without ',' separators between
+            # command and arguments, which is more natural
+            # of course if user has arguments with spaces this will fail;
+            # in such case user must separate each argument by comma.
+            cmd=cmd.split(' ')
+        except AttributeError:
+            pass
         out = subprocess.check_output(
             cmd, universal_newlines=True, stderr=subprocess.STDOUT)
         logger.debug('Done.')

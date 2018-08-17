@@ -46,7 +46,28 @@ def initialise_tasks(tasklist, taskdict):
     for task in tasklist:
         name = task[0]
         func = taskdict[name]
-        fargs = task[1:]
+        try:
+            # for simple cases that do not involve numerical values, the
+            # arguments may be entered as a single string, containing
+            # space or comma separators, not a list!
+            fargs = task[1:].split(',')
+            if fargs == tasks[1:]:
+                # no commas; assume space separator
+                fargs = fargs.split(' ')
+                if fargs == tasks[1:]:
+                    # no spaces either
+                    fargs = [fargs]
+            else:
+                # trim residual spaces around arguments
+                fargs = [arg.strip() for arg in fargs]
+        except AttributeError:
+            # fargs is a list w/o split()
+            pass
+        # currently we have no mechanism to provide a list of key:value pairs,
+        # i.e. task: [a1:v1, a2:v2], which yaml/json will return as
+        # {task: [{a1:v1}, {a2:v2}]}
+        # or, task: {a1:v1, a2:v2}, which yaml/json will return as 
+        # either {task: {a1:v1, a2:v2}} or {task:{a2:v2, a1:v1}}.
         tasks.append(Task(name, func, fargs))
     return tasks
 
@@ -62,7 +83,7 @@ class Task(object):
     #
     def __call__(self, coreargs, database):
         """Execute the task, let caller handle any exception raised by func"""
-        self.func(coreargs, database, self.fargs)
+        self.func(coreargs, database, *self.fargs)
     #
     def __repr__(self):
         """Yield a summary of the task.

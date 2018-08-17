@@ -4,9 +4,14 @@ config:
     keepworkdirs: true
 
 tasks:
-    sub: [template.parameters.dat]
-    run: [mypy model_poly3.py]
-    get: [model_poly3_out.dat, poly3, yval]
+  - sub: template.parameters.dat
+    #  - sub: [template1.dat, template2.dat]
+  - run: mypy model_poly3.py
+  - run: command 'file with spaces'
+  - run: [command, 'file with spaces']
+  - run: command, 'file with spaces'
+  - run: command 'file with spaces'
+  - get: model_poly3_out.dat poly3 yval
 
 objectives:
     - yval:

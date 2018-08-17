@@ -2,6 +2,7 @@
 Routines to handle the input file of skpar
 """
 import os
+import sys
 import json
 import yaml
 from skpar.core.utils      import get_logger
@@ -47,13 +48,20 @@ def parse_input(filename, verbose=False):
     if usermodulesinp:
         update_taskdict(usermodulesinp, taskdict, tag=tag)
     update_taskdict('skpar.core.taskdict', taskdict)
+    for t in taskdict:
+        print(t)
     #
     taskinp = userinp.get('tasks', None)
+    print (taskinp)
     tasklist = get_tasklist(taskinp)
     check_tasks(tasklist, taskdict)
+    for t in tasklist:
+        print(t)
     #
     objectivesinp = userinp.get('objectives', None)
+    print (objectivesinp)
     objectives = set_objectives(objectivesinp, verbose=verbose)
+    sys.exit(0)
     #
     return taskdict, tasklist, objectives, optimisation, config
 

@@ -1,12 +1,11 @@
+"""Test correct parsing of input file"""
 import unittest
 import logging
-import json
 from skpar.core.input import parse_input, get_input
-#from skpar.core.taskdict import gettaskdict
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 class ParseInputTest(unittest.TestCase):
     """Check if we can parse input data"""
@@ -25,20 +24,21 @@ class ParseInputTest(unittest.TestCase):
         data2 = get_input(infile)
         #print('data2:')
         #print (data2)
-        self.assertDictEqual(data1,data2)
+        self.assertDictEqual(data1, data2)
 
 
     def test_parse_input(self):
         """Can we parse input and create all tasks, objectives, etc.?"""
         filename = "test_optimise.yaml"
         _input = parse_input(filename)
-        tasklist     = _input[0]
-        objectives   = _input[1]
-        optimisation = _input[2]
+        config       = _input[0]
+        tasklist     = _input[1]
+        objectives   = _input[2]
+        optimisation = _input[3]
         for task in tasklist:
-            logger.debug (task)
+            LOGGER.debug (task)
         for objv in objectives:
-            logger.debug (objv)
+            LOGGER.debug (objv)
         # we should print here the queries, but how do we get them?
         # and we should put assertions; currently this test cannot fail!
 
