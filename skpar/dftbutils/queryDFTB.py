@@ -1,3 +1,4 @@
+import sys
 import os
 import logging
 from os.path import abspath, normpath, expanduser, isdir
@@ -62,7 +63,7 @@ class DetailedOut (dict):
     # float values, allowing for fractional number [input, output]
     nelec_tags = [
             # dftb 1.2
-            ("Inpu t/Output electrons (q):", ("nei", "neo")),
+            ("Input/Output electrons (q):", ("nei", "neo")),
             # dftb 18.1 : "Input / Output electrons (q):"
             ("Input / Output electrons (q):", ("nei", "neo")) 
             ]
@@ -120,8 +121,8 @@ def get_dftbp_data(workroot, source, destination, datafile='detailed.out', *args
     loglevel = logging.INFO
     logger   = get_logger(name='dftbutils', filename='dftbutils.detailed.log',  
                           verbosity=loglevel)
-    assert isinstance(source, str), \
-        "src must be a string (directory name), but is {} instead.".format(type(src))
+    assert isinstance(source, str),\
+        "src must be a string (directory name), but is {} instead.".format(type(source))
     ff = joinpath(abspath(expanduser(workroot)), source, 'detailed.out')
     logger.debug('Getting DFTB+ data from {:s}.'.format(ff))
     data = DetailedOut.fromfile(ff)
@@ -719,14 +720,14 @@ def get_special_Ek(workroot, source, destination=None, sympts=None,
             if usebandindex:
                 tag = 'Ec_{:s}_{:d}'.format(greek(label), bandix)
             else:
-                tag = 'Ec_{:s}'.format(greek(label), bandix)
+                tag = 'Ec_{:s}'.format(greek(label))
             value = Ek[label][nVBtop + 1 + bandix]
             tagged_Ek[tag] = value
         for bandix in extract['vb']:
             if usebandindex:
                 tag = 'Ev_{:s}_{:d}'.format(greek(label), bandix)
             else:
-                tag = 'Ev_{:s}'.format(greek(label), bandix)
+                tag = 'Ev_{:s}'.format(greek(label))
             value = Ek[label][nVBtop  - bandix]
             tagged_Ek[tag] = value
     if destination is None:
