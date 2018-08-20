@@ -686,7 +686,7 @@ def greek (label):
 
 def get_special_Ek(workroot, source, destination=None, sympts=None, 
                     extract={'cb': [0, ], 'vb': [0, ]}, align='Ef', 
-                    usebandindex=False, *args, **kwargs):
+                    usebandindex=True, *args, **kwargs):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
     """
 
