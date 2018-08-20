@@ -8,18 +8,18 @@ from skpar.core.evaluate import Evaluator
 from skpar.core.optimise import Optimiser
 
 
-class SKPAR(object):
+class SKPAR():
     """The main executable object."""
 
-    def __init__(self, infile='skpar_in.yaml', verbose=False):
+    def __init__(self, infile='skpar_in.yaml', verbose=True):
 
         # setup logger
         # -------------------------------------------------------------------
         loglevel = logging.DEBUG if verbose else logging.INFO
         self.logger = get_logger(name='skpar', filename='skpar.log',
-                                   verbosity=loglevel)
+                                 verbosity=loglevel)
         # specific for printing/reporting from numpy objects
-        np.set_printoptions(threshold = 60, linewidth= 79, suppress=True)
+        np.set_printoptions(threshold=60, linewidth=79, suppress=True)
 
         # Project work directory
         # -------------------------------------------------------------------
@@ -31,16 +31,20 @@ class SKPAR(object):
         self.logger.info('Parsing input file {}'.format(infile))
         taskdict, tasklist, objectives, optimisation, config =\
             parse_input(infile, verbose=verbose)
+        algo, options, parameters = optimisation
+        if optimisation is not None:
+            parnames = [p.name for p in parameters]
+        else:
+            parnames = None
 
         # instantiate the evaluator machinery
         self.logger.info('Instantiating Evaluator')
-        self.evaluator = Evaluator(objectives, tasklist, taskdict, config,
-                                    verbose=verbose)
+        self.evaluator = Evaluator(objectives, tasklist, taskdict, parnames,
+                                   config, verbose=verbose)
 
         # instantiate the optimiser
         if optimisation is not None:
             self.do_optimisation = True
-            algo, options, parameters = optimisation
             self.logger.info('Instantiating Optimiser')
             self.optimiser = Optimiser(algo, parameters, self.evaluator,
                                        options, verbose=True)
@@ -64,5 +68,5 @@ class SKPAR(object):
             self.logger.debug("Global fitness: {}".format(fitness))
 
     def __repr__(self):
-        ss = []
-        return "\n".join(ss)
+        lines = []
+        return "\n".join(lines)

@@ -2,13 +2,14 @@
 import os.path
 import subprocess
 import numpy as np
+from pprint import pprint, pformat
 from skpar.core.utils import get_ranges, get_logger
-from skpar.core.plot import skparplot
+#from skpar.core.plot import skparplot
 from skpar.core.parameters import update_parameters
 
 LOGGER = get_logger(__name__)
 
-def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
+def execute(implargs, database, cmd, cdir='.', outfile='out.log', kwargs=None):
     """Wrapper over external executables.
 
     Args:
@@ -29,11 +30,11 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
         if outfile is not None:
             with open(outfile, 'w') as filep:
                 filep.write(out)
-            logger.debug("Output is in %s.\n", outfile)
+                logger.debug("Output is in {:s}.\n".format(outfile))
     #
     origdir = os.getcwd()
     workroot = implargs.get('workroot', '.')
-    workdir = os.path.normpath(os.path.join(workroot, cdir))
+    workdir = os.path.abspath(os.path.join(workroot, cdir))
     try:
         os.chdir(workdir)
     except:
@@ -43,7 +44,7 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
         raise
     #
     if outfile is not None:
-        outfile = os.path.normpath(os.path.join(workdir, outfile))
+        outfile = os.path.abspath(outfile)
     #
     try:
         logger.debug("Running %s in %s...", cmd, workdir)
@@ -52,17 +53,21 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log'):
             # command and arguments, which is more natural
             # of course if user has arguments with spaces this will fail;
             # in such case user must separate each argument by comma.
-            cmd=cmd.split(' ')
+            cmd = cmd.split(' ')
         except AttributeError:
             pass
-        out = subprocess.check_output(
-            cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+        if kwargs:
+            out = subprocess.check_output(
+                cmd, universal_newlines=True, stderr=subprocess.STDOUT,
+                cwd=workdir, **kwargs)
+        else:
+            out = subprocess.check_output(
+                cmd, universal_newlines=True, stderr=subprocess.STDOUT)
         logger.debug('Done.')
         write_out(out, outfile)
     #
     except subprocess.CalledProcessError as exc:
-        logger.critical('The following task failed with exit status %s:\n',
-                        exc.returncode)
+        logger.critical('...task FAILED with exit status %s.', exc.returncode)
         write_out(exc.output, outfile)
         raise
     #
@@ -97,6 +102,7 @@ def get_model_data(implargs, database, item, src, dst,
         rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
         scale(float): multiplier of the data
     """
+    print(item, src, dst, database)
     logger = implargs.get('logger', LOGGER)
     workroot = implargs.get('workroot', '.')
     assert isinstance(src, str), \
@@ -105,7 +111,7 @@ def get_model_data(implargs, database, item, src, dst,
         "item must be a string naming the data, but is {} instead."\
             .format(type(item))
     # read file
-    fname = os.path.normpath(os.path.join(workroot, src))
+    fname = os.path.abspath(os.path.join(workroot, src))
     try:
         data = np.loadtxt(fname, **kwargs)
     except ValueError:
@@ -138,32 +144,34 @@ def get_model_data(implargs, database, item, src, dst,
                 indexes.sort()
                 data = np.delete(data, obj=indexes, axis=axis)
     data = data * scale
-    # this have to become more generic: database.update(dst.item, data)
+    # this have to become more generic: e.g. database.update(dst.item, data)
+    if dst not in database:
+        database[dst] = {}
     database[dst][item] = data
 
 
-def substitute_parameters(implargs, database, templatefiles, options, **kwargs):
+def substitute_parameters(implargs, database, templatefiles, options=None):
     """Substitute parameters (within implicit arguments) in given templates.
     """
     logger = implargs.get('logger', LOGGER)
     workroot = implargs.get('workroot', '.')
     iteration = implargs.get('iteration', None)
-    parameters = implargs.get('parameters', None)
-    if parameters is not None:
-        try:
-            # assume parameters are objects with names
-            parnames = [p.name for p in parameters]
-        except AttributeError:
-            try:
-                parnames = options['parnames']
-            except AttributeError:
-                logger.critical('No parameter names found. '\
-                                'Cannot proceed with parameter substitution.')
-                raise
-        logger.debug("Substituting parameters for iteration %s in %s.",\
-                     iteration, workroot)
-        update_parameters(workroot, templatefiles, parameters, parnames,
-                          **kwargs)
+    try:
+        parvalues = implargs['parametervalues']
+    except (KeyError):
+        logger.critical('No parameter values found in implicit arguments. '\
+                        'Cannot proceed with parameter substitution.')
+        raise
+    try:
+        parnames = implargs['parameternames']
+    except (KeyError):
+        logger.critical('No parameter names found in implicit arguments. '\
+                        'Cannot proceed with parameter substitution.')
+        raise
+    assert (len(parvalues) == len(parnames)), (len(parvalues), len(parrnames))
+    logger.debug("Substituting parameters for iteration %s in %s.",\
+                    iteration, workroot)
+    update_parameters(workroot, templatefiles, parvalues, parnames)
 
 
 TASKDICT = {
@@ -178,6 +186,6 @@ TASKDICT = {
     'get': get_model_data,
     'get_data': get_model_data,
     #
-    'plot': skparplot,
-    'plot_objectives': skparplot,
+#    'plot': skparplot,
+#    'plot_objectives': skparplot,
     }

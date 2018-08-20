@@ -4,9 +4,10 @@ config:
     keepworkdirs: true
 
 tasks:
-    - set: [template.parameters.dat]
-    - run: [mypy model_poly3.py]
-    - get: [model_poly3_out.dat, poly3, yval]
+    - set: [[template.parameters.dat]]
+    - run: ['python model_poly3.py']
+      #    - run: ['mypy model_poly3.py']
+    - get: [yval, model_poly3_out.dat, poly3]
 
 objectives:
     - yval:

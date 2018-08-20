@@ -745,7 +745,7 @@ def get_objective(spec, **kwargs):
     #print (objv)
     return objv
 
-def set_objectives(spec, **kwargs):
+def set_objectives(spec, verbose=True, **kwargs):
     """Parse user specification of Objectives, and return a list of Objectives for evaluation.
 
     Args:
@@ -764,5 +764,9 @@ def set_objectives(spec, **kwargs):
     for item in spec:
         objv = get_objective(item, **kwargs)
         objectives.append(objv)
+    if verbose:
+        LOGGER.info('The following objectives are defined:')
+        for objv in objectives:
+            LOGGER.info(objv.__repr__())
     return objectives
 

@@ -96,12 +96,12 @@ def import_modules(namelist):
         modules.append(import_user_module(name, path))
     return modules
 
-def update_taskdict(userinp, taskdict, tag=False):
+def update_taskdict(taskdict, userinp, tag=False):
     """Update taskdict with TASKDICT from modules described in user input.
 
     Args:
-        userinp(list): module names or tuples of (name,path)
         taskdict(dict): dictionary to be updated
+        userinp(list): module names or tuples of (name,path)
         tag(bool): include module name when forming keys to be updated/inserted.
 
     Returns:

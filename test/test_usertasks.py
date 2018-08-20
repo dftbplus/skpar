@@ -78,7 +78,7 @@ class UserTaskTest(unittest.TestCase):
         """can we update taskdict from usermodule?"""
         taskdict = {}
         userinp = ['usermodule']
-        update_taskdict(userinp, taskdict)
+        update_taskdict(taskdict, userinp)
         func = sys.modules['usermodule'].userfunc
         self.assertDictEqual(taskdict, {'greet': func})
         tasklist = [taskdict['greet']]

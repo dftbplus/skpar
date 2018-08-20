@@ -4,6 +4,7 @@ import shutil
 import numpy as np
 from skpar.core.utils import get_logger, normalise
 from skpar.core.tasks import initialise_tasks
+from pprint import pprint, pformat
 
 LOGGER = get_logger(__name__)
 
@@ -82,7 +83,7 @@ class Evaluator(object):
     The evaluator is the only thing visible to the optimiser.
     It has several things to do:
 
-    1. Accept a list (or dict) of parameter values (or key-value pairs),
+    1. Accept a list of parameter values (or key-value pairs),
        and an iteration number (or a tuple: (e.g. generation,particle_index)).
 
     2. Update tasks (and underlying models) with new parameter values.
@@ -95,7 +96,7 @@ class Evaluator(object):
        good to also return the max error, to be used as a stopping criterion.
 
     """
-    def __init__(self, objectives, tasklist, taskdict, config=None,
+    def __init__(self, objectives, tasklist, taskdict, parameternames, config=None,
                  costf=COSTF[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
                  verbose=False, **kwargs):
         self.objectives = objectives
@@ -103,13 +104,20 @@ class Evaluator(object):
         # that contains get() and has().
         # This here is a temporary hack to make reference data available to
         # tasks, but not consistent with current implementation of objectives.
-        self.refdb = {}
+        refdb = {}
+        # the following loop creates a flat DB with modelname.datakey
         for objv in objectives:
-            self.refdb[objv.name] = objv.ref_data
+            key = objv.query_key
+            for name in objv.model_names:
+                if name not in refdb.keys():
+                    refdb[name] = {}
+                refdb[name][key] = objv.ref_data
+        self.refdb = refdb
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasklist = tasklist # list of name,options pairs
         self.taskdict = taskdict # name:function mapping
         self.tasks = []          # callable objectsdd
+        self.parnames = parameternames
         self.config = config if config is not None else DEFAULT_CONFIG
         workroot = self.config['workroot']
         if workroot is not None:
@@ -133,14 +141,14 @@ class Evaluator(object):
         for item in objectives:
             self.msg(item)
 
-    def evaluate(self, parameters, iteration=None):
+    def evaluate(self, parametervalues, iteration=None):
         """Evaluate the global fitness of a given point in parameter space.
 
         This is the only object accessible to the optimiser, therefore only
         two arguments can be passed.
 
         Args:
-            parameters (list or dict): current point in design/parameter space
+            parametervalues (list): current point in design/parameter space
             iteration: (int or tupple): current iteration or current
                 generation and individual index within generation
 
@@ -166,9 +174,11 @@ class Evaluator(object):
         modeldb = {}
         # Wrap the environment in a single dict
         env = {'workroot': workdir, 'logger': self.logger,
-                'parameters': parameters, 'iteration': iteration,}
+               'parameternames': self.parnames,
+               'parametervalues': parametervalues,
+               'iteration': iteration,}
         # Initialise tasks
-        self.tasks = initialise_tasks(self.tasklist, self.taskdict),
+        self.tasks = initialise_tasks(self.tasklist, self.taskdict)
         # Get new model data by executing the rest of the tasks
         for i, task in enumerate(self.tasks):
             os.chdir(workdir)
@@ -192,8 +202,8 @@ class Evaluator(object):
 
         return np.atleast_1d(cost)
 
-    def __call__(self, parameters, iteration=None):
-        return self.evaluate(parameters, iteration)
+    def __call__(self, parametervalues, iteration=None):
+        return self.evaluate(parametervalues, iteration)
 
     def __repr__(self):
         ss = []

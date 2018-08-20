@@ -1,71 +1,145 @@
+"""Test if we can initialise tasks and execute them"""
+import sys
 import unittest
 import logging
+import json
 import yaml
 import os
+import shutil
 from pprint import pprint, pformat
 from os.path import abspath, normpath, expanduser
 from os.path import join as joinpath
 import numpy as np
 import numpy.testing as nptest
 from subprocess import CalledProcessError
-from skpar.core.tasks import SetTask, RunTask, GetTask, set_tasks
+from skpar.core.tasks import get_tasklist, initialise_tasks
 from skpar.core.parameters import Parameter
 from skpar.core.query import Query
-from skpar.core.taskdict import gettaskdict
+from skpar.core.usertasks import update_taskdict
+import skpar.core.taskdict as coretd
+import skpar.dftbutils.taskdict as dftbtd
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
-class TasksParsingTest(unittest.TestCase):
+class TaskParsingTest(unittest.TestCase):
     """Check if we can create and execute tasks."""
 
-    yamldata="""
+    yamldata = """
         tasks:
-            #- set: [parfile, workdir, optional_arguments]
-            #- run: [exe, workdir, arguments] 
-            #- get: [what, source, destination, optional_arguments]
-            - set: [current.par, skf, ]
-            - run: [skgen, skf, ]
-            - run: [bs_dftb, Si, ]
-            - run: [bs_dftb, SiO2, ]
-            - get: [get_dftbp_data, Si, Si]
-            - get: [get_dftbp_data, SiO2, SiO2]
-            - get: [get_dftbp_meff, Si/bs, Si]
+            #- set: [parfiles]
+            #- run: [cmd, workdir, outfile]
+            #- get: [what, from-source, optional-to-destination, optional_arguments]
+            - set: [skf/current.par]
+            - run: [skgen, skf]
+            # get_data is from dftbutils here; accepts no 'what' argument
+            - get_data: [Si, Si]
+            - get_meff: [Si/bs, Si]
         """
-    taskmapper = {'run': RunTask, 'set': SetTask, 'get': GetTask}
 
     def test_parsetask(self):
         """Can we parse task declarations successfully"""
-        Query.flush_modelsdb()
-        spec = yaml.load(self.yamldata)['tasks']
+        taskdict = {}
+        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+        update_taskdict(taskdict, 'skpar.dftbutils.taskdict', tag=False)
+        userinp = yaml.load(self.yamldata)['tasks']
         tasklist = []
-        for tt in spec:
-            # we should be getting 1 dict entry only!
-            (tasktype, args), = tt.items()
-            if tasktype.lower() == 'set':
-                tasklist.append(SetTask(*args))
-            if tasktype.lower() == 'run':
-                tasklist.append(RunTask(*args))
-            if tasktype.lower() == 'get':
-                func = gettaskdict[args[0]]
-                args[0] = func
-                tasklist.append(GetTask(*args))
-        self.assertTrue(isinstance(tasklist[0], SetTask))
-        fun = ['get_dftbp_data', 'get_dftbp_data', 'get_dftbp_meff']
-        cmd = ['skgen', 'bs_dftb', 'bs_dftb']
-        wd  = ['skf', 'Si', 'SiO2']
-        for ii, tt in enumerate(tasklist[1:4]):
-            self.assertTrue(isinstance(tt, RunTask))
-            self.assertListEqual(tt.cmd, [cmd[ii]])
-            self.assertEqual(tt.wd, wd[ii])
-        src = ['Si', 'SiO2', 'Si/bs']
-        dst = ['Si', 'SiO2', 'Si']
-        for ii, tt in enumerate(tasklist[4:]):
-            self.assertTrue(isinstance(tt, GetTask))
-            self.assertTrue(fun[ii], tt.func.__name__)
-            self.assertEqual(src[ii], tt.src_name)
-            self.assertEqual(dst[ii], tt.dst_name)
+        tasklist = get_tasklist(userinp)
+        tasks = initialise_tasks(tasklist, taskdict)
+        #
+        tasknames = ['set', 'run', 'get_data', 'get_meff']
+        self.assertListEqual([task.name for task in tasks], tasknames)
+        #
+        functions = [coretd.substitute_parameters, coretd.execute,
+                     dftbtd.get_dftbp_data, dftbtd.get_effmasses]
+        self.assertListEqual([task.func for task in tasks], functions)
+
+
+class CoreTaskExecutionTest(unittest.TestCase):
+    """Check we can execute core tasks"""
+
+    def test_simple(self):
+        """Can we parse task declarations successfully"""
+        jsondata = """ {
+            "tasks": [
+                    {"sub": [["./tmp/template.parameters.dat"]]} ,
+                    {"run": ["cp parameters.dat value.dat", "./tmp"]} ,
+                    {"get": ["value", "tmp/value.dat", "model"]}
+                ]
+            }
+        """
+        yamldata = """
+            tasks:
+                - sub: [[./tmp/template.parameters.dat]]
+                - run: ["cp parameters.dat value.dat", ./tmp]
+                - get: [value, tmp/value.dat, model]
+            """
+        taskdict = {}
+        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+        yamldata = yaml.load(yamldata)
+        # print('yaml data')
+        # pprint(yamldata)
+        jsondata = json.loads(jsondata)
+        # print('json data')
+        # pprint(jsondata)
+        # self.assertTrue(jsondata == yamldata) # fails for whatever reason
+        tasklist = []
+        userinp = yamldata
+        tasklist = get_tasklist(userinp['tasks'])
+        tasks = initialise_tasks(tasklist, taskdict)
+        #
+        var = 10
+        database = {}
+        par = Parameter('p0', value=var)
+        workroot = './'
+        coreargs = {'workroot': workroot, 'parameters': [par]}
+        os.makedirs('./tmp')
+        with open('./tmp/template.parameters.dat', 'w') as template:
+            template.writelines("%(p0)f\n")
+        # with open('./tmp/template.parameters.dat', 'r') as template:
+        #     tmplstr = template.readlines()
+        # print(tmplstr)
+        LOGGER.info('Executing tasks')
+        for task in tasks:
+            # LOGGER.info(task)
+            task(coreargs, database)
+        self.assertEqual(np.atleast_1d(var), database['model.value'])
+        shutil.rmtree('./tmp')
+
+    def test_twopartemplates(self):
+        """Can we parse task declarations successfully"""
+        yamldata = """
+            tasks:
+                - sub: [[./tmp/template.par1.dat, ./tmp/template.par2.dat]]
+                - run: ['bash run.sh', ./tmp]
+                - get: [value, tmp/values.dat, model]
+            """
+        taskdict = {}
+        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+        yamldata = yaml.load(yamldata)['tasks']
+        tasklist = []
+        tasklist = get_tasklist(yamldata)
+        tasks = initialise_tasks(tasklist, taskdict)
+        #
+        var1 = 10
+        var2 = 20
+        database = {}
+        params = [Parameter('p0', value=var1), Parameter('p1', value=var2)]
+        workroot = './'
+        coreargs = {'parameters': params}
+        os.makedirs('./tmp')
+        with open('./tmp/template.par1.dat', 'w') as template:
+            template.writelines("%(p0)f\n")
+        with open('./tmp/template.par2.dat', 'w') as template:
+            template.writelines("%(p1)f\n")
+        with open('./tmp/run.sh', 'w') as template:
+            template.writelines('cat par*.dat > values.dat\n')
+        for task in tasks:
+            LOGGER.info(task)
+            task(coreargs, database)
+        self.assertListEqual([var1, var2], list( database['model.value'] ))
+        shutil.rmtree('./tmp')
 
 
 class RunTaskTest(unittest.TestCase):
@@ -143,8 +217,8 @@ class RunTaskTest(unittest.TestCase):
         t1 = RunTask(cmd='python pass.py', wd='test_tasks')
         #self.assertListEqual(t1.cmd,['python', 'test_tasks/pass.py'])
         #self.assertEqual(t1.wd, 'test_tasks')
-        #self.assertTrue(isinstance(t1.logger,logging.Logger))
-        #logger.debug(t1)
+        #self.assertTrue(isinstance(t1.LOGGER,logging.LOGGER))
+        #LOGGER.debug(t1)
         t1(os.path.abspath('.'))
         self.assertEqual(t1.out, "Running to pass!\n")
 
@@ -153,8 +227,8 @@ class RunTaskTest(unittest.TestCase):
         t1 = RunTask(cmd='python pass.py', wd='test_tasks')
         self.assertListEqual(t1.cmd,['python', 'pass.py'])
         self.assertEqual(t1.wd, 'test_tasks')
-        self.assertTrue(isinstance(t1.logger,logging.Logger))
-        logger.debug(t1)
+        self.assertTrue(isinstance(t1.LOGGER,logging.LOGGER))
+        LOGGER.debug(t1)
         t1(os.path.abspath('.'))
         self.assertEqual(t1.out, "Running to pass!\n")
 
@@ -171,8 +245,8 @@ class RunTaskTest(unittest.TestCase):
         t1 = taskmapper[ttype](*args)
         self.assertListEqual(t1.cmd,['python', 'pass.py'])
         self.assertEqual(t1.wd, 'test_tasks')
-        self.assertTrue(isinstance(t1.logger,logging.Logger))
-        logger.debug(t1)
+        self.assertTrue(isinstance(t1.LOGGER,logging.LOGGER))
+        LOGGER.debug(t1)
         t1(os.path.abspath('.'))
         self.assertEqual(t1.out, "Running to pass!\n")
 
@@ -193,14 +267,14 @@ class RunTaskTest(unittest.TestCase):
     def test_task_fail_subprosseserr(self):
         """Can we fail a task due to non-zero return status of executable?"""
         t1 = RunTask(cmd='python fail.py', wd='test_tasks')
-        logger.debug (t1)
+        LOGGER.debug (t1)
         self.assertRaises(CalledProcessError, t1, os.path.abspath('.'))
         self.assertEqual(t1.out, "About to fail...\n")
 
     def test_task_fail_oserr(self):
         """Can we fail a task due to OS error, e.g. command not found?"""
         t1 = RunTask(cmd='python_missing pass.py', wd='test_tasks')
-        logger.debug (t1)
+        LOGGER.debug (t1)
         self.assertRaises(OSError, t1, '.')
 
     def test_passtask_remapexe(self):
@@ -224,7 +298,7 @@ class RunTaskTest(unittest.TestCase):
         exe = normpath(expanduser('python'))
         self.assertListEqual(t1.cmd,[exe, 'pass.py'])
         self.assertEqual(t1.wd, 'test_tasks')
-        self.assertTrue(isinstance(t1.logger,logging.Logger))
+        self.assertTrue(isinstance(t1.LOGGER,logging.LOGGER))
         t1(os.path.abspath('.'))
         self.assertEqual(t1.out, "Running to pass!\n")
 
@@ -286,7 +360,7 @@ class GetTaskTest(unittest.TestCase):
         self.assertEqual(tt.func, self.func_2)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd1')
-        logger.debug (tt)
+        LOGGER.debug (tt)
         dst = Query.get_modeldb('d1')
         # update source dictionary
         src['key'] = True
@@ -305,7 +379,7 @@ class GetTaskTest(unittest.TestCase):
         self.assertEqual(tt.func, self.func_3)
         self.assertEqual(tt.src_name, 'd1')
         self.assertEqual(tt.dst_name, 'd1')
-        logger.debug (tt)
+        LOGGER.debug (tt)
         dst = Query.get_modeldb('d1')
         # update source dictionary
         src['key'] = True
@@ -326,11 +400,11 @@ class SetAllTasksTest(unittest.TestCase):
             try:
                 spec = yaml.load(ff)
             except yaml.YAMLError as exc:
-                logger.debug (exc)
+                LOGGER.debug (exc)
         tasklist = set_tasks(spec['tasks'])
         for task in tasklist:
-            logger.debug ("")
-            logger.debug (task)
+            LOGGER.debug ("")
+            LOGGER.debug (task)
         self.assertEqual(len(tasklist), 7)
         # Set Tasks
         tt = tasklist[0]
@@ -389,7 +463,7 @@ class GetTaskDFTBpTest(unittest.TestCase):
         self.assertAlmostEqual(db['Ec_X_0'], 0.2025, places=3)
         self.assertAlmostEqual(db['Ec_U_0'], 0.6915, places=3)
         self.assertAlmostEqual(db['Ec_K_0'], 0.6915, places=3)
-        # logger.debug(pformat(db))
+        # LOGGER.debug(pformat(db))
 
 if __name__ == '__main__':
     unittest.main()

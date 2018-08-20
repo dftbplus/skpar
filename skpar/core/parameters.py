@@ -188,7 +188,7 @@ def update_parameters(workroot, templates, parameters, parnames=None):
             to this directory.
         templates (list): List of ascii filenames containing placeholders
             for inserting parameter values. The place holders must follow
-            the old string formatting of Python: $(ParameterName)ParameterType.
+            the old string formatting of Python: %(ParameterName)ParameterType.
         parameters (list): Either a list of floats, or a list of objects
             (each having .value and .name attributes)
         parnames (list): If `parameters` is a list of floats, then

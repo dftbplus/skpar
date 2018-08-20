@@ -1,7 +1,7 @@
 """Tasks module, defining relevant classes and functions"""
 import os
 import sys
-from pprint import pformat
+from pprint import pformat, pprint
 import numpy as np
 from skpar.core.query import Query
 from skpar.core.utils import get_logger
@@ -15,9 +15,10 @@ def get_tasklist(userinp):
         sys.exit(1)
     tasklist = []
     for item in userinp:
-        # due to json/yaml specifics, task is represented as a dictionary with
+        # due to json/yaml specifics, a task is represented as a dictionary with
         # one item only, hence the comma after task, avoiding looping over items
-        task, = item.items()
+        (taskname, taskargs), = item.items()
+        task = (taskname, taskargs)
         tasklist.append(task)
     return tasklist
 
@@ -25,7 +26,8 @@ def check_taskdict(tasklist, taskdict):
     """Check task names are in the task dictionary; quit otherwise."""
     for task in tasklist:
         if task[0] not in taskdict.keys():
-            LOGGER.critical('Task %s not in TASKDIR; Cannot continue')
+            LOGGER.critical('Task {:s} not in TASKDIR; Cannot continue'.\
+                            format(task[0]))
             LOGGER.critical('Check spelling and verify import of user modules')
             sys.exit(1)
 
@@ -39,21 +41,23 @@ def initialise_tasks(tasklist, taskdict, report=False):
     Returns:
         tasks(list): callable objects, instances of Task class
     """
+    LOGGER.info('Initialising tasks')
     tasks = []
-    for task in tasklist:
-        name = task[0]
-        func = taskdict[name]
-        fargs = task[1:]
-        tasks.append(Task(name, func, fargs))
+    for taskname, argslist in tasklist:
+        func = taskdict[taskname]
+        assert isinstance(argslist, (list, tuple)),\
+            ("Make sure task arguments are within []; IsString?: {}".\
+             format(isinstance(argslist, str)))
+        tasks.append(Task(taskname, func, argslist))
 
     if report:
         LOGGER.info("The following tasks will be executed at each iteration.")
         for i, task in enumerate(tasks):
-            LOGGER.info("Task %i:\t%s", i, pformat(task))
+            LOGGER.info("Task {:d}:\t{:s}".format(i, task.__repr__()))
     return tasks
 
 
-class Task():
+class Task(object):
     """Generic wrapper over functions or executables.
     """
     def __init__(self, name, func, fargs):
@@ -62,16 +66,17 @@ class Task():
         self.func = func
         self.fargs = fargs
     #
-    def __call__(self, coreargs, database):
+    def __call__(self, env, database):
         """Execute the task, let caller handle any exception raised by func"""
-        self.func(coreargs, database, *self.fargs)
+        self.func(env, database, *self.fargs)
     #
     def __repr__(self):
         """Yield a summary of the task.
         """
         srepr = []
         srepr.append('{:s} ({})'.format(self.name, self.func))
-        srepr.append('\t{}'.format(self.fargs))
+        srepr.append('\t{:d} args: {:s}'.format(len(self.fargs),
+            ', '.join(['{}'.format(arg) for arg in self.fargs])))
         return "\n".join(srepr)
 
 

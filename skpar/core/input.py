@@ -2,7 +2,6 @@
 Routines to handle the input file of skpar
 """
 import os
-import sys
 import json
 import yaml
 from skpar.core.utils      import get_logger
@@ -31,7 +30,7 @@ def get_input(filename):
                 raise
     return spec
 
-def parse_input(filename, verbose=False):
+def parse_input(filename, verbose=True):
     """Parse input filename and return the setup
     """
     userinp = get_input(filename)
@@ -47,11 +46,13 @@ def parse_input(filename, verbose=False):
     # TASKS
     taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
-    # Tag the tasks from user modules like modulename.taskname
+    update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+    # Import user tasks after the core ones, to allow potential
+    # replacement of `taskdict` entries with user-defined functions
+    # if `tagimports` is false.
     tag = config['tagimports']
     if usermodulesinp:
-        update_taskdict(usermodulesinp, taskdict, tag=tag)
-    update_taskdict('skpar.core.taskdict', taskdict, tag=False)
+        update_taskdict(taskdict, usermodulesinp, tag=tag)
     #
     taskinp = userinp.get('tasks', None)
     tasklist = get_tasklist(taskinp)

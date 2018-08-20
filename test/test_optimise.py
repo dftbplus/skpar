@@ -8,6 +8,8 @@ from skpar.core.input import parse_input
 from skpar.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_workdir
 from skpar.core.optimise import Optimiser, get_optargs
 from skpar.core.query import Query
+from skpar.core.tasks import initialise_tasks
+from pprint import pformat, pprint
 
 logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(format='%(message)s')
@@ -21,10 +23,11 @@ class OptimiseTest(unittest.TestCase):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
         Query.flush_modelsdb()
         filename = "test_optimise.yaml"
-        tasks, objectives, optimisation, config = parse_input(filename)
+        taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         algo, options, parameters = optimisation
-        evaluate = Evaluator(objectives, tasks, config)
-        optimiser = Optimiser(algo, parameters, evaluate, **options)
+        pprint(optimisation)
+        evaluate = Evaluator(objectives, tasklist, taskdict, config)
+        optimiser = Optimiser(algo, parameters, evaluate, options)
         logger.debug ("\n### -------------------------------------------------- ###")
         logger.debug ("### ----------- Tasks -------------------------------- ###")
         logger.debug ("### -------------------------------------------------- ###")
@@ -47,10 +50,16 @@ class OptimiseTest(unittest.TestCase):
         # check task 0 (SetTask)
         names  = ['c0', 'c1', 'c2', 'c3']
 
+        # initialise tasks manually
+        optimiser.evaluate.tasks = initialise_tasks(tasklist, taskdict)
+
         # below we call a SetTask with list of parameter objects
         workdir = os.path.abspath('./_workdir/test_optimise/tasktest-0')
         create_workdir(workdir, 'test_optimise')
-        optimiser.evaluate.tasks[0](workdir, optimiser.parameters)
+        env = {'parameteres': optimiser.parameters, 
+               'workroot': '.'}
+        database = {}
+        optimiser.evaluate.tasks[0](env, database)
         parfile = os.path.normpath(os.path.join(workdir, 'parameters.dat'))
         raw = np.loadtxt(parfile, dtype=[('keys', 'S15'), ('values', 'float')])
         _params = np.array([pair[1] for pair in raw])

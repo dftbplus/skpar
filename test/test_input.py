@@ -29,7 +29,6 @@ class ReadInputTest(unittest.TestCase):
         #print (data2)
         self.assertDictEqual(data1, data2)
 
-
     def test_parse_nonexistent(self):
         """Can we report neatly that input file is missing?"""
         filename = "skpar_noinput.yaml"
@@ -37,6 +36,7 @@ class ReadInputTest(unittest.TestCase):
             parsed = parse_input(filename)
             return parsed
         self.assertRaises(FileNotFoundError, wrapper)
+
 
 class ParseConfigTest(unittest.TestCase):
     """Check configuration is interpreted properly"""
@@ -58,7 +58,7 @@ class ParseConfigTest(unittest.TestCase):
     def test_parse_tasks_core(self):
         """Can we read tasks well and initialise correctly?"""
         taskdict = {}
-        update_taskdict('skpar.core.taskdict', taskdict, tag=False)
+        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
         skparin = 'example-tasks.yaml'
         userinp = get_input(skparin)
         tasklist = get_tasklist(userinp['tasks'])
