@@ -6,6 +6,7 @@ from skpar.core.utils    import get_logger
 from skpar.core.input    import parse_input
 from skpar.core.evaluate import Evaluator
 from skpar.core.optimise import Optimiser
+from skpar.core.query    import Query
 
 
 class SKPAR():
@@ -27,8 +28,11 @@ class SKPAR():
 
         # Main part
         # -------------------------------------------------------------------
+        # legacy stuff to be removed when objectives and database are reworked
+        Query.flush_modelsdb()
+
         # parse input file
-        self.logger.info('Parsing input file {}'.format(infile))
+        self.logger.info('Parsing input file {:s}'.format(infile))
         taskdict, tasklist, objectives, optimisation, config =\
             parse_input(infile, verbose=verbose)
         algo, options, parameters = optimisation
@@ -63,9 +67,7 @@ class SKPAR():
         else:
             # no parameters: pass None to evaluator
             fitness = self.evaluator(None)
-            self.logger.debug("Individual objective fitness: {}".\
-                              format(self.evaluator.objvfitness))
-            self.logger.debug("Global fitness: {}".format(fitness))
+            self.logger.debug("Global fitness: {:e}".format(fitness))
 
     def __repr__(self):
         lines = []

@@ -6,6 +6,7 @@ from pprint import pprint, pformat
 from skpar.core.utils import get_ranges, get_logger
 #from skpar.core.plot import skparplot
 from skpar.core.parameters import update_parameters
+from skpar.core.query import Query
 
 LOGGER = get_logger(__name__)
 
@@ -83,11 +84,11 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log', kwargs=None):
         os.chdir(origdir)
 
 
-def get_model_data(implargs, database, item, src, dst,
+def get_model_data(implargs, database, item, source, destination,
                    rm_columns=None, rm_rows=None, scale=1., **kwargs):
     """Get data from file and put it in a database under a given key.
 
-    Use numpy.loadtxt to get the data from `src` file and write the data
+    Use numpy.loadtxt to get the data from `source` file and write the data
     to `database` under `dst`.`key` field. If `dst` does not exist, it is
     created. All `kwargs` are directly passed to numpy.loadtxt. Additionally,
     some post-processing can be done (removing rows or columns and scaling).
@@ -95,23 +96,23 @@ def get_model_data(implargs, database, item, src, dst,
     Args:
         implargs(dict): dictionary of implicit arguments from caller
         database(object): must support dictionary-like insert/get/update()
-        src(str): file name (path is relative to `implargs['workroot']`)
-        dst(str): name of destination field in `database`
+        source(str): file name (path is relative to `implargs['workroot']`)
+        destination(str): name of destination field in `database`
         key(str): key under which to store the data in under `dst`
         rm_columns: [ index, index, [ilow, ihigh], otherindex, [otherrange]]
         rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
         scale(float): multiplier of the data
     """
-    print(item, src, dst, database)
     logger = implargs.get('logger', LOGGER)
     workroot = implargs.get('workroot', '.')
-    assert isinstance(src, str), \
-        "src must be a filename string, but is {} instead.".format(type(src))
+    assert isinstance(source, str), \
+        "source must be a filename string, but is {} instead.".\
+        format(type(source))
     assert isinstance(item, str),\
         "item must be a string naming the data, but is {} instead."\
             .format(type(item))
     # read file
-    fname = os.path.abspath(os.path.join(workroot, src))
+    fname = os.path.abspath(os.path.join(workroot, source))
     try:
         data = np.loadtxt(fname, **kwargs)
     except ValueError:
@@ -145,9 +146,9 @@ def get_model_data(implargs, database, item, src, dst,
                 data = np.delete(data, obj=indexes, axis=axis)
     data = data * scale
     # this have to become more generic: e.g. database.update(dst.item, data)
-    if dst not in database:
-        database[dst] = {}
-    database[dst][item] = data
+    # but database remains unused for the moment
+    dest_db  = Query.add_modelsdb(destination)
+    dest_db[item] = data
 
 
 def substitute_parameters(implargs, database, templatefiles, options=None):

@@ -13,15 +13,16 @@ class Objv(object):
     def __call__(self):
         return self.fitness
 
-class Task(object):
-    """Barebone task"""
-    def __init__(self, exception=None):
-       self.exception = exception
-    def __call__(self, workroot, **kwargs):
-        if self.exception is not None:
-            raise self.exception
-        else:
-            return None
+def printwrapper(env, db, msg):
+    print (env, db, msg)
+
+def fexception(env, db, exception=None):
+    """pass or except depending on the `exception`"""
+    if exception is not None:
+        raise exception
+    else:
+        return None
+
 
 class EvaluatorTest(unittest.TestCase):
     """Check if we can create an evaluator."""
@@ -29,8 +30,11 @@ class EvaluatorTest(unittest.TestCase):
     def test_evaluator_init_dflt(self):
         """Can we instantiate evaluator?"""
         objvs = [Objv(2, 1), Objv(2, 1)]
-        tasks = [Task(), Task()]
-        evaluator = ev.Evaluator(objvs, tasks)
+        tasklist = [['t1',['task2']], ['t2', ['task2']]]
+        taskdict = {'t1': printwrapper,
+                    't2': printwrapper}
+        parnames = ['p0']
+        evaluator = ev.Evaluator(objvs, tasklist, taskdict, parnames)
         nptest.assert_array_equal(evaluator.weights,np.array([.5, .5]))
         self.assertFalse(evaluator.verbose)
         params, iteration = 2., 1
@@ -40,8 +44,12 @@ class EvaluatorTest(unittest.TestCase):
     def test_evaluator_utopia(self):
         """Can we instantiate evaluator w/ different utopia point?"""
         objvs = [Objv(2, 1), Objv(2, 1)]
-        tasks = [Task(), Task()]
-        evaluator = ev.Evaluator(objvs, tasks, utopia=np.ones(2))
+        tasklist = [['t1',['task2']], ['t2', ['task2']]]
+        taskdict = {'t1': printwrapper,
+                    't2': printwrapper}
+        parnames = ['p0']
+        evaluator = ev.Evaluator(objvs, tasklist, taskdict, parnames,
+                                 utopia=np.ones(2))
         nptest.assert_array_equal(evaluator.weights,np.array([.5, .5]))
         self.assertFalse(evaluator.verbose)
         par, ii = 2., 1
@@ -51,10 +59,13 @@ class EvaluatorTest(unittest.TestCase):
     def test_evaluator_task_failure(self):
         """Does evaluation breaks if task fails?"""
         objvs = [Objv(2, 1), Objv(2, 1)]
-        tasks = [Task(), Task(RuntimeError), Task()]
-        evaluator = ev.Evaluator(objvs, tasks, utopia=np.ones(2))
+        tasklist = [['t1',['task1']], ['t2',[RuntimeError]], ['t1', ['task3']]]
+        taskdict = {'t1': printwrapper,
+                    't2': fexception,}
+        parnames = ['p0']
+        evaluator = ev.Evaluator(objvs, tasklist, taskdict, parnames)
         par, ii = 2., 1
-        self.assertRaises(RuntimeError, evaluator, parameters=par, iteration=ii)
+        self.assertRaises(RuntimeError, evaluator, par, ii)
 
 
 if __name__ == '__main__':

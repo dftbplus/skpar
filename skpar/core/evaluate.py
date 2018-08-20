@@ -105,14 +105,14 @@ class Evaluator(object):
         # This here is a temporary hack to make reference data available to
         # tasks, but not consistent with current implementation of objectives.
         refdb = {}
-        # the following loop creates a flat DB with modelname.datakey
-        for objv in objectives:
-            key = objv.query_key
-            for name in objv.model_names:
-                if name not in refdb.keys():
-                    refdb[name] = {}
-                refdb[name][key] = objv.ref_data
-        self.refdb = refdb
+#        # the following loop creates a flat DB with modelname.datakey
+#        for objv in objectives:
+#            key = objv.query_key
+#            for name in objv.model_names:
+#                if name not in refdb.keys():
+#                    refdb[name] = {}
+#                refdb[name][key] = objv.ref_data
+#        self.refdb = refdb
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasklist = tasklist # list of name,options pairs
         self.taskdict = taskdict # name:function mapping

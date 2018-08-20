@@ -9,6 +9,7 @@ from skpar.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_wor
 from skpar.core.optimise import Optimiser, get_optargs
 from skpar.core.query import Query
 from skpar.core.tasks import initialise_tasks
+from skpar.core import taskdict as core_taskdict
 from pprint import pformat, pprint
 
 logging.basicConfig(level=logging.DEBUG)
@@ -24,9 +25,12 @@ class OptimiseTest(unittest.TestCase):
         Query.flush_modelsdb()
         filename = "test_optimise.yaml"
         taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
+        workroot = config.get('workroot', None)
+        templatedir = config.get('templatedir', None)
+        create_workdir(workroot, templatedir)
         algo, options, parameters = optimisation
-        pprint(optimisation)
-        evaluate = Evaluator(objectives, tasklist, taskdict, config)
+        parnames = [p.name for p in parameters]
+        evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
         optimiser = Optimiser(algo, parameters, evaluate, options)
         logger.debug ("\n### -------------------------------------------------- ###")
         logger.debug ("### ----------- Tasks -------------------------------- ###")
@@ -47,37 +51,48 @@ class OptimiseTest(unittest.TestCase):
         logger.debug ("### -------------------------------------------------- ###")
         for pp in optimiser.parameters:
             logger.debug (pp)
-        # check task 0 (SetTask)
-        names  = ['c0', 'c1', 'c2', 'c3']
 
         # initialise tasks manually
         optimiser.evaluate.tasks = initialise_tasks(tasklist, taskdict)
-
-        # below we call a SetTask with list of parameter objects
-        workdir = os.path.abspath('./_workdir/test_optimise/tasktest-0')
-        create_workdir(workdir, 'test_optimise')
-        env = {'parameteres': optimiser.parameters, 
-               'workroot': '.'}
+        env = {'workroot': workroot,
+               'parameternames': parnames,
+               'parametervalues': params,
+               'iteration': None}
+        workdir = workroot
         database = {}
-        optimiser.evaluate.tasks[0](env, database)
-        parfile = os.path.normpath(os.path.join(workdir, 'parameters.dat'))
-        raw = np.loadtxt(parfile, dtype=[('keys', 'S15'), ('values', 'float')])
-        _params = np.array([pair[1] for pair in raw])
-        _names = [pair[0].decode("utf-8") for pair in raw]
-        nptest.assert_array_equal(params, _params)
-        self.assertListEqual(names, _names)
 
-        # check task 1 (RunTask)
+        # check task 0
+        self.assertEqual(optimiser.evaluate.tasks[0].name, 'set')
+        self.assertEqual(optimiser.evaluate.tasks[0].func,
+                         core_taskdict.substitute_parameters)
+        self.assertEqual(optimiser.evaluate.tasks[0].fargs,
+                         [['template.parameters.dat']])
+        optimiser.evaluate.tasks[0](env, database)
+        parfile = os.path.abspath(os.path.join(workdir, 'parameters.dat'))
+        raw = np.loadtxt(parfile, dtype=[('keys', 'S15'), ('values', 'float')])
+        _values = np.array([pair[1] for pair in raw])
+        _names = [pair[0].decode("utf-8") for pair in raw]
+        nptest.assert_array_equal(params, _values)
+        self.assertListEqual(parnames, _names)
+
+        # check task 1
         exe = 'python'.split()
-        self.assertListEqual(optimiser.evaluate.tasks[1].cmd, exe + ['model_poly3.py'])
-        self.assertEqual(optimiser.evaluate.tasks[1].wd, '.')
-        optimiser.evaluate.tasks[1](workdir)
-        
-        # check task 2 (GetTask)
-        optimiser.evaluate.tasks[2](workdir)
+        self.assertEqual(optimiser.evaluate.tasks[1].name, 'run')
+        self.assertEqual(optimiser.evaluate.tasks[1].func,
+                         core_taskdict.execute)
+        self.assertEqual(optimiser.evaluate.tasks[1].fargs, ['python model_poly3.py'])
+        optimiser.evaluate.tasks[1](env, database)
+
+        # check task 2
+        self.assertEqual(optimiser.evaluate.tasks[2].name, 'get')
+        self.assertEqual(optimiser.evaluate.tasks[2].func,
+                         core_taskdict.get_model_data)
+        self.assertEqual(optimiser.evaluate.tasks[2].fargs,
+                         ['yval', 'model_poly3_out.dat', 'poly3'])
+        optimiser.evaluate.tasks[2](env, database)
         modeldb = Query.get_modeldb('poly3') 
         self.assertTrue(modeldb is not None)
-        datafile = os.path.normpath(os.path.join(workdir, 'model_poly3_out.dat'))
+        datafile = os.path.abspath(os.path.join(workdir, 'model_poly3_out.dat'))
         dataout = np.loadtxt(datafile)
         nptest.assert_array_equal(modeldb['yval'], dataout)
         logger.debug("Model DB poly3:")
@@ -92,16 +107,16 @@ class OptimiseTest(unittest.TestCase):
         fitness = evaluate.costf(evaluate.utopia, objvfitness, evaluate.weights)
         logger.debug("Global fitness: {}".format(fitness))
         nptest.assert_almost_equal(fitness, np.atleast_1d(0))
-        
 
     def test_optimisation_run(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
         Query.flush_modelsdb()
         filename   = "test_optimise.yaml"
-        tasks, objectives, optimisation, config = parse_input(filename)
+        taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         algo, options, parameters = optimisation
-        evaluate = Evaluator(objectives, tasks, config)
-        optimiser = Optimiser(algo, parameters, evaluate, **options)
+        parnames = [p.name for p in parameters]
+        evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
+        optimiser = Optimiser(algo, parameters, evaluate, options)
         self.assertEqual(len(optimiser.optimise.swarm), 4)
         self.assertEqual(optimiser.optimise.ngen, 8)
         # the pso.toolbox makes evaluate object into a partial function,
