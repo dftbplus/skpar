@@ -15,16 +15,19 @@ LOGGER = get_logger(__name__)
 
 def get_optargs(userinp):
     """Parse user input for optimisation related arguments."""
-    algo = userinp.get('algo', 'pso').lower()
-    options = userinp.get('options', {})
     try:
-        parameters = get_parameters(userinp['parameters'])
-    except KeyError as exc:
-        LOGGER.critical('Parameters must be defined under'\
-                        'optimisation" in the input file.')
-        LOGGER.critical(exc)
-        sys.exit(2)
-    return algo, options, parameters
+        algo = userinp.get('algo', 'pso').lower()
+        options = userinp.get('options', {})
+        try:
+            parameters = get_parameters(userinp['parameters'])
+        except KeyError as exc:
+            LOGGER.critical('Parameters must be defined under'\
+                            'optimisation" in the input file.')
+            LOGGER.critical(exc)
+            sys.exit(2)
+        return algo, options, parameters
+    except AttributeError:
+        return None
 
 
 class Optimiser(object):

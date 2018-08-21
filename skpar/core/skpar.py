@@ -35,8 +35,8 @@ class SKPAR():
         self.logger.info('Parsing input file {:s}'.format(infile))
         taskdict, tasklist, objectives, optimisation, config =\
             parse_input(infile, verbose=verbose)
-        algo, options, parameters = optimisation
         if optimisation is not None:
+            algo, options, parameters = optimisation
             parnames = [p.name for p in parameters]
         else:
             parnames = None
