@@ -1,7 +1,7 @@
 import sys
 import os
 import logging
-from os.path import abspath, normpath, expanduser, isdir
+from os.path import abspath, expanduser, isdir
 from os.path import join as joinpath
 from math import pi
 import numpy as np
@@ -9,8 +9,9 @@ from collections import OrderedDict
 from skpar.dftbutils.lattice import Lattice, getSymPtLabel
 from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
 from skpar.dftbutils.utils import get_logger
+from skpar.core.query import Query
 
-logger = logging.getLogger(__name__)
+LOGGER = get_logger(__name__)
 
 # relevant fundamental constants
 Eh = 27.2114        # [eV] Hartree energy
@@ -113,25 +114,37 @@ class DetailedOut (dict):
         return cls(tagvalues)
 
 
-def get_dftbp_data(workroot, source, destination, datafile='detailed.out', *args, **kwargs):
-    """Load whatever data can be obtained from detailed.out of dftb+.
-    """
-    # setup logger
-    # -------------------------------------------------------------------
-    loglevel = logging.INFO
-    logger   = get_logger(name='dftbutils', filename='dftbutils.detailed.log',  
-                          verbosity=loglevel)
-    assert isinstance(source, str),\
-        "src must be a string (directory name), but is {} instead.".format(type(source))
-    ff = joinpath(abspath(expanduser(workroot)), source, 'detailed.out')
-    logger.debug('Getting DFTB+ data from {:s}.'.format(ff))
-    data = DetailedOut.fromfile(ff)
-    destination.update(data)
+def get_dftbp_data(implargs, database, source, destination,
+                   datafile='detailed.out'):
+    """Get whatever data can be obtained from detailed.out of dftb+.
 
-def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
-                    *args, **kwargs):
-    """Upload the data from DFTB+ SCC calculation for all models.
-    
+    Assume `source` is the directory where dftb+ was executed and that
+    `datafile` is the detailed output file, along with `dftb_pin.hsd`, etc.
+
+    Args:
+        implargs(dict): implicit key-word arguments passed by caller
+        database(obj): a database object that has a .update(dict) method
+        source(str): directory name where dftb+ has been executed
+        destination(str): currently this is where data is deposited; database
+                           is ignored
+        datafile(str): base-name of the detailed output from dftb+
+    """
+    logger = implargs.get('logger', LOGGER)
+    workroot = implargs.get('workroot', '.')
+    assert isinstance(source, str),\
+        "src must be a string (directory name), but is {} instead.".\
+        format(type(source))
+    fin = joinpath(abspath(expanduser(workroot)), source, datafile)
+    logger.debug('Getting DFTB+ data from {:s}.'.format(fin))
+    data = DetailedOut.fromfile(fin)
+    dest_db = Query.add_modelsdb(destination)
+    dest_db.update(data) # data is assumed a dictionary
+
+
+def get_dftbp_evol(implargs, database, source, destination,
+                   datafile='detailed.out', *args, **kwargs):
+    """Get the data from DFTB+ SCC calculation for all models.
+
     This is a compound task that augments the source path to include
     individual local directories for different cell volumes, based
     on the assumption that these directories are named by 3 digits.
@@ -146,49 +159,54 @@ def get_dftbp_evol(workroot, source, destination, datafile='detailed.out',
     """
     # setup logger
     # -------------------------------------------------------------------
-#    loglevel = logging.DEBUG if args.verbose else logging.INFO
-    # this log file will appear under the iteration directory
-    loglevel = logging.INFO
-    logger   = get_logger(name='dftbutils', filename='dftbutils.evol.log',  
-                          verbosity=loglevel)
+    logger = implargs.get('logger', LOGGER)
+    workroot = implargs.get('workroot', '.')
     # In order to collect the tags that identify individual directories
     # corresponding to a given cell-volume, we must go in the base
     # directory, which includes workroot/source
     cwd = os.getcwd()
-    modeldir = joinpath(abspath(expanduser(workroot)), source)
-    logger.info('Looking for Energy-Volume data in {:s}'.format(modeldir))
-    os.chdir(modeldir)
+    workdir = joinpath(abspath(expanduser(workroot)), source)
+    os.chdir(workdir)
+    logger.info('Looking for Energy-vs-Strain data in {:s}'.format(workdir))
+    # the following should be modifiable by command options
+    logger.info('Assuming strain directories are named by digits only.')
     sccdirs = [dd for dd in os.listdir() if dd.isdigit()]
-    # These come in a disordered way 
-    # But it is pivotal that the names are sorted, so that correspondence 
+    # These come in a disordered way.
+    # But it is pivotal that the names are sorted, so that correspondence
     # with reference data can be established!
     sccdirs.sort()
-    logger.info('The following SCC directories are found: \n {}'.format(sccdirs))
+    logger.info('The following SCC directories are found:\n{}'.format(sccdirs))
     # make sure we return back
     os.chdir(cwd)
     # go over individual volume directories and obtain the data
-    Etot = []
-    Eelec = []
+    e_tot = []
+    e_elec = []
     strain = []
-    for dd in sccdirs:
-        ff = joinpath(modeldir, dd, datafile)
-        logger.info('Reading {:s}'.format(ff))
-        data = DetailedOut.fromfile(ff)
+    for straindir in sccdirs:
+        fin = joinpath(workdir, straindir, datafile)
+        logger.info('Reading {:s}'.format(fin))
+        data = DetailedOut.fromfile(fin)
         logger.info('Done. Data: {}'.format(data))
-        Etot.append(data['Etot'])
-        Eelec.append(data['Eel'])
-        strain.append(float(dd) - 100)
-    destination['totalenergy_volume'] = Etot
-    destination['elecenergy_volume'] = Eelec
-    destination['strain'] = strain
-    logger.info('Done. totalenergy_volume: {}'.format(destination['totalenergy_volume']))
-    logger.info('Done. elecenergy_volume: {}'.format(destination['elecenergy_volume']))
+        e_tot.append(data['Etot'])
+        e_elec.append(data['Eel'])
+        strain.append(float(straindir) - 100)
+    # prepare to update database
+    data = {}
+    data['totalenergy_volume'] = e_tot
+    data['elecenergy_volume'] = e_elec
+    data['strain'] = strain
+    # report
+    logger.info('Done. totalenergy_volume: {}'.format(data['totalenergy_volume']))
+    logger.info('Done. elecenergy_volume: {}'.format(data['elecenergy_volume']))
     outstr = ['# Total Energy[eV], Electronic Energy[eV], Volume tag']
-    for et, ee, tag in zip(Etot, Eelec, sccdirs):
-        outstr.append('{:12.6g} {:10.6g} {:>10s}'.format(et, ee, tag))
-    with open(joinpath(modeldir, 'energy_volume.dat'), 'w') as fp:
-        fp.writelines('\n'.join(outstr)+'\n')
-    
+    for total, elec, tag in zip(e_tot, e_elec, sccdirs):
+        outstr.append('{:12.6g} {:10.6g} {:>10s}'.format(total, elec, tag))
+    with open(joinpath(workdir, 'energy_volume.dat'), 'w') as fout:
+        fout.writelines('\n'.join(outstr)+'\n')
+    # update destination
+    dest_db = Query.add_modelsdb(destination)
+    dest_db.update(data)
+
 
 # ----------------------------------------------------------------------
 # Band structure data (including Detailed Output data)
@@ -265,31 +283,40 @@ class Bandstructure(dict):
         return cls(data)
 
 
-def get_bandstructure(workroot, source, destination,
-        detailfile='detailed.out', bandsfile='bands_tot.dat', hsdfile='dftb_pin.hsd', 
-        latticeinfo=None, *args, **kwargs):
-    """Load whatever data can be obtained from detailed.out of dftb+ and bands_tot.dat of dp_bands.
+def get_bandstructure(implargs, database, source, destination,
+                      detailfile='detailed.out', bandsfile='bands_tot.dat',
+                      hsdfile='dftb_pin.hsd', latticeinfo=None, *args, **kwargs):
+    """Get bandstructure and related data from dftb+.
+
+    Assume that `source` is the execution directory where `detailed.out`, and
+    `bands_tot.dat` can be found. Additionally, the parsed input of dftb+ --
+    `dftb_pin.hsd` is also checked if lattice info is given, in order to
+    analyse k-paths and provide data for subsequent plotting.
     """
+    logger = implargs.get('logger', LOGGER)
+    workroot = implargs.get('workroot', '.')
     assert isdir(expanduser(joinpath(workroot, source)))
-    f1 = normpath(expanduser(joinpath(workroot, source, detailfile)))
-    f2 = normpath(expanduser(joinpath(workroot, source, bandsfile)))
-    f3 = normpath(expanduser(joinpath(workroot, source, hsdfile)))
-    data = Bandstructure.fromfiles(f1, f2)
+    fin1 = joinpath(abspath(expanduser(workroot)), source, detailfile)
+    fin2 = joinpath(abspath(expanduser(workroot)), source, bandsfile)
+    fin3 = joinpath(abspath(expanduser(workroot)), source, hsdfile)
+    data = Bandstructure.fromfiles(fin1, fin2)
     #
     if latticeinfo is not None:
         lattice = Lattice(latticeinfo)
-        kLines, kLinesDict = get_klines(lattice, hsdfile=f3)
+        kLines, kLinesDict = get_klines(lattice, hsdfile=fin3)
         kvec, kticks, klabels = get_kvec_abscissa(lattice, kLines)
-        data.update({'lattice': lattice, 
-                    'kLines': kLines, 
-                    'kLinesDict': kLinesDict,
-                    'kvector': kvec,
-                    'kticklabels': list(zip(kticks, klabels)),
-                   })
+        data.update({'lattice': lattice,
+                     'kLines': kLines,
+                     'kLinesDict': kLinesDict,
+                     'kvector': kvec,
+                     'kticklabels': list(zip(kticks, klabels)),
+                    })
         #logger.debug(data['lattice'])
         #logger.debug(data['kLines'])
         #logger.debug(data['kLinesDict'])
-    destination.update(data)
+    # update destination
+    dest_db = Query.add_modelsdb(destination)
+    dest_db.update(data)
 
 # ----------------------------------------------------------------------
 # Effective masses
@@ -324,8 +351,9 @@ def meff(band, kline):
     # dE/dk = 2*c2*k and d^2E/dk^2 = 2*c2
     return 1./(2.*c2)
 
-def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None, 
-            Erange=0.008, forceErange=False, ib0=0, nb=1, usebandindex=False):
+def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
+                 Erange=0.008, forceErange=False, ib0=0, nb=1,
+                 usebandindex=False, **kwargs):
     """A complex wrapper around meff(), with higher level interface.
 
     Calculate parabolic effective mass at the specified *extrtype* of 
@@ -354,6 +382,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
     # check correct extremum type is specified
     extrdict = {'min': np.amin, 'max': np.amax}
     meffdict = {'min': 'me', 'max': 'mh'}
+    logger = kwargs.get('logger', LOGGER)
 
     def meff_id(ix, usebandindex=False):
         """Construct a string tag for an effective mass key.
@@ -386,7 +415,7 @@ def calc_masseff(bands, extrtype, kLineEnds, lattice, meff_tag=None,
         return tag
 
 
-    try: 
+    try:
         fextr = extrdict[extrtype]
     except KeyError:
         # this message has to go through regardless the logger is configured or not
@@ -516,29 +545,36 @@ def expand_meffdata(meff_data):
         expanded_data[kpostag] = kposval
     return expanded_data
 
-def get_effmasses(workroot, source, destination, directions=None, 
-                carriers='both', nb=1, Erange=0.04,
-                usebandindex=False, forceErange=False, *args, **kwargs):
-    """Return a dictionary with effective masses for the given *carriers* for 
-    the first *nb* *bands* in the VB and CB, along the given *paths*, as well 
-    as the values of the extrema and their position along the directions in 
-    the *paths*.
+def get_effmasses(implargs, database, source, destination=None, directions=None,
+                  carriers='both', nb=1, Erange=0.04, usebandindex=False,
+                  forceErange=False, *args, **kwargs):
+    """Get effective masses along select directions for select carrier types.
+
+    Obtain the effective masses for the given `carriers` for the first `nb`
+    bands in the VB and/or CB, along the given `directions`, as well as the
+    values of the extrema and their position along these `directions`.
+    Label the effective masses by band index (starting from 0, within the
+    band for the select carrier type), if `usebandindex` is True.
+    Carrier types (`carriers`) could be 'e', 'h', 'both'.
+    `Erange` is the energy range over which parabolic expansion is attempted
     """
+    logger = implargs.get('logger', LOGGER)
     masses = OrderedDict()
-    bands  = source['bands']
+    src_db = Query.get_modeldb(source)
+    bands  = src_db['bands']
     nE, nk = bands.shape
-    ivbtop = source['ivbtop']
+    ivbtop = src_db['ivbtop']
     try:
-        lattice = source['lattice']
+        lattice = src_db['lattice']
 #        logger.debug(lattice)
 #        logger.debug('lattice is good!')
     except KeyError:
 #            Since dftbp_in.hsd contains the atomic structure and cell info,
 #            we may try to get the lattice type with spglib...in the future.
-        logger.error('The lack of lattice information precludes'
-            'interpretation of band-structure and effective masses.')
-    kLines = source['kLines']
-    kLinesDict = source['kLinesDict']
+        logger.error('The lack of lattice information precludes interpretation'
+                     ' of band-structure and effective masses.')
+    kLines = src_db['kLines']
+    kLinesDict = src_db['kLinesDict']
     ## suppose we have something like "L-Gamma-X|K-Gamma"
     ## this makes for two paths and three directions in total
     if directions is None:
@@ -555,11 +591,11 @@ def get_effmasses(workroot, source, destination, directions=None,
     for direction in directions:
         logger.debug(direction)
         endpoints = get_labels(direction)
-        assert len(endpoints)==2
+        assert len(endpoints) == 2
         logger.debug('Fitting effective mass along {}-{}.'.format(*endpoints))
         ix0 = None
         ix1 = None
-        for ii,pt in enumerate(kLines[:-1]):
+        for ii, pt in enumerate(kLines[:-1]):
             # check that the labels specifying a direction form a consecutive pair
             # in kLines, and then get the corresponding indexes, sorting them too
             if kLines[ii][0] in endpoints and kLines[ii+1][0] in endpoints:
@@ -578,9 +614,9 @@ def get_effmasses(workroot, source, destination, directions=None,
             ib0 = ivbtop
             kLine = bands[ib0:ib0-nb:-1, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'max', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange,
-                                    forceErange=forceErange, nb=nb,
-                                    usebandindex=usebandindex)
+                                     meff_tag=direction, Erange=Erange,
+                                     forceErange=forceErange, nb=nb,
+                                     usebandindex=usebandindex, logger=logger)
             masses.update(expand_meffdata(meff_data))
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
@@ -592,17 +628,20 @@ def get_effmasses(workroot, source, destination, directions=None,
             ib0 = ivbtop+1
             kLine = bands[ib0:ib0+nb, ix0:ix1+1]
             meff_data = calc_masseff(kLine, 'min', kEndPts, lattice,
-                                    meff_tag=direction, Erange=Erange, 
-                                    forceErange=forceErange, nb=nb,
-                                    usebandindex=usebandindex)
+                                     meff_tag=direction, Erange=Erange,
+                                     forceErange=forceErange, nb=nb,
+                                     usebandindex=usebandindex, logger=logger)
             masses.update(expand_meffdata(meff_data))
             # report also the average (arithmetic) mass
             mav = np.mean([mm[0] for mm in meff_data.values()])
             masses.update({'me_av': mav})
         #
+        if destination is None:
+            destination = source
         logger.debug('Adding the following items to destination:')
         logger.debug(masses)
-        destination.update(masses) 
+        dest_db = Query.add_modelsdb(destination)
+        dest_db.update(masses)
     return masses
 
 def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, *args, **kwargs):
@@ -684,15 +723,17 @@ def greek (label):
             lbl = label
     return lbl
 
-def get_special_Ek(workroot, source, destination=None, sympts=None, 
-                    extract={'cb': [0, ], 'vb': [0, ]}, align='Ef', 
-                    usebandindex=True, *args, **kwargs):
+def get_special_Ek(implargs, database, source, destination=None, sympts=None,
+                   extract={'cb': [0, ], 'vb': [0, ]}, align='Ef',
+                   usebandindex=True, *args, **kwargs):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
     """
 
     # let the user mute extraction of vb or cb by providing only the alternative key
-    # this may be needed if reference energies are not available for both CB and VB 
+    # this may be needed if reference energies are not available for both CB and VB
     # at the same time
+    logger = implargs.get('logger', LOGGER)
+    src_db = Query.get_modeldb(source)
     if 'cb' not in extract:
         extract.update({'cb': []})
     if 'vb' not in extract:
@@ -700,20 +741,21 @@ def get_special_Ek(workroot, source, destination=None, sympts=None,
     # if user does not provide sympts, then extract from kLines
     if sympts is None:
         try:
-            sympts = list(source['kLinesDict'].keys())
+            sympts = list(src_db['kLinesDict'].keys())
         except KeyError:
-            logger.critical('Attempting to guess symmetry points, but kLinesDict not available.')
+            logger.critical('Attempting to guess symmetry points,'\
+                            ' but kLinesDict not available.')
             sys.exit(2)
     # align the energies to a reference value, e.g. Efermi
     if isinstance(align, str):
         # that would be an energy that is computed already
-        E0 = source[align]
+        E0 = src_db[align]
     else:
         # assume a scalar
         E0 = align
-    Ek = get_Ek(source, sympts)
+    Ek = get_Ek(src_db, sympts)
     Ek = {key: val-E0 for key, val in Ek.items()}
-    nVBtop     = source['ivbtop']
+    nVBtop     = src_db['ivbtop']
     tagged_Ek = {}
     for label in Ek:
         for bandix in extract['cb']:
@@ -734,5 +776,6 @@ def get_special_Ek(workroot, source, destination=None, sympts=None,
         destination = source
     logger.debug('Adding the following items to destination:')
     logger.debug(tagged_Ek)
-    destination.update(tagged_Ek)
+    dest_db = Query.add_modelsdb(destination)
+    dest_db.update(tagged_Ek)
     return tagged_Ek

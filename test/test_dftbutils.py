@@ -2,6 +2,7 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
+from skpar.core.query import Query
 from skpar.dftbutils.queryDFTB import DetailedOut, BandsOut, Bandstructure
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
@@ -111,21 +112,21 @@ class DetailedOutTest(unittest.TestCase):
         self.assertDictEqual(dst, self.ref_bs)
 
     def test_get_dftbp_data(self):
-        dst = {}
-        # src is a directory
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
+        #
         src = 'test_dftbutils/scc'
-        get_dftbp_data('.', src, dst)
-        self.assertDictEqual(dst, self.ref_scc)
-        # src is a directory
+        dst = 'test.scc'
+        get_dftbp_data(env, database, src, dst)
+        modeldict = Query.get_modeldb(dst)
+        self.assertDictEqual(modeldict, self.ref_scc)
+        #
         src = 'test_dftbutils/bs'
-        get_dftbp_data('.', src, dst)
-        # dictionary should be updated with new values, but same keys
-        self.assertDictEqual(dst, self.ref_bs)
-        # src is a file, but workdir is explicit
-#        src = 'detailed.out'
-#        wd = 'test_dftbutils/scc_soc'
-#        get_dftbp_data(wd, src, dst)
-#        self.assertDictEqual(dst, self.ref_scc_soc)
+        dst = 'test.bs'
+        get_dftbp_data(env, database, src, dst)
+        modeldict = Query.get_modeldb(dst)
+        self.assertDictEqual(modeldict, self.ref_bs)
 
 
 class BandsOutTest(unittest.TestCase):
@@ -170,16 +171,20 @@ class BandsOutTest(unittest.TestCase):
 
     def test_get_bandstructure(self):
         """Can we get the bandstructure and gap/cb/vb details?"""
-        dst = {}
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
         src = 'test_dftbutils/bs'
-        get_bandstructure('.', src, dst)
-        nptest.assert_array_almost_equal(dst['bands'], self.ref_bands)
-        self.assertEqual(dst['nkpts'], self.ref_nk)
-        self.assertEqual(dst['nbands'], self.ref_nb)
-        self.assertEqual(dst['Ef'], self.ref_Ef)
-        self.assertEqual(dst['Egap'], self.ref_Eg)
-        self.assertEqual(dst['Ecb'], self.ref_Ec)
-        self.assertEqual(dst['Evb'], self.ref_Ev)
+        dst = 'test.bs'
+        get_bandstructure(env, database, src, dst)
+        modeldict = Query.get_modeldb(dst)
+        nptest.assert_array_almost_equal(modeldict['bands'], self.ref_bands)
+        self.assertEqual(modeldict['nkpts'], self.ref_nk)
+        self.assertEqual(modeldict['nbands'], self.ref_nb)
+        self.assertEqual(modeldict['Ef'], self.ref_Ef)
+        self.assertEqual(modeldict['Egap'], self.ref_Eg)
+        self.assertEqual(modeldict['Ecb'], self.ref_Ec)
+        self.assertEqual(modeldict['Evb'], self.ref_Ev)
 
 
 class MeffTest(unittest.TestCase):
@@ -197,9 +202,13 @@ class MeffTest(unittest.TestCase):
 
     def test_get_effmasses_default(self):
         """Can we get effective masses in addition to band-structure, with default settings?"""
-        dst = {}
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        model = 'test.meff'
+        get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
+        dst = Query.get_modeldb(model)
         # the values below are in oldskpar.debug.log in the above dir
         self.assertTrue(dst['withSOC'])
         self.assertEqual(dst['ivbtop'], 7)
@@ -214,29 +223,33 @@ class MeffTest(unittest.TestCase):
         ref_klinesdict = {'K': [142], 'X': [113], 'Gamma': [53, 205], 'L': [0], 'U': [141]}
         self.assertListEqual(dst['kLines'], ref_klines)
         self.assertDictEqual(dst['kLinesDict'], ref_klinesdict)
-        get_effmasses('.', dst, dst)
+        get_effmasses(env, database, model, model)
         ref_meff_tags = ['me_LG', 'me_GX', 'me_XU', 'me_KG']
         ref_meff_tags.extend(['mh_LG', 'mh_GX', 'mh_XU', 'mh_KG'])
         self.assertTrue(all([key in dst for key in ref_meff_tags]))
 
     def test_get_effmasses_select(self):
         """Can we get select effective masses with a control options?"""
-        dst = {}
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
+        model = 'test.meff'
         # NOTABENE: the refdata here is from SOC calculation!!!
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
+        get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
+        dst = Query.get_modeldb(model)
         directions = ['Gamma-X', 'Gamma-L', 'Gamma-K']
         # Example how to extract different masses over a different energy window:
         # Note that subsequent extractions overwrite final data in dst, so we start with
         # the deepest bands, and than reduce the number of bands, towards to top of VB
         # The energy window should be adjusted depending on the anticipated curvature of the band
-        get_effmasses('.', dst, dst, directions=directions, carriers='e', nb=1, Erange=0.005, usebandindex=True)
+        get_effmasses(env, database, model, model, directions=directions, carriers='e', nb=1, Erange=0.005, usebandindex=True)
         # get the lowest band masses: (spin-orbit); forceErange seems to not work properly?
-        get_effmasses('.', dst, dst, directions=directions, carriers='h', nb=5, Erange=0.0015, forceErange=True)
+        get_effmasses(env, database, model, model, directions=directions, carriers='h', nb=5, Erange=0.0015, forceErange=True)
         # get the light hole bands (3 and 4)
-        get_effmasses('.', dst, dst, directions=directions, carriers='h', nb=3, Erange=0.008)
+        get_effmasses(env, database, model, model, directions=directions, carriers='h', nb=3, Erange=0.008)
         # get the top two (heavy hole) bands (1 and 2); enforce indexing! (i.e. add _0)
-        get_effmasses('.', dst, dst, directions=directions, carriers='h', nb=1, Erange=0.002, usebandindex=True)
+        get_effmasses(env, database, model, model, directions=directions, carriers='h', nb=1, Erange=0.002, usebandindex=True)
         self.assertAlmostEqual(dst['me_GX_0'],  0.935, places=3)
         self.assertAlmostEqual(dst['mh_GX_0'], -0.278, places=2)
         self.assertAlmostEqual(dst['mh_GK_0'], -1.891, places=3)
@@ -254,10 +267,14 @@ class EkTest(unittest.TestCase):
     """Can we extract designated eigenvalues at special points of symmetry in the BZ?"""
     def test_get_special_Ek(self):
         """Get E(k) for k obtained from the kLines"""
-        dst = {}
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
+        model = 'test.Ek'
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
-        get_special_Ek('.', dst, dst)
+        get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
+        dst = Query.get_modeldb(model)
+        get_special_Ek(env, database, model, model)
         self.assertAlmostEqual(dst['Ec_L_0'], 0.4  , places=3)
         self.assertAlmostEqual(dst['Ec_G_0'], 1.616, places=3)
         self.assertAlmostEqual(dst['Ec_X_0'], 0.2025, places=3)
@@ -272,10 +289,14 @@ class EkTest(unittest.TestCase):
 
     def test_get_special_Ek_options(self):
         """Get E(k) for explicitly given, and multiple bands"""
-        dst = {}
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
+        model = 'test.Ek'
         src = 'test_dftbutils/Si/bs'
-        get_bandstructure('.', src, dst, latticeinfo={'type': 'FCC', 'param': 5.431})
-        get_special_Ek('.', dst, dst, sympts = ['K', 'L'], 
+        get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
+        dst = Query.get_modeldb(model)
+        get_special_Ek(env, database, model, model, sympts = ['K', 'L'], 
                         extract={'cb': [0, 2, 4, 6], 'vb': [0, 2, 4, 6]})
         self.assertAlmostEqual(dst['Ec_L_4'], 2.8089, places=3)
         self.assertAlmostEqual(dst['Ec_L_0'], 0.3995, places=3)
@@ -288,11 +309,6 @@ class EkTest(unittest.TestCase):
         self.assertAlmostEqual(dst['Ev_K_2'],-4.963, places=3)
         self.assertAlmostEqual(dst['Ev_K_4'],-8.694, places=3)
         self.assertAlmostEqual(dst['Ev_K_6'],-9.8759, places=3)
-
-# TODO:
-# test for the executable with all bells and whistles,
-# prepare a directory with skf, scc and bs subdirectories,
-# and run dftbutils with all options exercised.
 
 if __name__ == '__main__':
     unittest.main()

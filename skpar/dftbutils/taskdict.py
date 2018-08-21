@@ -1,10 +1,13 @@
 """
 Provide mapping between task names available to user and actual functions.
 """
+from skpar.core.utils import get_logger
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from skpar.dftbutils.queryDFTB import get_dftbp_evol
 from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 from skpar.dftbutils.plot import magic_plot_bs
+
+LOGGER = get_logger(__name__)
 
 TASKDICT = {
     # obtain data from model evaluations

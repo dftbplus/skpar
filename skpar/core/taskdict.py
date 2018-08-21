@@ -148,7 +148,7 @@ def get_model_data(implargs, database, item, source, destination,
     # this have to become more generic: e.g. database.update(dst.item, data)
     # but database remains unused for the moment
     dest_db  = Query.add_modelsdb(destination)
-    dest_db[item] = data
+    dest_db.update({item: data})
 
 
 def substitute_parameters(implargs, database, templatefiles, options=None):
@@ -174,6 +174,9 @@ def substitute_parameters(implargs, database, templatefiles, options=None):
                     iteration, workroot)
     update_parameters(workroot, templatefiles, parvalues, parnames)
 
+#def wrapper_skparplot(implargs, database, ):
+#    """Wrapper for skparplot, extracting data from objectives prior to plotting.
+#    """
 
 TASKDICT = {
     'set': substitute_parameters,
@@ -187,6 +190,6 @@ TASKDICT = {
     'get': get_model_data,
     'get_data': get_model_data,
     #
-#    'plot': skparplot,
-#    'plot_objectives': skparplot,
+#    'plot': wrapper_skparplot,
+#    'plot_objectives': wrapper_skparplot,
     }

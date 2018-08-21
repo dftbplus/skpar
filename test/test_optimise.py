@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import numpy.testing as nptest
 import os
+import sys
 from os.path import abspath, normpath, expanduser
 from skpar.core.input import parse_input
 from skpar.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_workdir
@@ -65,7 +66,7 @@ class OptimiseTest(unittest.TestCase):
         self.assertEqual(optimiser.evaluate.tasks[0].name, 'set')
         self.assertEqual(optimiser.evaluate.tasks[0].func,
                          core_taskdict.substitute_parameters)
-        self.assertEqual(optimiser.evaluate.tasks[0].fargs,
+        self.assertEqual(optimiser.evaluate.tasks[0].args,
                          [['template.parameters.dat']])
         optimiser.evaluate.tasks[0](env, database)
         parfile = os.path.abspath(os.path.join(workdir, 'parameters.dat'))
@@ -80,14 +81,14 @@ class OptimiseTest(unittest.TestCase):
         self.assertEqual(optimiser.evaluate.tasks[1].name, 'run')
         self.assertEqual(optimiser.evaluate.tasks[1].func,
                          core_taskdict.execute)
-        self.assertEqual(optimiser.evaluate.tasks[1].fargs, ['python model_poly3.py'])
+        self.assertEqual(optimiser.evaluate.tasks[1].args, ['python model_poly3.py'])
         optimiser.evaluate.tasks[1](env, database)
 
         # check task 2
         self.assertEqual(optimiser.evaluate.tasks[2].name, 'get')
         self.assertEqual(optimiser.evaluate.tasks[2].func,
                          core_taskdict.get_model_data)
-        self.assertEqual(optimiser.evaluate.tasks[2].fargs,
+        self.assertEqual(optimiser.evaluate.tasks[2].args,
                          ['yval', 'model_poly3_out.dat', 'poly3'])
         optimiser.evaluate.tasks[2](env, database)
         modeldb = Query.get_modeldb('poly3') 
@@ -138,29 +139,31 @@ class EvaluateSiTest(unittest.TestCase):
     def test_parse_input(self):
         """Can we parse input, create an evaluator instance, and run the tasks?"""
         Query.flush_modelsdb()
+        db = Query.add_modelsdb('Si.bs')
         filename   = "skpar_in_Si.yaml"
         testfolder = "test_eval_Si"
         parfile    = os.path.join(testfolder, 'current.par')
-        tasks, objectives, optimisation, config = parse_input(filename)
+        taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         workroot = config.get('workroot', None)
         templatedir = config.get('templatedir', None)
         create_workdir(workroot, templatedir)
-        evaluate = Evaluator(objectives, tasks, config)
-        logger.debug('Evaluation only:')
+        parnames = None
+        evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
         if optimisation is None:
+            logger.debug('Evaluation only:')
             logger.debug ("\n### -------------------------------------------------- ###")
             logger.debug ("### ----------- Tasks -------------------------------- ###")
             logger.debug ("### -------------------------------------------------- ###")
             for tt in evaluate.tasks:
-                logger.debug (tt)
+                logger.debug(tt)
             logger.debug ("\n### -------------------------------------------------- ###")
             logger.debug ("### ----------- Objectives --------------------------- ###")
             logger.debug ("### -------------------------------------------------- ###")
             for oo in evaluate.objectives:
                 logger.debug (oo)
-            for tt in evaluate.tasks:
-                tt(workroot)
-                # check evaluation
+            # check evaluation
+            logger.debug ('Evaluating tasks')
+            evaluate(None, None)
             objvfitness = eval_objectives(evaluate.objectives)
             #nptest.assert_almost_equal(objvfitness, np.zeros(len(objectives)))
             logger.debug("Individual objective fitness: {}".format(objvfitness))
