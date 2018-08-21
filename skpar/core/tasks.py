@@ -29,6 +29,7 @@ def check_taskdict(tasklist, taskdict):
             LOGGER.critical('Task {:s} not in TASKDIR; Cannot continue'.\
                             format(task[0]))
             LOGGER.critical('Check spelling and verify import of user modules')
+            LOGGER.critical('Use `usermodules: [lisf of modules]` in input')
             sys.exit(1)
 
 def initialise_tasks(tasklist, taskdict, report=False):
@@ -64,19 +65,37 @@ class Task(object):
         """Create a callable object from user input"""
         self.name = name
         self.func = func
-        self.fargs = fargs
+        # legacy: treat last argument as kwargs if dict
+        if isinstance(fargs[-1], dict):
+            self.args = fargs[:-1]
+            self.kwargs = fargs[-1]
+        else:
+            self.args = fargs
+            self.kwargs = None
     #
     def __call__(self, env, database):
         """Execute the task, let caller handle any exception raised by func"""
-        self.func(env, database, *self.fargs)
+        if self.kwargs is not None and self.args is not None:
+            self.func(env, database, *self.args, **self.kwargs)
+        elif self.args is not None and self.kwargs is None:
+            self.func(env, database, *self.args)
+        elif self.args is None and self.kwargs is not None:
+            self.func(env, database, **self.kwargs)
+        else:
+            self.func(env, database)
     #
     def __repr__(self):
         """Yield a summary of the task.
         """
         srepr = []
-        srepr.append('{:s} ({})'.format(self.name, self.func))
-        srepr.append('\t{:d} args: {:s}'.format(len(self.fargs),
-            ', '.join(['{}'.format(arg) for arg in self.fargs])))
+        srepr.append('{:s}: {}'.format(self.name, self.func))
+        if self.args:
+            srepr.append('\t\t\t  {:d} args: {:s}'.format(len(self.args),
+                ', '.join(['{}'.format(str(arg)) for arg in self.args])))
+        if self.kwargs:
+            srepr.append('\t\t\t{:d} kwargs: {:s}'.format(len(self.kwargs.keys()),
+                ', '.join(['{}: {}'.format(key, val) for key, val in
+                                           self.kwargs.items()])))
         return "\n".join(srepr)
 
 
@@ -309,117 +328,3 @@ class PlotTask (object):
         # The extra incoming kwargs may contain plot specific stuff, like 
         # x/ylimits, etc.
         self.func(xval, yval, filename=plotname+'.pdf', **self.kwargs)
-
-    def __repr__(self):
-        """Yield a summary of the task.
-        """
-        s = []
-        s.append("{:9s}{:<15s}: {} ".format("", "PlotTask", self.func.__name__))
-        s.append("{:9s}{:<15s}: {} ".format("", "func", self.func))
-        s.append("{:9s}{:<15s}: {} ".format("", "plot-name", self.plotname))
-        s.append("{:9s}{:<15s}: {} ".format("", "abscissas", self.abscissa_key))
-        try:
-            s.append("{:9s}{:<15s}: {} ".format("", "ordinates",
-                '\n         '.join(["{}: {}".format(item.query_key, item.model_names)
-                    for item in self.objectives])))
-        except AttributeError:
-            s.append("{:9s}{:<15s}: {} ".format("", "objectives",
-                '\n{:9s}'.join(["{}".format(item) for item in self.objv_selectors])))
-        s.append("{:9s}{:<15s}: {}".format("", "kwargs", pformat(self.kwargs)))
-        return '\n'+'\n'.join(s)
-
-
-def set_tasks(spec, exedict=None, parnames=None):
-    """Parse user specification of Tasks, and return a list of Tasks for execution.
-
-    Args:
-        spec (list): List of dictionaries, each dictionary being a,
-            specification of a callable task.
-        exedict (dict): A dictionary of name-aliased user-accessible external
-            executables commands.
-        parnames (list): A list of parameter names. Note that typically an
-            optimiser has no knowledge of parameter meaning, or names.  But for
-            various reasons, it is important to have the association between
-            parameter names and parameter values.  This association is
-            established before setting up the task(s) that update model files
-            with the parameter values, and `parnames` is the way to communicate
-            that info to the relevant tasks.
-
-    Returns:
-        list: A list of callable task object that can be executed in order.
-
-    """
-    #
-    if spec is None:
-        LOGGER.error('Missing "tasks:" in user input: nothing to do. Bye!')
-        sys.exit(1)
-
-    tasklist = []
-    LOGGER = LOGGER
-    # the spec list has definitions of different tasks
-    for item in spec:
-        (tasktype, taskargs), = item.items()
-        if 'set' == tasktype.lower():
-            try:
-                tasklist.append(SetTask(parnames=parnames, *taskargs))
-            except TypeError:
-                LOGGER.debug('Cannot handle the following task specification:')
-                LOGGER.debug(spec)
-                raise
-
-        if 'run' == tasktype.lower():
-            try:
-                tasklist.append(RunTask(*taskargs, exedict=exedict))
-            except TypeError:
-                LOGGER.debug ('Cannot handle the following task specification:')
-                LOGGER.debug(spec)
-                raise
-
-        if 'get' == tasktype.lower():
-            assert isinstance(taskargs, list)
-            # 1. Assign the real function to 1st arg
-            func = GETTASKDICT[taskargs[0]]
-            taskargs[0] = func
-            # 2. Check if we have optional dictionary of arguments
-            if isinstance(taskargs[-1], dict):
-                optkwargs = taskargs[-1]
-                del taskargs[-1]
-            else:
-                optkwargs = {}
-            #BA: Would be weird when source was a directory and not a key!
-            # 3. Check if we have a missing destination and assign the source
-            if len(taskargs) == 2:
-                taskargs.append(taskargs[1])
-            # 4. Register the task in the task-list
-            try:
-                tasklist.append(GetTask(*taskargs, **optkwargs))
-            except TypeError:
-                LOGGER.debug ('Cannot handle the following task specification:')
-                LOGGER.debug (spec)
-                raise
-
-        if 'plot' == tasktype.lower():
-            assert len(taskargs) >= 3,\
-                "A plot task must have at least 3 arguments:"\
-                "PlotFunction, Plotname, Objectives, Optional Abscissa-Key, Optional kwargs"
-            # 1. Assign the real function to 1st arg
-            func = PLOTTASKDICT[taskargs[0]]
-            taskargs[0] = func
-            # 2. Check if we have optional dictionary of arguments
-            if isinstance(taskargs[-1], dict):
-                optkwargs = taskargs[-1]
-                del taskargs[-1]
-            else:
-                optkwargs = {}
-            # 3. Check if we have an abscissa key or not
-            if len(taskargs) == 3:
-                taskargs.append(None)
-            # 4. Register the task in the task-list
-            try:
-                tasklist.append(PlotTask(*taskargs, **optkwargs))
-            except TypeError:
-                # end up here if unknown task type, which is mapped to None
-                LOGGER.debug ('Cannot handle the following task specification:')
-                LOGGER.debug (spec)
-                raise
-    return tasklist
