@@ -140,12 +140,16 @@ class GenericPlotTaskTest(unittest.TestCase):
 
     def test_skparplot(self):
         """Can we plot a band-structure objectives?"""
+        Query.flush_modelsdb()
+        env = {}
+        database = {}
         latticeinfo = {'type': 'FCC', 'param': 5.4315}
-        DB = {}
+        model = 'Si.bs'
         filename = '_workdir/test_plot/bs1.pdf'
-        get_bandstructure('.', 'test_dftbutils/Si/bs/', DB,
+        get_bandstructure(env, database, 'test_dftbutils/Si/bs/', model,
                           latticeinfo={'type': 'FCC', 'param': 5.4315})
-        bands = DB['bands']
+        db = get_modeldb(model)
+        bands = db['bands']
         eps = 0.25
         jitter = eps * (0.5 - random(bands.shape))
         altbands = bands + jitter
@@ -153,9 +157,9 @@ class GenericPlotTaskTest(unittest.TestCase):
             os.remove(filename)
         else:
             os.makedirs('_workdir/test_plot', exist_ok=True)
-        skparplot(DB['kvector'], [altbands, bands], 
-                filename=filename, xticklabels=DB['kticklabels'],
-                xlabel='wave-vector', ylabel='Energy, eV', 
+        skparplot(env, dabase, db['kvector'], [altbands, bands],
+                filename=filename, xticklabels=db['kticklabels'],
+                xlabel='wave-vector', ylabel='Energy, eV',
                 linelabels=['ref', 'model'], ylim=(-13, 6))
         self.assertTrue(os.path.exists(filename))
 

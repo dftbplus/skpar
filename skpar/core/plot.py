@@ -131,7 +131,7 @@ def skparplot(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
     else:
         assert yy.ndim in (1, 2), yy.shape
         issety = False
-    
+
     if linelabels:
         if not isinstance(linelabels, list):
             linelabels = [linelabels,]
@@ -187,7 +187,7 @@ def skparplot(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
             ll.set_ms(markersize)
             ll.set_mec('b')
             ll.set_mew(1)
-        
+
     # set limits at the end, to make sure no artist tries to expand
     set_xylimits(ax, xx, yy, xlim, ylim, issetx, issety)
 
