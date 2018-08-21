@@ -176,7 +176,10 @@ class Evaluator(object):
         env = {'workroot': workdir, 'logger': self.logger,
                'parameternames': self.parnames,
                'parametervalues': parametervalues,
-               'iteration': iteration,}
+               'iteration': iteration,
+               'taskdict': self.taskdict,
+               'objectives': self.objectives
+              }
         # Initialise tasks
         self.tasks = initialise_tasks(self.tasklist, self.taskdict)
         # Get new model data by executing the rest of the tasks

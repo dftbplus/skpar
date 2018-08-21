@@ -11,8 +11,10 @@ import logging
 from skpar.dftbutils.lattice import Lattice
 from skpar.dftbutils.queryDFTB import get_bandstructure
 from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
-from skpar.core.taskdict import skparplot
+from skpar.core.taskdict import plot_objectives
 from skpar.dftbutils.plot import plot_bs, magic_plot_bs
+from skpar.core.query import Query
+from skpar.core.plot import skparplot
 np.set_printoptions(precision=2, suppress=True)
 
 logging.basicConfig(level=logging.DEBUG)
@@ -148,7 +150,7 @@ class GenericPlotTaskTest(unittest.TestCase):
         filename = '_workdir/test_plot/bs1.pdf'
         get_bandstructure(env, database, 'test_dftbutils/Si/bs/', model,
                           latticeinfo={'type': 'FCC', 'param': 5.4315})
-        db = get_modeldb(model)
+        db = Query.get_modeldb(model)
         bands = db['bands']
         eps = 0.25
         jitter = eps * (0.5 - random(bands.shape))
@@ -157,7 +159,7 @@ class GenericPlotTaskTest(unittest.TestCase):
             os.remove(filename)
         else:
             os.makedirs('_workdir/test_plot', exist_ok=True)
-        skparplot(env, dabase, db['kvector'], [altbands, bands],
+        skparplot(db['kvector'], [altbands, bands],
                 filename=filename, xticklabels=db['kticklabels'],
                 xlabel='wave-vector', ylabel='Energy, eV',
                 linelabels=['ref', 'model'], ylim=(-13, 6))
