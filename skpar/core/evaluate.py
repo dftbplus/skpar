@@ -157,6 +157,8 @@ class Evaluator(object):
         """
 
         # Create individual working directory for each evaluation
+        self.logger.info('Iteration %s', iteration)
+        self.logger.info('===========================')
         origdir = os.getcwd()
         workroot = self.config['workroot']
         if workroot is None:
@@ -173,7 +175,8 @@ class Evaluator(object):
         # have individual model DB, so evaluations can be done in parallel.
         modeldb = {}
         # Wrap the environment in a single dict
-        env = {'workroot': workdir, 'logger': self.logger,
+        env = {'workroot': workdir,
+               'logger': self.logger,
                'parameternames': self.parnames,
                'parametervalues': parametervalues,
                'iteration': iteration,
