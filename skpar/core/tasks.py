@@ -4,6 +4,11 @@ from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
+# TODO: get_tasklist below assumes the legacy definition of tasks in userinput:
+#       '- taskname: [list_of_task_arguments]'.
+#       It should be possible to provide an alternative definition:
+#       '- [taskname, task_argument1, .....task_argumentN]'
+#       A flag in config file could allow user to select either way.
 def get_tasklist(userinp):
     """Return a list of tuples of task names and task arguments."""
     if userinp is None:
