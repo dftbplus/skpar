@@ -1,26 +1,26 @@
 config:
     templatedir: test_optimise
-    workroot: ./_workdir/test_optimise
+    workroot: ./_workdir/test_optimise_and_plot
     keepworkdirs: true
 
 tasks:
-    - set: [template.parameters.dat]
-    - run: [mypy model_poly3.py]
-    - get: [get_model_data, model_poly3_out.dat,  poly3, yval]
-    - get: [get_model_data, model_poly3_out.dat,  poly3-2, yval]
-    - get: [get_model_data, model_poly3_xval.dat, poly3, xval]
-    - get: [get_model_data, model_poly3_xval.dat, poly3-2, xval]
-    - plot: [plot_objvs, 'polyfit1', [2], xval] 
-    - plot: [plot_objvs, 'polyfit2', [[yval, poly3]], xval] 
-    - plot: [plot_objvs, 'polyfit3', 
-                    [[yval, poly3], [yval, poly3-2]], xval,
-                    {colors: ['b', 'r', 'g', 'm'], marker:[None, 'o']}]
-    - plot: [plot_objvs, 'polyfit2', [[yval, poly3-2]]] 
+    - set: [[template.parameters.dat]]
+    - run: ['python model_poly3.py']
+    - get: [yval, model_poly3_out.dat,  poly3]
+    - get: [yval, model_poly3_out.dat,  poly3-2]
+    - get: [xval, model_poly3_xval.dat, poly3]
+    - get: [xval, model_poly3_xval.dat, poly3-2]
+    - plot: [skparplot, 'polyfit1', [2], xval] 
+    - plot: [skparplot, 'polyfit2', [[yval, poly3]], xval] 
+    - plot: [skparplot, 'polyfit3', [[yval, poly3], [yval, poly3-2]], xval,
+             {colors: ['b', 'r', 'g', 'm'], marker:[None, 'o']}]
+    # currently blah will not  yield and plot will pick up skparplot
+    - plot: [blah, 'polyfit2a', [[yval, poly3-2]]] 
     # directory must be either absolutised or relative to workroot/iteration
     # e.g. - get: [get_model_data, /home/username/projects/skpar-pr1/skpar/test/reference_data/fakebands-2.dat, fakemodel, bands,
-    - get: [get_model_data, ../../../reference_data/fakebands-2.dat, fakemodel, bands,
-                    {loader_args: {unpack: True}, process: {rm_columns: [1]}}]
-    - plot: [plot_objvs, 'fakebandsplot', [[bands, fakemodel]]] 
+    - get: [bands, ../../../reference_data/fakebands-2.dat, fakemodel,
+            {rm_columns: [1], unpack: True}]
+    - plot: [skparplot, 'fakebandsplot', [[bands, fakemodel]]] 
 
 objectives:
     - bands:
@@ -54,6 +54,3 @@ optimisation:
         - c1: -2.49    -2.51
         - c2:  0.499    0.501
         - c3:  0.0499   0.0501
-
-executables:
-    mypy: 'python'

@@ -1,8 +1,8 @@
 config:
     templatedir: test_optimise
     workroot: _workdir/test_optimise
-    keep-workdirs: true
-    tag-imports: false
+    keepworkdirs: true
+    tagimports: false
 
 tasks:
     # single template file

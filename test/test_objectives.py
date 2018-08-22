@@ -703,7 +703,7 @@ class SetObjectivesTest(unittest.TestCase):
 
     def test_setobjectives(self):
         """Can we create a number of objectives from input spec?"""
-        with open("skpar_in.yaml", 'r') as ff:
+        with open("test_objectives.yaml", 'r') as ff:
             try:
                 spec = yaml.load(ff)['objectives']
             except yaml.YAMLError as exc:

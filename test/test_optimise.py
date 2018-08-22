@@ -24,7 +24,7 @@ class OptimiseTest(unittest.TestCase):
     def test_parse_input(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
         Query.flush_modelsdb()
-        filename = "test_optimise.yaml"
+        filename = "skpar_in_optimise.yaml"
         taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         workroot = config.get('workroot', None)
         templatedir = config.get('templatedir', None)
@@ -112,7 +112,7 @@ class OptimiseTest(unittest.TestCase):
     def test_optimisation_run(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
         Query.flush_modelsdb()
-        filename   = "test_optimise.yaml"
+        filename   = "skpar_in_optimise.yaml"
         taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         algo, options, parameters = optimisation
         parnames = [p.name for p in parameters]

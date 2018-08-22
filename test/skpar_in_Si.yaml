@@ -2,8 +2,8 @@
 config:
     templatedir: test_dftbutils/Si/bs
     workroot: _workdir/test_Si
-    keep-workdirs: true
-    tag-imports: false
+    keepworkdirs: true
+    tagimports: false
 
 usermodules:
     # - skpar.core.taskdict

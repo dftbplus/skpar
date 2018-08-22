@@ -16,14 +16,14 @@ class ReadInputTest(unittest.TestCase):
     def test_import(self):
         """Can we import json?
         """
-        infile = 'test_in.yaml'
+        infile = 'test_input.yaml'
         # check we handle yaml with new routine
         data1 = get_input(infile)
         #print('data1:')
         #print (data1)
 
         # check we handle json with new routine
-        infile = 'test_in.json'
+        infile = 'test_input.json'
         data2 = get_input(infile)
         #print('data2:')
         #print (data2)
