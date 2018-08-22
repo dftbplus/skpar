@@ -1,9 +1,5 @@
 """Tasks module, defining relevant classes and functions"""
-import os
 import sys
-from pprint import pformat, pprint
-import numpy as np
-from skpar.core.query import Query
 from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
@@ -58,31 +54,44 @@ def initialise_tasks(tasklist, taskdict, report=False):
     return tasks
 
 
-class Task(object):
+class Task():
     """Generic wrapper over functions or executables.
     """
     def __init__(self, name, func, fargs):
-        """Create a callable object from user input"""
+        """Create a callable object from user input.
+
+        Note: `fargs` are user defined function arguments.
+              The function call via the __call__() method of this class allows
+              for other arguments to be passed by the caller.
+
+        Note: `fargs` is parsed so that if the last item in the list is a dict,
+              then fargs[-1] becomes **kwargs while fargs[:-1] becomes *args
+              for the function call
+
+        Args:
+            name(str): name of the task (to appear in logs)
+            func(callable): the function being called by __call__()
+            fargs(list): list of arguments to be passed to func.
+        """
         self.name = name
         self.func = func
-        # legacy: treat last argument as kwargs if dict
+        # treat last argument as kwargs if dict
         if isinstance(fargs[-1], dict):
             self.args = fargs[:-1]
             self.kwargs = fargs[-1]
         else:
             self.args = fargs
-            self.kwargs = None
+            self.kwargs = {}
     #
     def __call__(self, env, database):
-        """Execute the task, let caller handle any exception raised by func"""
-        if self.kwargs is not None and self.args is not None:
-            self.func(env, database, *self.args, **self.kwargs)
-        elif self.args is not None and self.kwargs is None:
-            self.func(env, database, *self.args)
-        elif self.args is None and self.kwargs is not None:
-            self.func(env, database, **self.kwargs)
-        else:
-            self.func(env, database)
+        """Execute the task, let caller handle any exception raised by func
+
+        Args:
+            env(dict): a dictionary with implicitly passed args
+            database(object or dict): a database object serving for data
+                                      exchange
+        """
+        self.func(env, database, *self.args, **self.kwargs)
     #
     def __repr__(self):
         """Yield a summary of the task.
@@ -94,6 +103,6 @@ class Task(object):
                 ', '.join(['{}'.format(str(arg)) for arg in self.args])))
         if self.kwargs:
             srepr.append('\t\t\t{:d} kwargs: {:s}'.format(len(self.kwargs.keys()),
-                ', '.join(['{}: {}'.format(key, val) for key, val in
-                                           self.kwargs.items()])))
+               ', '.join(['{}: {}'.format(key, val) for key, val in
+                          self.kwargs.items()])))
         return "\n".join(srepr)
