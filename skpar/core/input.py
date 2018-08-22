@@ -80,9 +80,9 @@ def get_config(userinp, report=True):
     if templatedir is not None:
         templatedir = os.path.abspath(os.path.expanduser(templatedir))
     config['templatedir'] = templatedir
-    config['keepworkdirs'] = userinp.get('keep-workdirs', False)
+    config['keepworkdirs'] = userinp.get('keepworkdirs', False)
     # related to interpretation of input file
-    config['tagimports'] = userinp.get('tag-imports', True)
+    config['tagimports'] = userinp.get('tagimports', True)
     if report:
         LOGGER.info('The following configuration was understood:')
         for key, val in config.items():
