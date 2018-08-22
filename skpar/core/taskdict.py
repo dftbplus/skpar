@@ -10,7 +10,7 @@ from skpar.core.query import Query
 
 LOGGER = get_logger(__name__)
 
-def execute(implargs, database, cmd, cdir='.', outfile='out.log', kwargs=None):
+def execute(implargs, database, cmd, cdir='.', outfile='out.log', **kwargs):
     """Wrapper over external executables.
 
     Args:
@@ -57,13 +57,9 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log', kwargs=None):
             cmd = cmd.split(' ')
         except AttributeError:
             pass
-        if kwargs:
-            out = subprocess.check_output(
-                cmd, universal_newlines=True, stderr=subprocess.STDOUT,
-                cwd=workdir, **kwargs)
-        else:
-            out = subprocess.check_output(
-                cmd, universal_newlines=True, stderr=subprocess.STDOUT)
+        out = subprocess.check_output(
+            cmd, universal_newlines=True, stderr=subprocess.STDOUT,
+            cwd=workdir, **kwargs)
         logger.debug('Done.')
         write_out(out, outfile)
     #
@@ -126,8 +122,8 @@ def get_model_data(implargs, database, item, source, destination,
     # note that file to 2D-array mapping depends on 'unpack' from
     # kwargs, which transposes the loaded array.
     postprocess = {'rm_columns': rm_columns, 'rm_rows': rm_rows}
-    if not any(postprocess.values()):
-        if 'unpack' in kwargs.keys() and kwargs['unpack']:
+    if any(postprocess.values()):
+        if kwargs.get('unpack', False):
             # since 'unpack' transposes the array, now row index
             # in the original file is along axis 1, while column index
             # in the original file is along axis 0.
@@ -147,11 +143,11 @@ def get_model_data(implargs, database, item, source, destination,
     data = data * scale
     # this have to become more generic: e.g. database.update(dst.item, data)
     # but database remains unused for the moment
-    dest_db  = Query.add_modelsdb(destination)
+    dest_db = Query.add_modelsdb(destination)
     dest_db.update({item: data})
 
 
-def substitute_parameters(implargs, database, templatefiles, options=None):
+def substitute_parameters(implargs, database, templatefiles, **kwargs):
     """Substitute parameters (within implicit arguments) in given templates.
     """
     logger = implargs.get('logger', LOGGER)
@@ -159,22 +155,22 @@ def substitute_parameters(implargs, database, templatefiles, options=None):
     iteration = implargs.get('iteration', None)
     try:
         parvalues = implargs['parametervalues']
-    except (KeyError):
+    except KeyError:
         logger.critical('No parameter values found in implicit arguments. '\
                         'Cannot proceed with parameter substitution.')
         raise
     try:
         parnames = implargs['parameternames']
-    except (KeyError):
+    except KeyError:
         logger.critical('No parameter names found in implicit arguments. '\
                         'Cannot proceed with parameter substitution.')
         raise
-    assert (len(parvalues) == len(parnames)), (len(parvalues), len(parrnames))
+    assert (len(parvalues) == len(parnames)), (len(parvalues), len(parnames))
     logger.debug("Substituting parameters for iteration %s in %s.",\
                     iteration, workroot)
     update_parameters(workroot, templatefiles, parvalues, parnames)
 
-class plot_objectives(object):
+class PlotTask(object):
     """Wrapper for skparplot; extracts data from objectives prior to plotting.
 
     This is a callable object that plots to file the model and reference data
@@ -202,12 +198,12 @@ class plot_objectives(object):
     Later – at call time – we do the data queries and call the plot function
     with the latest model data.
     """
-    def __init__(self, func, plotname, objectives, abscissa_key, **kwargs):
+    def __init__(self, func, plotname, objectives, abscissa_key=None, **kwargs):
         """Establish which dictionary items make for abscissas and ordinates.
         """
-        # func is a string; global taskdict may be passed via env to 
+        # func is a string; global taskdict may be passed via env to
         # resolve it at call time
-        self.func = func 
+        self.func = func
         # How to get the ordinates: from objectives
         # Notabene: the tasks do not have direct visibility of objectives
         # In fact, objectives may not be declared/initialised at the time
@@ -306,7 +302,8 @@ class plot_objectives(object):
         logger = implargs.get('logger', LOGGER)
         iteration = implargs.get('iteration', None)
         objectives = implargs.get('objectives', None)
-        self.pic_objectives(objectives)
+        taskdict = implargs.get('taskdict', {})
+        self.pick_objectives(objectives)
         try:
             self.func = implargs.get(taskdict[self.func], skparplot)
         except KeyError:
@@ -336,8 +333,8 @@ class plot_objectives(object):
                     # assume 1D array... may break for key-value pairs...
                     absc = np.arange(len(objvdata[0]), dtype=int)
             abscissas.append(absc)
-            logger.debug("Abscissas shape for plotted Objective {}: {}".
-                    format(i, absc.shape))
+            logger.debug("Abscissas shape for plotted Objective {}: {}".\
+                         format(i, absc.shape))
         # Ordinates is now a list of tuples, each tuple being (ref, model)
         # Abscissas is now a list of the same size as ordinates
         # Items in the lists may be of different type and size, depending on
@@ -346,7 +343,7 @@ class plot_objectives(object):
         # i.e. kesy-values by markers, others by lines, etc.
         # But in any case, we must map a set of x and y and provide
         # different color for model and for ref.
-        logger.debug('Collected {} abscissa and {} ordinate sets'.
+        logger.debug('Collected {} abscissa and {} ordinate sets'.\
                      format(len(abscissas), len(ordinates)))
         xval = []
         yval = []
@@ -373,7 +370,7 @@ class plot_objectives(object):
                 # created one query per model, and model_names is a string
                 mn = query.model_names
                 qk = query.key
-                self.logger.debug("Querying {} for {}:".format(mn, qk))
+                logger.debug("Querying {} for {}:".format(mn, qk))
                 mdb = query.get_modeldb(mn)
                 qdata = query(atleast_1d=False)
                 # note that plotting routines will not have knowledge
@@ -388,7 +385,7 @@ class plot_objectives(object):
                 # note how yval is composed above:
                 # y1 is ref (blue) y2 is model (orange)
                 colors.append('#1f77b4')
-                colors.append('#ff7f0e') 
+                colors.append('#ff7f0e')
             self.kwargs['colors'] = colors
 
         # tag the plot-name by iteration number; embed it in the plot title
@@ -417,10 +414,15 @@ class plot_objectives(object):
         # e.g. width of the model bands.
         # The following self.kwargs are passed:
         # title, linelabels, colors, extra queries and extra incoming kwargs.
-        # The extra incoming kwargs may contain plot specific stuff, like 
+        # The extra incoming kwargs may contain plot specific stuff, like
         # x/ylimits, etc.
-        logger.info('Calling {}')
         self.func(xval, yval, filename=plotname+'.pdf', **self.kwargs)
+
+def wrapper_PlotTask(env, database, *args, **kwargs):
+    """Wrapper around the legacy PlotTask"""
+    plot = PlotTask(*args, **kwargs)
+    plot(env, database)
+
 
 TASKDICT = {
     'set': substitute_parameters,
@@ -434,6 +436,6 @@ TASKDICT = {
     'get': get_model_data,
     'get_data': get_model_data,
     #
-    'plot': plot_objectives,
-    'plot_objectives': plot_objectives,
+    'plot': wrapper_PlotTask,
+    'plot_objectives': wrapper_PlotTask,
     }
