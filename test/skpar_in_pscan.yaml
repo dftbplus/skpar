@@ -1,0 +1,24 @@
+config:
+    templatedir: test_pscan
+    workroot: ./_workdir/test_pscan
+    keepworkdirs: true
+
+tasks:
+    - set: [[template.parameters.dat]]
+    - run: ['python model_poly3.py']
+    - get: [yval, model_poly3_out.dat, poly3]
+
+objectives:
+    - yval:
+        doc: 3-rd order polynomial values for some values of the argument
+        models: poly3
+        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+        eval: [rms, relerr]
+
+optimisation:
+    algo: PSCAN   # scan of the parameter space
+    parameters:
+        - c0:  3   9.0   11.0
+        - c1:  3  -3.0   -2.0
+        - c2:  1   0.5    0.5
+        - c3:  1   0.05   0.05
