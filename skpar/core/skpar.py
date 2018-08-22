@@ -67,7 +67,7 @@ class SKPAR():
         else:
             # no parameters: pass None to evaluator
             fitness = self.evaluator(None)
-            self.logger.debug("Global fitness: {:e}".format(fitness))
+            self.logger.debug("Global fitness: {}".format(fitness))
 
     def __repr__(self):
         lines = []
