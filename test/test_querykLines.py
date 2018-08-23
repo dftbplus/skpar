@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 import numpy.testing as nptest
-from skpar.core.query import Query
+from skpar.core.database import Database
 from skpar.dftbutils import lattice
 from skpar.dftbutils.lattice import Lattice
 from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
@@ -44,11 +44,12 @@ class GetAbscissakVectorTest(unittest.TestCase):
         """Can we get the bandstructure and extract the kvector info"""
         latticeinfo = {'type': 'FCC', 'param': 1.}
         lat = Lattice(latticeinfo)
-        DB = Query.add_modelsdb('test')
+        database = Database()
         src = 'test_dftbutils/bs'
-        get_bandstructure({'workroot': '.'}, {}, src, 'test', latticeinfo=latticeinfo)
-        kLines = DB['kLines']
-        logger.debug('Bands.shape: {}'.format(DB['bands'].shape))
+        get_bandstructure({'workroot': '.'}, database, src, 'test', latticeinfo=latticeinfo)
+        kLines = database.get('test', 'kLines')
+        bands = database.get('test', 'bands')
+        logger.debug('Bands.shape: {}'.format(bands.shape))
         logger.debug('kLines     : {}'.format(kLines))
         xx, xt, xl = get_kvec_abscissa(lat, kLines)
         refxl = ['X', 'Γ', 'K', 'L', 'Γ']

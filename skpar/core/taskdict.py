@@ -6,7 +6,7 @@ from pprint import pprint, pformat
 from skpar.core.utils import get_ranges, get_logger, islistoflists
 from skpar.core.plot import skparplot
 from skpar.core.parameters import update_parameters
-from skpar.core.query import Query
+from skpar.core.database import Query
 
 LOGGER = get_logger(__name__)
 
@@ -80,7 +80,7 @@ def execute(implargs, database, cmd, cdir='.', outfile='out.log', **kwargs):
         os.chdir(origdir)
 
 
-def get_model_data(implargs, database, item, source, destination,
+def get_model_data(implargs, database, item, source, model,
                    rm_columns=None, rm_rows=None, scale=1., **kwargs):
     """Get data from file and put it in a database under a given key.
 
@@ -91,9 +91,9 @@ def get_model_data(implargs, database, item, source, destination,
 
     Args:
         implargs(dict): dictionary of implicit arguments from caller
-        database(object): must support dictionary-like insert/get/update()
-        source(str): file name (path is relative to `implargs['workroot']`)
-        destination(str): name of destination field in `database`
+        database(object): must support dictionary-like get/update()
+        source(str): file name source of data; path relative to implargs[workroot]
+        model(str): model name to be updated in `database`
         key(str): key under which to store the data in under `dst`
         rm_columns: [ index, index, [ilow, ihigh], otherindex, [otherrange]]
         rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
@@ -141,10 +141,8 @@ def get_model_data(implargs, database, item, source, destination,
                 indexes.sort()
                 data = np.delete(data, obj=indexes, axis=axis)
     data = data * scale
-    # this have to become more generic: e.g. database.update(dst.item, data)
-    # but database remains unused for the moment
-    dest_db = Query.add_modelsdb(destination)
-    dest_db.update({item: data})
+    #
+    database.update(model, {item: data})
 
 
 def substitute_parameters(implargs, database, templatefiles, **kwargs):
@@ -238,7 +236,7 @@ class PlotTask(object):
         except KeyError:
             pass
 
-    def pick_objectives(self, objectives):
+    def pick_objectives(self, objectives, database):
         """Get the references corresponding to the objective tags.
 
         This function acquired the reference data that must be plotted,
@@ -271,7 +269,8 @@ class PlotTask(object):
         # and we can create queries for the abscissa key and extra query keys
         if self.abscissa_key is not None:
             for item in self.objectives:
-                self.absc_queries.append(Query(item.model_names, self.abscissa_key))
+                self.absc_queries.append(Query(item.model_names,
+                                               self.abscissa_key, database))
         if self.extra_query_keys is not None:
             self.extra_queries = []
             # extract all models from the list of objectives and create a
@@ -288,7 +287,7 @@ class PlotTask(object):
             osetmodels = [m for m in allmodels if m not in seen and not seen.add(m)]
             for model in osetmodels:
                 for qkey in self.extra_query_keys:
-                    self.extra_queries.append(Query(model, qkey))
+                    self.extra_queries.append(Query(model, qkey, database))
 
     def __call__(self, implargs, database):
         """Prepare data for the plot and tag the plot-name with iteration.
@@ -303,7 +302,7 @@ class PlotTask(object):
         iteration = implargs.get('iteration', None)
         objectives = implargs.get('objectives', None)
         taskdict = implargs.get('taskdict', {})
-        self.pick_objectives(objectives)
+        self.pick_objectives(objectives, database)
         try:
             self.func = implargs.get(taskdict[self.func], skparplot)
         except KeyError:
@@ -314,7 +313,7 @@ class PlotTask(object):
         subweights = []
         for i, item in enumerate(self.objectives):
             # keep the subweights separate
-            objvdata = item.get()  # returns model_data, ref_data, subweights
+            objvdata = item.get(database)  # returns model_data, ref_data, subweights
             # make sure ordinates are first, so as to plot ref below model
             ordinates.append((objvdata[1], objvdata[0])) # ref_data, model_data
             logger.debug("Ordinates shape for plotted Objective {}: {}{}".
@@ -371,7 +370,6 @@ class PlotTask(object):
                 mn = query.model_names
                 qk = query.key
                 logger.debug("Querying {} for {}:".format(mn, qk))
-                mdb = query.get_modeldb(mn)
                 qdata = query(atleast_1d=False)
                 # note that plotting routines will not have knowledge
                 # about model names, hence pass on only query key and data

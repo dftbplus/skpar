@@ -14,7 +14,7 @@ import numpy.testing as nptest
 from subprocess import CalledProcessError
 from skpar.core.tasks import get_tasklist, initialise_tasks
 from skpar.core.parameters import Parameter
-from skpar.core.query import Query
+from skpar.core.database import Database
 from skpar.core.usertasks import update_taskdict
 import skpar.core.taskdict as coretd
 import skpar.dftbutils.taskdict as dftbtd
@@ -90,7 +90,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
         tasks = initialise_tasks(tasklist, taskdict)
         #
         var = 10
-        database = {}
+        database = Database()
         par = Parameter('p0', value=var)
         workroot = './'
         coreargs = {'workroot': workroot, 'parametervalues': [par.value],
@@ -109,8 +109,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
         for task in tasks:
             # LOGGER.info(task)
             task(coreargs, database)
-        dbref = Query.add_modelsdb('model')
-        self.assertEqual(np.atleast_1d(var), dbref['value'])
+        self.assertEqual(np.atleast_1d(var), database.get('model', 'value'))
         shutil.rmtree('./tmp')
 
     def test_twopartemplates(self):
@@ -130,7 +129,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
         #
         var1 = 10
         var2 = 20
-        database = {}
+        database = Database()
         params = [Parameter('p0', value=var1), Parameter('p1', value=var2)]
         workroot = './'
         coreargs = {'parametervalues': [p.value for p in params],
@@ -149,8 +148,8 @@ class CoreTaskExecutionTest(unittest.TestCase):
         for task in tasks:
             LOGGER.info(task)
             task(coreargs, database)
-        dbref = Query.add_modelsdb('model')
-        self.assertListEqual([var1, var2], list(dbref['value']))
+        self.assertListEqual([var1, var2],
+                             list(database.get('model', 'value')))
         shutil.rmtree('./tmp')
 
 
@@ -174,14 +173,13 @@ class GetTaskDFTBpTest(unittest.TestCase):
         tasklist = get_tasklist(userinp['tasks'])
         tasks = initialise_tasks(tasklist, taskdict)
         #
-        Query.flush_modelsdb()
-        database = {}
+        database = Database()
         env = {'workroot': '.', }
         for task in tasks:
             print(task)
             task(env, database)
         # 'Si.bs' should be added through the task execution
-        db = Query.get_modeldb('Si.bs')
+        db = database.get_model('Si.bs')
         self.assertAlmostEqual(db['Egap'],   1.129, places=3)
         self.assertAlmostEqual(db['Ef'],   -3.0621, places=4)
         self.assertAlmostEqual(db['me_GX'],  0.935, places=3)

@@ -6,7 +6,6 @@ from os.path import split as splitpath
 import numpy as np
 from subprocess import STDOUT
 from pprint import pprint, pformat
-from skpar.core.query import Query
 from skpar.core.utils import get_logger
 
 

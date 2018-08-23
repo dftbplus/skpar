@@ -6,7 +6,7 @@ import numpy as np
 from numpy.random import random
 from skpar.dftbutils.queryDFTB import get_bandstructure
 from skpar.dftbutils.plot import plot_bs, magic_plot_bs
-from skpar.core.query import Query
+from skpar.core.database import Database
 from skpar.core.plot import skparplot
 np.set_printoptions(precision=2, suppress=True)
 
@@ -142,15 +142,14 @@ class GenericPlotTaskTest(unittest.TestCase):
 
     def test_skparplot(self):
         """Can we plot a band-structure objectives?"""
-        Query.flush_modelsdb()
         env = {}
-        database = {}
+        database = Database()
         latticeinfo = {'type': 'FCC', 'param': 5.4315}
         model = 'Si.bs'
         filename = '_workdir/test_plot/bs1.pdf'
         get_bandstructure(env, database, 'test_dftbutils/Si/bs/', model,
                           latticeinfo=latticeinfo)
-        modeldb = Query.get_modeldb(model)
+        modeldb = database.get_model(model)
         bands = modeldb['bands']
         eps = 0.25
         jitter = eps * (0.5 - random(bands.shape))

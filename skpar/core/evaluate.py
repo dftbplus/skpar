@@ -4,7 +4,7 @@ import shutil
 import numpy as np
 from skpar.core.utils import get_logger, normalise
 from skpar.core.tasks import initialise_tasks
-from pprint import pprint, pformat
+from skpar.core.database import Database
 
 LOGGER = get_logger(__name__)
 
@@ -57,10 +57,10 @@ def cost_RMS(ref, model, weights, errf=abserr):
     rms = np.sqrt(np.sum(weights*err2))
     return rms
 
-def eval_objectives(objectives):
+def eval_objectives(objectives, database):
     """
     """
-    fitness = np.array([objv() for objv in objectives])
+    fitness = np.array([objv(database) for objv in objectives])
     return fitness
 
 # ----------------------------------------------------------------------
@@ -100,23 +100,9 @@ class Evaluator(object):
                  costf=COSTF[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
                  verbose=False, **kwargs):
         self.objectives = objectives
-        # Ideally refdb does not change; should be passed as an object
-        # that contains get() and has().
-        # This here is a temporary hack to make reference data available to
-        # tasks, but not consistent with current implementation of objectives.
-        refdb = {}
-#        # the following loop creates a flat DB with modelname.datakey
-#        for objv in objectives:
-#            key = objv.query_key
-#            for name in objv.model_names:
-#                if name not in refdb.keys():
-#                    refdb[name] = {}
-#                refdb[name][key] = objv.ref_data
-#        self.refdb = refdb
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasklist = tasklist # list of name,options pairs
         self.taskdict = taskdict # name:function mapping
-        self.tasks = []          # callable objectsdd
         self.parnames = parameternames
         self.config = config if config is not None else DEFAULT_CONFIG
         workroot = self.config['workroot']
@@ -126,7 +112,7 @@ class Evaluator(object):
                 os.makedirs(workroot)
         self.costf = costf
         if utopia is None:
-            self.utopia = np.zeros(len(self.objectives))
+            self.utopia = np.zeros(len(objectives))
         else:
             assert len(utopia) == len(objectives), (len(utopia), len(objectives))
             self.utopia = utopia
@@ -157,8 +143,6 @@ class Evaluator(object):
         """
 
         # Create individual working directory for each evaluation
-        self.logger.info('Iteration %s', iteration)
-        self.logger.info('===========================')
         origdir = os.getcwd()
         workroot = self.config['workroot']
         if workroot is None:
@@ -169,11 +153,13 @@ class Evaluator(object):
 
         # Initialise model database
         self.logger.info('Initialising ModelDataBase.')
-        # modeldb may be something different than a dictionary, but
-        # whatever object it is, should have get(), set(), has()
+        # database may be something different than a dictionary, but
+        # whatever object it is, should have:
+        #     update_modeldb(modelname, datadict) -- update modeldb
+        #     get_modeldb(modelname) -- return a ref to modeldb
         # The point is that for every individual evaluation, we must
         # have individual model DB, so evaluations can be done in parallel.
-        modeldb = {}
+        database = Database()
         # Wrap the environment in a single dict
         env = {'workroot': workdir,
                'logger': self.logger,
@@ -183,25 +169,29 @@ class Evaluator(object):
                'taskdict': self.taskdict,
                'objectives': self.objectives
               }
-        # Initialise tasks
-        self.tasks = initialise_tasks(self.tasklist, self.taskdict)
-        # Get new model data by executing the rest of the tasks
-        for i, task in enumerate(self.tasks):
+        # Initialise and then execute the tasks
+        tasks = initialise_tasks(self.tasklist, self.taskdict, report=False)
+        self.logger.info('Iteration %s', iteration)
+        self.logger.info('===========================')
+#        do we really need to pass workdir and to os.chdir???
+#        move the for loop to a function.
+#        execute_tasks(tasks, env, database, workdir, logger)
+        for i, task in enumerate(tasks):
             os.chdir(workdir)
             try:
-                task(env, modeldb)
+                task(env, database)
             except:
-                self.logger.critical('Evaluation FAILED at task %i:\n%s', i, task)
+                self.logger.critical('Task %i FAILED:\n%s', i, task)
                 raise
 
         # Evaluate individual fitness for each objective
-        objvfitness = eval_objectives(self.objectives)
+        objvfitness = eval_objectives(self.objectives, database)
         ref = self.utopia
-        # evaluate global fitness
+        # Evaluate global fitness
         cost = self.costf(ref, objvfitness, self.weights)
         self.msg('{:<15s}: {}\n'.format('Overall cost', cost))
 
-        # Remove particle specific working dir if not needed:
+        # Remove iteration-specific working dir if not needed:
         if (not self.config['keepworkdirs']) and (workroot is not None):
             destroy_workdir(workdir)
         os.chdir(origdir)
@@ -216,8 +206,8 @@ class Evaluator(object):
         ss.append('Evaluator:')
         ss.append('\n-- Tasks:')
         ss.append('--------------------')
-        for item in self.tasks:
-            ss.append(item.__repr__())
+#        for item in self.tasks:
+#            ss.append(item.__repr__())
         ss.append('\n-- Objectives:')
         ss.append('--------------------')
         for item in self.objectives:

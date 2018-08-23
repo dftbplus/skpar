@@ -4,7 +4,7 @@ import numpy as np
 import numpy.testing as nptest
 import yaml
 from skpar.core import objectives as oo
-from skpar.core.query import Query
+from skpar.core.database import Database, Query
 from skpar.core.evaluate import relerr
 np.set_printoptions(precision=3, formatter={'float_kind':lambda x: "%.2f" % x})
 
@@ -155,6 +155,7 @@ class ParseWeightsTest(unittest.TestCase):
         ww = oo.parse_weights(wspec, nn=len(wspec), normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
 
+
 class GetModelsTest(unittest.TestCase):
     """Check if model names and weights are parsed correctly.
     """
@@ -254,7 +255,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
         exp = exp * 2.
         res = oo.get_refdata(ref_input)
         nptest.assert_array_equal(res, exp, verbose=True)
-        
+
 
 class GetRangesTest(unittest.TestCase):
     """Test we interpret range specifications correctly"""
@@ -374,7 +375,7 @@ class GetObjTypeTest(unittest.TestCase):
 
 class ObjectiveTypesTest(unittest.TestCase):
     """Can we create objectives of different types?"""
-    
+
     def test_objtype_values_single_model_single_data(self):
         """Can we create value-type objective for a single model"""
         yamldata = """objectives:
@@ -392,9 +393,8 @@ class ObjectiveTypesTest(unittest.TestCase):
         www = 3.0
         mnm = 'Si/bs'
         # set data base
-        db = {}
-        Query.flush_modelsdb()
-        Query.add_modelsdb('Si/bs', db)
+        database = Database()
+        modeldb = database.add_model('Si/bs')
         # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.objtype, 'values')
@@ -405,12 +405,12 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.subweights, ow)
         self.assertEqual(objv.query_key, que)
         # check __call__()
-        db['band_gap'] = dat
-        mdat, rdat, weights = objv.get()
+        modeldb['band_gap'] = dat
+        mdat, rdat, weights = objv.get(database)
         self.assertEqual(mdat, dat)
         self.assertEqual(rdat, ref)
         self.assertEqual(weights, ow)
-        
+
     def test_objtype_values_single_model_array_data(self):
         """Can we create 1d-array-values-type objective for a single model"""
         yamldata = """objectives:
@@ -439,16 +439,15 @@ class ObjectiveTypesTest(unittest.TestCase):
                     -23.769, -23.559, -23.328,  -23.076, -22.809]
         sbw = [1,1,1,1,1, 2,2,2, 3,3,3,3,3, 2,2,2, 1,1,1,1,1]
         sbw = np.asarray(sbw)/np.sum(sbw) # normalise
-        mnm = 'GaN-W-ac'
+        model = 'GaN-W-ac'
         # set data base
-        db = {}
-        Query.flush_modelsdb()
-        Query.add_modelsdb(mnm, db)
+        database = Database()
+        modeldb = database.add_model(model)
         # check declaration
         spec = yaml.load(yamldata)['objectives'][0]
         logger.info(spec)
         objv = oo.get_objective(spec)
-        self.assertEqual(objv.model_names, mnm)
+        self.assertEqual(objv.model_names, model)
         self.assertEqual(objv.model_weights, 1.)
         self.assertEqual(objv.weight, 1)
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
@@ -456,12 +455,12 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.query_key, que)
         self.assertEqual(objv.objtype, 'values')
         # check __call__()
-        db[que] = data
-        mdata, rdata, weights = objv.get()
+        modeldb[que] = data
+        mdata, rdata, weights = objv.get(database)
         nptest.assert_array_equal(mdata, data, verbose=True)
         nptest.assert_array_equal(rdata, ref, verbose=True)
         nptest.assert_array_equal(weights, sbw, verbose=True)
-        
+
     def test_objtype_values_multiple_models(self):
         """Can we create a value-type objective from several models"""
         yamldata = """objectives:
@@ -488,21 +487,20 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.query_key, que)
         # set data base: 
         # could be done either before or after declaration
-        db1, db2, db3 = {}, {}, {}
-        Query.flush_modelsdb()
-        Query.add_modelsdb('Si/scc-1', db1)
-        Query.add_modelsdb('Si/scc', db2)
-        Query.add_modelsdb('Si/scc+1', db3)
+        database = Database()
+        database.add_model('Si/scc-1')
+        database.add_model('Si/scc')
+        database.add_model('Si/scc+1')
         dat = [20, 12, 16]
-        db1['Etot'] = dat[0]
-        db2['Etot'] = dat[1]
-        db3['Etot'] = dat[2]
+        database.update('Si/scc-1', {'Etot': dat[0]})
+        database.update('Si/scc', {'Etot': dat[1]})
+        database.update('Si/scc+1', {'Etot': dat[2]})
         # check __call__()
-        mdat, rdat, weights = objv.get()
+        mdat, rdat, weights = objv.get(database)
         nptest.assert_array_equal(mdat, dat, verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
-        
+
     def test_objtype_keyvaluepairs(self):
         """Can we create objective from given key-value pairs"""
         yamldata = """objectives:
@@ -549,13 +547,12 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.objtype, 'keyval_pairs')
         # set data base: 
         # could be done either before or after declaration
-        db1 = {}
+        database = Database()
         dat = [0.9, -0.5, 1.2]
-        db1.update({'me_GX_0': dat[0], 'mh_GX_0': dat[1], 'me_GL_2':dat[2]})
-        Query.flush_modelsdb()
-        Query.add_modelsdb('Si/bs', db1)
+        database.add_model('Si/bs', {'me_GX_0': dat[0], 'mh_GX_0': dat[1],
+                                     'me_GL_2':dat[2]})
         # check __call__()
-        mdat, rdat, weights = objv.get()
+        mdat, rdat, weights = objv.get(database)
         #logger.debug(mdat)
         #logger.debug(rdat)
         #logger.debug(weights)
@@ -586,11 +583,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         subw = 1.
         # set data base: 
         # could be done either before or after declaration
-        db1, db2, db3 = {}, {}, {}
-        Query.flush_modelsdb()
-        Query.add_modelsdb('SiO2-quartz/scc', db1)
-        Query.add_modelsdb('Si/scc', db2)
-        Query.add_modelsdb('O2/scc', db3)
+        database = Database()
         # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.doc, doc)
@@ -602,11 +595,11 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.query_key, 'Etot')
         self.assertEqual(objv.objtype, 'weighted_sum')
         dat = [20, 12, 16]
-        db1['Etot'] = dat[0]
-        db2['Etot'] = dat[1]
-        db3['Etot'] = dat[2]
+        database.update('SiO2-quartz/scc', {'Etot': dat[0]})
+        database.update('Si/scc', {'Etot': dat[1]})
+        database.update('O2/scc', {'Etot': dat[2]})
         # check __call__()
-        mdat, rdat, weights = objv.get()
+        mdat, rdat, weights = objv.get(database)
         nptest.assert_array_equal(mdat, np.dot(np.asarray(dat), np.asarray(mww)), verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
@@ -659,7 +652,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         spec = yaml.load(yamldata)['objectives'][0]
         que  = 'bands'
         doc  = spec[que]['doc']
-        mnm  = 'Si/bs'
+        model  = 'Si/bs'
         mww = [1]
         oww  = 1
         ref  = np.loadtxt('reference_data/fakebands.dat', unpack=True)
@@ -676,27 +669,25 @@ class ObjectiveTypesTest(unittest.TestCase):
         # subweights on value are the last one to be applied
         subw[ref > -0.2] = 3.5
         subw = subw/np.sum(subw)
-        db1 = {}
-        Query.flush_modelsdb()
-        Query.add_modelsdb('Si/bs', db1)
+        database = Database()
 #        # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.doc, doc)
         self.assertEqual(objv.query_key, que)
         self.assertEqual(objv.weight, oww)
-        self.assertEqual(objv.model_names, mnm)
+        self.assertEqual(objv.model_names, model)
         nptest.assert_array_equal(objv.model_weights, mww)
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
         nptest.assert_array_equal(objv.subset_ind, subset_ind, verbose=True)
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
         # check the __call__()
         data = np.loadtxt("reference_data/fakebands-2.dat", unpack=True)
-        db1['bands'] = data[1:]
-        mdat, rdat, weights = objv.get()
+        database.update('Si/bs', {'bands': data[1:]})
+        mdat, rdat, weights = objv.get(database)
         nptest.assert_array_almost_equal(mdat, ref, decimal=2, verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
-        
+
 
 class SetObjectivesTest(unittest.TestCase):
     """Check if we can create objectives from skpar_in.yaml"""
@@ -725,14 +716,14 @@ class EvaluateObjectivesTest(unittest.TestCase):
                 ref: 1.0
         """
         # set data base
-        Query.flush_modelsdb()
-        db = Query.add_modelsdb('A')
+        database = Database()
+        db = database.add_model('A')
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
         # evaluate
         db['item'] = 1.2
-        self.assertAlmostEqual(0.2, objv())
+        self.assertAlmostEqual(0.2, objv(database))
 
     def test_evaluate_multiplemodels_singleitem(self):
         """Can we evaluate value-type objective for multiple models"""
@@ -745,19 +736,19 @@ class EvaluateObjectivesTest(unittest.TestCase):
                     subweights: [2, 1, 1.5]
         """
         # set model data
+        database = Database()
         db1 = {'item': 1.0}
         db2 = {'item': 1.0}
         db3 = {'item': 1.0}
-        Query.flush_modelsdb()
-        _db = Query.add_modelsdb('A', db1)
+        _db = database.add_model('A', db1)
         self.assertDictEqual(_db, db1)
-        Query.add_modelsdb('B', db2)
-        Query.add_modelsdb('C', db3)
+        database.add_model('B', db2)
+        database.add_model('C', db3)
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
         # evaluate
-        self.assertAlmostEqual(1.4142135623730951, objv())
+        self.assertAlmostEqual(1.4142135623730951, objv(database))
 
     def test_evaluate_bands(self):
         """Can we evaluate value-type objective of type bands (2D array)"""
@@ -772,8 +763,8 @@ class EvaluateObjectivesTest(unittest.TestCase):
                 eval: [RMS, relerr]
         """
         # set model data
-        db1 = {}
-        Query.add_modelsdb('A', db1)
+        database = Database()
+        db1 = database.add_model('A')
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
@@ -784,7 +775,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
         cost = np.sqrt(np.sum(objv.subweights*relerr(objv.ref_data, db1['bands'])**2))
         #logger.debug(cost)
         # evaluate
-        self.assertAlmostEqual(cost, objv())
+        self.assertAlmostEqual(cost, objv(database))
 
 
 if __name__ == '__main__':

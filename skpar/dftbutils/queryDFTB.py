@@ -9,7 +9,6 @@ from collections import OrderedDict
 from skpar.dftbutils.lattice import Lattice, getSymPtLabel
 from skpar.dftbutils.querykLines import get_klines, get_kvec_abscissa
 from skpar.dftbutils.utils import get_logger
-from skpar.core.query import Query
 
 LOGGER = get_logger(__name__)
 
@@ -114,7 +113,7 @@ class DetailedOut (dict):
         return cls(tagvalues)
 
 
-def get_dftbp_data(implargs, database, source, destination,
+def get_dftbp_data(implargs, database, source, model,
                    datafile='detailed.out'):
     """Get whatever data can be obtained from detailed.out of dftb+.
 
@@ -125,8 +124,7 @@ def get_dftbp_data(implargs, database, source, destination,
         implargs(dict): implicit key-word arguments passed by caller
         database(obj): a database object that has a .update(dict) method
         source(str): directory name where dftb+ has been executed
-        destination(str): currently this is where data is deposited; database
-                           is ignored
+        model(str): name of the model whose data is updated
         datafile(str): base-name of the detailed output from dftb+
     """
     logger = implargs.get('logger', LOGGER)
@@ -137,24 +135,23 @@ def get_dftbp_data(implargs, database, source, destination,
     fin = joinpath(abspath(expanduser(workroot)), source, datafile)
     logger.debug('Getting DFTB+ data from {:s}.'.format(fin))
     data = DetailedOut.fromfile(fin)
-    dest_db = Query.add_modelsdb(destination)
-    dest_db.update(data) # data is assumed a dictionary
+    database.update(model, data)
 
 
-def get_dftbp_evol(implargs, database, source, destination,
+def get_dftbp_evol(implargs, database, source, model,
                    datafile='detailed.out', *args, **kwargs):
     """Get the data from DFTB+ SCC calculation for all models.
 
     This is a compound task that augments the source path to include
     individual local directories for different cell volumes, based
     on the assumption that these directories are named by 3 digits.
-    Similar assumption applies for the destination, where the name
+    Similar assumption applies for the model, where the name
     of the base model is augmented by the 3-digit directory number.
 
     parameters:
         workroot(string): base directory where model directories are found.
         source (string): model directory
-        destination (dictionary): model database, where data goes
+        model(str): name of the model whose data is updated
         datafile (string): optional filename holding the data.
     """
     # setup logger
@@ -203,9 +200,7 @@ def get_dftbp_evol(implargs, database, source, destination,
         outstr.append('{:12.6g} {:10.6g} {:>10s}'.format(total, elec, tag))
     with open(joinpath(workdir, 'energy_volume.dat'), 'w') as fout:
         fout.writelines('\n'.join(outstr)+'\n')
-    # update destination
-    dest_db = Query.add_modelsdb(destination)
-    dest_db.update(data)
+    database.update(model, data)
 
 
 # ----------------------------------------------------------------------
@@ -283,7 +278,7 @@ class Bandstructure(dict):
         return cls(data)
 
 
-def get_bandstructure(implargs, database, source, destination,
+def get_bandstructure(implargs, database, source, model,
                       detailfile='detailed.out', bandsfile='bands_tot.dat',
                       hsdfile='dftb_pin.hsd', latticeinfo=None, *args, **kwargs):
     """Get bandstructure and related data from dftb+.
@@ -314,9 +309,7 @@ def get_bandstructure(implargs, database, source, destination,
         #logger.debug(data['lattice'])
         #logger.debug(data['kLines'])
         #logger.debug(data['kLinesDict'])
-    # update destination
-    dest_db = Query.add_modelsdb(destination)
-    dest_db.update(data)
+    database.update(model, data)
 
 # ----------------------------------------------------------------------
 # Effective masses
@@ -545,7 +538,7 @@ def expand_meffdata(meff_data):
         expanded_data[kpostag] = kposval
     return expanded_data
 
-def get_effmasses(implargs, database, source, destination=None, directions=None,
+def get_effmasses(implargs, database, source, model=None, directions=None,
                   carriers='both', nb=1, Erange=0.04, usebandindex=False,
                   forceErange=False, *args, **kwargs):
     """Get effective masses along select directions for select carrier types.
@@ -560,7 +553,7 @@ def get_effmasses(implargs, database, source, destination=None, directions=None,
     """
     logger = implargs.get('logger', LOGGER)
     masses = OrderedDict()
-    src_db = Query.get_modeldb(source)
+    src_db = database.get_model(source)
     bands  = src_db['bands']
     nE, nk = bands.shape
     ivbtop = src_db['ivbtop']
@@ -636,12 +629,11 @@ def get_effmasses(implargs, database, source, destination=None, directions=None,
             mav = np.mean([mm[0] for mm in meff_data.values()])
             masses.update({'me_av': mav})
         #
-        if destination is None:
-            destination = source
-        logger.debug('Adding the following items to destination:')
+        if model is None:
+            model = source
+        logger.debug('Adding the following items to model {:s}:'.format(model))
         logger.debug(masses)
-        dest_db = Query.add_modelsdb(destination)
-        dest_db.update(masses)
+        database.update(model, masses)
     return masses
 
 def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, *args, **kwargs):
@@ -723,7 +715,7 @@ def greek (label):
             lbl = label
     return lbl
 
-def get_special_Ek(implargs, database, source, destination=None, sympts=None,
+def get_special_Ek(implargs, database, source, model=None, sympts=None,
                    extract={'cb': [0, ], 'vb': [0, ]}, align='Ef',
                    usebandindex=True, *args, **kwargs):
     """Query bandstructure data and yield the eigenvalues at k-points of high-symmetry. 
@@ -733,7 +725,7 @@ def get_special_Ek(implargs, database, source, destination=None, sympts=None,
     # this may be needed if reference energies are not available for both CB and VB
     # at the same time
     logger = implargs.get('logger', LOGGER)
-    src_db = Query.get_modeldb(source)
+    src_db = database.get_model(source)
     if 'cb' not in extract:
         extract.update({'cb': []})
     if 'vb' not in extract:
@@ -772,10 +764,9 @@ def get_special_Ek(implargs, database, source, destination=None, sympts=None,
                 tag = 'Ev_{:s}'.format(greek(label))
             value = Ek[label][nVBtop  - bandix]
             tagged_Ek[tag] = value
-    if destination is None:
-        destination = source
-    logger.debug('Adding the following items to destination:')
+    if model is None:
+        model = source
+    logger.debug('Adding the following items to model {:s}:'.format(model))
     logger.debug(tagged_Ek)
-    dest_db = Query.add_modelsdb(destination)
-    dest_db.update(tagged_Ek)
+    database.update(model, tagged_Ek)
     return tagged_Ek

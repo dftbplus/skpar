@@ -10,7 +10,7 @@ class Objv(object):
     def __init__(self, ff, ww):
         self.fitness = ff
         self.weight = ww
-    def __call__(self):
+    def __call__(self, database):
         return self.fitness
 
 def printwrapper(env, db, msg):

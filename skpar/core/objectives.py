@@ -15,7 +15,7 @@ import yaml
 from pprint import pprint, pformat
 from skpar.core.utils import get_logger, normalise, arr2s
 from skpar.core.utils import get_ranges, f2prange
-from skpar.core.query import Query
+from skpar.core.database import Query
 from skpar.core.evaluate import COSTF, ERRF
 
 DEFAULT_COST_FUNC = "rms"
@@ -240,7 +240,7 @@ class Objective(object):
     """
     def __init__(self, spec, **kwargs):
         """Instantiate the objective and set non-specific attributes.
-        
+
         Must be extended to declare a Query and possibly -- CostFunction.
         By 'extend', we mean super().__init__() is called within the 
         child's own __init__().
@@ -278,7 +278,7 @@ class Objective(object):
         # this may be set here or in a child, if more specific
         self.query = Query(self.model_names, self.query_key)
         self.subweights = np.ones(self.ref_data.shape)
-              
+
     def get(self):
         """
         Return the corresponding model data, reference data, and sub-weights.
@@ -293,9 +293,9 @@ class Objective(object):
         #
         return self.model_data, self.ref_data, self.subweights
 
-    def evaluate(self):
+    def evaluate(self, database=None):
         """Evaluate objective, i.e. fitness of the current model against the reference."""
-        model, ref, weights = self.get()
+        model, ref, weights = self.get(database)
         self.fitness = self.costf(ref, model, weights, self.errf)
         self.summarise()
         return self.fitness
@@ -303,20 +303,22 @@ class Objective(object):
     def summarise(self):
         s = []
         s.append("{:<15s}: {}".format("Objective:", pformat(self.doc)))
-        s.append ("{:9s}{:<15s}: {}".format("", "Reference data", 
-                np.array2string(self.ref_data, precision=3,
-                    suppress_small=True, max_line_width=100)))
-        s.append ('{:9s}{:<15s}: {}'.format("", "Model data",
-                np.array2string(self.model_data, precision=3, 
-                    suppress_small=True, max_line_width=100)))
-        s.append ('{:9s}{:<15s}: {}'.format("", "Cost", self.fitness))
+        s.append("{:9s}{:<15s}: {}".format("", "Reference data",
+                 np.array2string(self.ref_data, precision=3,
+                                 suppress_small=True, max_line_width=100)))
+        s.append('{:9s}{:<15s}: {}'.format("", "Model data",
+                                           np.array2string(self.model_data,
+                                                           precision=3,
+                                                           suppress_small=True,
+                                                           max_line_width=100)))
+        s.append('{:9s}{:<15s}: {}'.format("", "Cost", self.fitness))
         self.msg("\n".join(s))
-        
-    def __call__(self):
+
+    def __call__(self, database=None):
         """Executes self.evaluate().
         """
-        return self.evaluate()
-    
+        return self.evaluate(database)
+
     def __repr__(self):
         """Yield a summary of the objective.
         """
@@ -379,26 +381,26 @@ class ObjValues(Objective):
 
 
         if subweights is not None:
-            self.subweights = parse_weights(subweights, 
-                    refdata=self.ref_data, nn=nmod, 
+            self.subweights = parse_weights(subweights,
+                    refdata=self.ref_data, nn=nmod,
                     normalised=self.normalised,
                     # these are optional, and generic enough
                     ikeys=["indexes",], rikeys=['ranges'], rfkeys=['values'])
             assert self.subweights.shape == shape, (self.subweights.shape, shape)
         else:
             self.subweights = np.ones(shape)
-        
+
         # Prepare to shift the model_data values if required
         # The actual shift is applied in the self.get() method
         # since the data is not known at until objective query is
         # executed to get the values of the model data
         self.align_model = align_model
 
-    def get(self):
+    def get(self, database):
         """Get the model data, align/mask it etc, and return calculated cost.
         """
         # query data base
-        self.model_data = np.atleast_1d(self.query())
+        self.model_data = np.atleast_1d(self.query(database))
         # apply shift: since model_data is not known in advance
         #              the shift cannot be precomputed; we do it on the fly.
         if self.align_model is not None:
@@ -440,21 +442,21 @@ class ObjKeyValuePairs(Objective):
         self.queries = []
         for key in self.query_key:
             self.queries.append(Query(self.model_names, key))
-            
-    def get(self):
+
+    def get(self, database):
         self.model_data = np.empty(self.ref_data.shape)
         for ix, query in enumerate(self.queries):
-            self.model_data[ix] = (query())
+            self.model_data[ix] = (query(database))
         return super().get()
 
 
 class ObjWeightedSum(Objective):
     """
     """
-    def get(self):
+    def get(self, database):
         """
         """
-        summands = self.query()
+        summands = self.query(database)
         assert len(summands) == len(self.model_weights)
         self.model_data = np.atleast_1d(np.dot(summands, self.model_weights))
         return super().get()
@@ -595,11 +597,11 @@ class ObjBands(Objective):
             else:
                 self.subweights = np.ones(shape)
         
-    def get(self):
+    def get(self, database):
         """Return the value of the objective function.
         """
         # query data base
-        self.model_data = self.query()
+        self.model_data = self.query(database)
         # apply mask
         # NOTABENE: assumed is that model data is an array in which
         #           a band corresponds to a row

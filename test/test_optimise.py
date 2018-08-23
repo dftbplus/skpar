@@ -8,7 +8,7 @@ from os.path import abspath, normpath, expanduser
 from skpar.core.input import parse_input
 from skpar.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_workdir
 from skpar.core.optimise import Optimiser, get_optargs
-from skpar.core.query import Query
+from skpar.core.database import Database, Query
 from skpar.core.tasks import initialise_tasks
 from skpar.core import taskdict as core_taskdict
 from pprint import pformat, pprint
@@ -23,7 +23,6 @@ class OptimiseTest(unittest.TestCase):
     """
     def test_parse_input(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
-        Query.flush_modelsdb()
         filename = "skpar_in_optimise.yaml"
         taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         workroot = config.get('workroot', None)
@@ -33,16 +32,6 @@ class OptimiseTest(unittest.TestCase):
         parnames = [p.name for p in parameters]
         evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
         optimiser = Optimiser(algo, parameters, evaluate, options)
-        logger.debug ("\n### -------------------------------------------------- ###")
-        logger.debug ("### ----------- Tasks -------------------------------- ###")
-        logger.debug ("### -------------------------------------------------- ###")
-        for tt in optimiser.evaluate.tasks:
-            logger.debug (tt)
-        logger.debug ("\n### -------------------------------------------------- ###")
-        logger.debug ("### ----------- Objectives --------------------------- ###")
-        logger.debug ("### -------------------------------------------------- ###")
-        for oo in optimiser.evaluate.objectives:
-            logger.debug (oo)
         # initialise parameter values, pretending to be optimisation engine
         params = np.array([10.0, -2.5, 0.5, 0.05])
         for pini, par in zip(params, optimiser.parameters):
@@ -54,13 +43,14 @@ class OptimiseTest(unittest.TestCase):
             logger.debug (pp)
 
         # initialise tasks manually
-        optimiser.evaluate.tasks = initialise_tasks(tasklist, taskdict)
+        optimiser.evaluate.tasks = initialise_tasks(tasklist, taskdict,
+                                                    report=True)
         env = {'workroot': workroot,
                'parameternames': parnames,
                'parametervalues': params,
                'iteration': None}
         workdir = workroot
-        database = {}
+        database = Database()
 
         # check task 0
         self.assertEqual(optimiser.evaluate.tasks[0].name, 'set')
@@ -91,27 +81,16 @@ class OptimiseTest(unittest.TestCase):
         self.assertEqual(optimiser.evaluate.tasks[2].args,
                          ['yval', 'model_poly3_out.dat', 'poly3'])
         optimiser.evaluate.tasks[2](env, database)
-        modeldb = Query.get_modeldb('poly3') 
+        modeldb = database.get_model('poly3') 
         self.assertTrue(modeldb is not None)
         datafile = os.path.abspath(os.path.join(workdir, 'model_poly3_out.dat'))
         dataout = np.loadtxt(datafile)
         nptest.assert_array_equal(modeldb['yval'], dataout)
         logger.debug("Model DB poly3:")
-        logger.debug(Query.get_modeldb('poly3').items())
-
-        # check evaluation
-        objvfitness = eval_objectives(evaluate.objectives)
-        nptest.assert_almost_equal(objvfitness, np.zeros(len(objectives)))
-        logger.debug("Individual objective fitness: {}".format(objvfitness))
-        logger.debug(evaluate.costf.__name__)
-        logger.debug(evaluate.costf)
-        fitness = evaluate.costf(evaluate.utopia, objvfitness, evaluate.weights)
-        logger.debug("Global fitness: {}".format(fitness))
-        nptest.assert_almost_equal(fitness, np.atleast_1d(0))
+        logger.debug(database.get_model('poly3').items())
 
     def test_optimisation_run(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""
-        Query.flush_modelsdb()
         filename   = "skpar_in_optimise.yaml"
         taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         algo, options, parameters = optimisation
@@ -138,11 +117,9 @@ class EvaluateSiTest(unittest.TestCase):
     """
     def test_parse_input(self):
         """Can we parse input, create an evaluator instance, and run the tasks?"""
-        Query.flush_modelsdb()
-        db = Query.add_modelsdb('Si.bs')
         filename   = "skpar_in_Si.yaml"
         testfolder = "test_eval_Si"
-        parfile    = os.path.join(testfolder, 'current.par')
+        # parfile    = os.path.join(testfolder, 'current.par')
         taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
         workroot = config.get('workroot', None)
         templatedir = config.get('templatedir', None)
@@ -150,28 +127,9 @@ class EvaluateSiTest(unittest.TestCase):
         parnames = None
         evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
         if optimisation is None:
-            logger.debug('Evaluation only:')
-            logger.debug ("\n### -------------------------------------------------- ###")
-            logger.debug ("### ----------- Tasks -------------------------------- ###")
-            logger.debug ("### -------------------------------------------------- ###")
-            for tt in evaluate.tasks:
-                logger.debug(tt)
-            logger.debug ("\n### -------------------------------------------------- ###")
-            logger.debug ("### ----------- Objectives --------------------------- ###")
-            logger.debug ("### -------------------------------------------------- ###")
-            for oo in evaluate.objectives:
-                logger.debug (oo)
             # check evaluation
-            logger.debug ('Evaluating tasks')
-            evaluate(None, None)
-            objvfitness = eval_objectives(evaluate.objectives)
-            #nptest.assert_almost_equal(objvfitness, np.zeros(len(objectives)))
-            logger.debug("Individual objective fitness: {}".format(objvfitness))
-            logger.debug(evaluate.costf.__name__)
-            logger.debug(evaluate.costf)
-            fitness = evaluate.costf(evaluate.utopia, objvfitness, evaluate.weights)
-            logger.debug("Global fitness: {}".format(fitness))
-            self.assertTrue(fitness < np.atleast_1d(0.23))
+            cost = evaluate(None, None)
+            self.assertTrue(cost < np.atleast_1d(0.23))
 
 
 if __name__ == '__main__':
