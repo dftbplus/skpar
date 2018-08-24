@@ -28,34 +28,34 @@ def set_bands_parser(parser=None):
         subparser = True
     # Once we have a parser, we can add arguments to it
     parser.add_argument(
-            "-v", dest="verbose", default=False, action="store_true", 
+            "-v", dest="verbose", default=False, action="store_true",
             help="Raise verbosity level from INFO to DEBUG for the console.")
     parser.add_argument(
-            '-p', "--plot", dest="plot", default=False, action="store_true", 
+            '-p', "--plot", dest="plot", default=False, action="store_true",
             help="Plot the band-structure.")
     parser.add_argument(
-            '-q', "--plot_only", dest="plot_only", default=False, action="store_true", 
+            '-q', "--plot_only", dest="plot_only", default=False, action="store_true",
             help="Only plot the band-structure, do not run calculation.")
     parser.add_argument(
-            '-y', "--ylimit", dest="ylim", nargs=2, default=(-25, 15), 
+            '-y', "--ylimit", dest="ylim", nargs=2, default=(-25, 15),
             action="store", type=float,
             help="A tuple: Y axis limits if -p is specified (dftt.: [-25, 15]).")
     parser.add_argument(
-            '-l', '--latticeinfo', dest='latticeinfo', default=None, 
+            '-l', '--latticeinfo', dest='latticeinfo', default=None,
             action='store', type=json.loads, help='Lattice info, e.g.:'
             '{"type": FCC, "param": 5.43}')
     parser.add_argument(
-            "-wd", dest='workdir', type=str, default='.', action="store", 
+            "-wd", dest='workdir', type=str, default='.', action="store",
             help="(dflt: .) Working directory with atoms, scc/ and bs/")
     parser.add_argument(
-            "-dftb", type=str, default='dftb+', action="store", 
+            "-dftb", type=str, default='dftb+', action="store",
             help="(dflt: dftb+) dftb executable")
     parser.add_argument(
-            "-bands", type=str, default='dp_bands', action="store", 
+            "-bands", type=str, default='dp_bands', action="store",
             help="(dflt: dp_bands) Tool to convert the output to "
                  "bandstructure file for plotting ")
     parser.add_argument(
-            "-dos", type=str, nargs='?', const='dp_dos', action="store", 
+            "-dos", type=str, nargs='?', const='dp_dos', action="store",
             help="(dflt: dp_dos) Tool to convert the output to "
                  "DoS file for plotting ")
     if subparser:
@@ -83,12 +83,12 @@ def main_bands(args):
     bsdir   = abspath(joinpath(workdir, 'bs'))
     dftb    = args.dftb
     dftblog = 'dftb.log'
-    bands   = abspath(expanduser(args.bands))
+    bands   = args.bands
     if args.dos:
-        dos = abspath(expanduser(args.dos))
+        dos = args.dos
     bandslog = 'dp_bands.log'
 
-    if not args.plot.only:
+    if not args.plot_only:
         # Execute the necessary commands
         # scc calculation
         execute(cmd=dftb, workdir=sccdir, outfile=dftblog)

@@ -1,12 +1,11 @@
 """
 General utility functions
 """
-from subprocess import check_output, STDOUT, check_call
+import subprocess
 import os
 import shutil
 import shlex
 import glob
-import numpy as np
 import logging
 
 def write_output(out, outfile):
@@ -27,9 +26,9 @@ def call(cmd, outfile='out.log', **kwargs):
     if not isinstance(cmd, list):
         cmd = shlex.split(cmd)
         parsed_cmd = [cmd[0],]
-        for i, word in enumerate(cmd[1:]):
-            if word[0]=='$':
-                var = word[1:].strip('{').strip('}') 
+        for word in cmd[1:]:
+            if word[0] == '$':
+                var = word[1:].strip('{').strip('}')
                 varval = os.environ.get(var, word)
                 parsed_cmd.append(varval)
             else:
@@ -40,34 +39,37 @@ def call(cmd, outfile='out.log', **kwargs):
                 else:
                     parsed_cmd.append(word)
         cmd = parsed_cmd
-    out=check_output(cmd, universal_newlines=True, stderr=STDOUT, **kwargs)
-    outfile = kwargs.get('stdout', out.log)
-    write_out(out, outfile)
+    out = subprocess.check_output(cmd, universal_newlines=True,
+                                  stderr=subprocess.STDOUT, **kwargs)
+    outfile = kwargs.get('stdout', 'out.log')
+    write_output(out, outfile)
     return out
 
 def execute(cmd, workdir, outfile='out.log', purge_workdir=False, **kwargs):
+    """Execute external command in workdir; direct output/error to outfile"""
     origdir = os.getcwd()
     try:
-        os.mkdirs(workdir)
+        os.makedirs(workdir)
     except OSError:
         # directory exists
         if purge_workdir:
             # that's a bit brutal, but saves to worry of links and subdirs
             shutil.rmtree(workdir)
-            os.mkdirs(workdir)
+            os.makedirs(workdir)
     os.chdir(workdir)
     try:
         output = call(cmd, **kwargs)
+        write_output(output, outfile)
     #
     except subprocess.CalledProcessError as exc:
         LOGGER.critical('Execution of {:s} FAILED with exit status {:d}'.
                         format(cmd, exc.returncode))
-        write_out(exc.output, outfile)
+        write_output(exc.output, outfile)
         raise
     #
     except OSError as exc:
         LOGGER.critical("Abnormal termination: OS could not execute %s in %s",
-                        cmd, cdir)
+                        cmd, workdir)
         LOGGER.critical("If the command is a script,"\
                         " check permissions and that is has a shebang!")
         raise
@@ -122,4 +124,3 @@ def get_logger(name, filename=None, verbosity=logging.INFO):
 
 
 LOGGER = get_logger(__name__)
-
