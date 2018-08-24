@@ -135,7 +135,12 @@ def get_dftbp_data(implargs, database, source, model,
     fin = joinpath(abspath(expanduser(workroot)), source, datafile)
     logger.debug('Getting DFTB+ data from {:s}.'.format(fin))
     data = DetailedOut.fromfile(fin)
-    database.update(model, data)
+    try:
+        # assume model in database
+        database.get(model).update(data)
+    except (KeyError, AttributeError):
+        # model not in database
+        database.update({model: data})
 
 
 def get_dftbp_evol(implargs, database, source, model,
@@ -200,7 +205,12 @@ def get_dftbp_evol(implargs, database, source, model,
         outstr.append('{:12.6g} {:10.6g} {:>10s}'.format(total, elec, tag))
     with open(joinpath(workdir, 'energy_volume.dat'), 'w') as fout:
         fout.writelines('\n'.join(outstr)+'\n')
-    database.update(model, data)
+    try:
+        # assume model in database
+        database.get(model).update(data)
+    except (KeyError, AttributeError):
+        # model not in database
+        database.update({model: data})
 
 
 # ----------------------------------------------------------------------
@@ -309,7 +319,12 @@ def get_bandstructure(implargs, database, source, model,
         #logger.debug(data['lattice'])
         #logger.debug(data['kLines'])
         #logger.debug(data['kLinesDict'])
-    database.update(model, data)
+    try:
+        # assume model in database
+        database.get(model).update(data)
+    except (KeyError, AttributeError):
+        # model not in database
+        database.update({model: data})
 
 # ----------------------------------------------------------------------
 # Effective masses
@@ -553,7 +568,7 @@ def get_effmasses(implargs, database, source, model=None, directions=None,
     """
     logger = implargs.get('logger', LOGGER)
     masses = OrderedDict()
-    src_db = database.get_model(source)
+    src_db = database.get(source)
     bands  = src_db['bands']
     nE, nk = bands.shape
     ivbtop = src_db['ivbtop']
@@ -633,7 +648,12 @@ def get_effmasses(implargs, database, source, model=None, directions=None,
             model = source
         logger.debug('Adding the following items to model {:s}:'.format(model))
         logger.debug(masses)
-        database.update(model, masses)
+        try:
+            # assume model in database
+            database.get(model).update(masses)
+        except (KeyError, AttributeError):
+            # model not in database
+            database.update({model: masses})
     return masses
 
 def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, *args, **kwargs):
@@ -643,7 +663,7 @@ def plot_fitmeff(ax, xx, x0, extremum, mass, dklen=None, ix0=None, *args, **kwar
     *mass* is the fitted effective mass
     *extremum* is extremal energy, E0
     *x0* is the relative position of the extremum along the given
-    kline *xx*. 
+    kline *xx*.
 
     Assumed is that around the extremum at k0:
 
@@ -725,7 +745,7 @@ def get_special_Ek(implargs, database, source, model=None, sympts=None,
     # this may be needed if reference energies are not available for both CB and VB
     # at the same time
     logger = implargs.get('logger', LOGGER)
-    src_db = database.get_model(source)
+    src_db = database.get(source)
     if 'cb' not in extract:
         extract.update({'cb': []})
     if 'vb' not in extract:
@@ -768,5 +788,10 @@ def get_special_Ek(implargs, database, source, model=None, sympts=None,
         model = source
     logger.debug('Adding the following items to model {:s}:'.format(model))
     logger.debug(tagged_Ek)
-    database.update(model, tagged_Ek)
+    try:
+        # assume model in database
+        database.get(model).update(tagged_Ek)
+    except (KeyError, AttributeError):
+        # model not in database
+        database.update({model: tagged_Ek})
     return tagged_Ek

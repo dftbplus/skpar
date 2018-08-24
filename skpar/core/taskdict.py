@@ -142,7 +142,12 @@ def get_model_data(implargs, database, item, source, model,
                 data = np.delete(data, obj=indexes, axis=axis)
     data = data * scale
     #
-    database.update(model, {item: data})
+    try:
+        # assume model in database
+        database.get(model).update({item: data})
+    except (KeyError, AttributeError):
+        # model not in database
+        database.update({model: {item: data}})
 
 
 def substitute_parameters(implargs, database, templatefiles, **kwargs):

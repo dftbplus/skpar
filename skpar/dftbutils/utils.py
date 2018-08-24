@@ -9,8 +9,6 @@ import glob
 import numpy as np
 import logging
 
-LOGGER = get_logger(__name__)
-
 def write_output(out, outfile):
     """Write subprocess output to a file"""
     if outfile is not None:
@@ -122,69 +120,6 @@ def get_logger(name, filename=None, verbosity=logging.INFO):
         configure_logger(parent, filename, verbosity)
     return logging.getLogger(name)
 
-def update(database, model, data):
-    """Update model database with input data items.
 
-    Args:
-        database(obj): database, supporting get(), update() and a way to check
-                       if item is contained
-        model(str): model name
-        data(dict): new data to be put in the model-own database
-    """
-    try:
-        # assume model already exists in the DB
-        modeldb = database.get_model(model)
-        modeldb.update(data)
-    except AttributeError:
-        database.add_model(model, data)
+LOGGER = get_logger(__name__)
 
-
-class Database():
-    """A database object providing several methods to access/modify the data.
-
-    The public methods for accessing the internal database are:
-        * update_modeldb -- add data to a model (create the model if missing)
-        * query -- get data from a model
-        * purge -- clear the internal database
-    """
-    def __init__(self):
-        """Yield an object for data storage, NOT to be accessed directly."""
-        self._database = {}
-
-    def purge(self):
-        """Clear the contents of DB"""
-        self._database = {}
-
-    def get_model(self, model):
-        """Get a reference to a specific model in the database"""
-        try:
-            modelref = self._database[model]
-            return modelref
-        except KeyError:
-            return None
-
-    def add_model(self, model, data=None):
-        """Add model to the database and return its reference.
-
-        If data is not None, initialise the data for the model.
-        If model happens to be already in the database and data is not None,
-        its data is being replaced with the input argument.
-        """
-        if data is not None:
-            self._database[model] = data
-        else:
-            if model not in self._database:
-                self._database[model] = {}
-        return self._database[model]
-
-    def update(self, model, data):
-        """Update the data of a given model in the database"""
-        update(self, model, data)
-
-    def get(self, model, item):
-        """Get a particular data item from a particular model."""
-        return self._database[model][item]
-
-    def all(self):
-        """Yield internal database object"""
-        return self._database

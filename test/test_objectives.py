@@ -394,7 +394,8 @@ class ObjectiveTypesTest(unittest.TestCase):
         mnm = 'Si/bs'
         # set data base
         database = Database()
-        modeldb = database.add_model('Si/bs')
+        database.update('Si/bs')
+        modeldb = database.get('Si/bs')
         # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.objtype, 'values')
@@ -442,7 +443,8 @@ class ObjectiveTypesTest(unittest.TestCase):
         model = 'GaN-W-ac'
         # set data base
         database = Database()
-        modeldb = database.add_model(model)
+        database.update(model)
+        modeldb = database.get(model)
         # check declaration
         spec = yaml.load(yamldata)['objectives'][0]
         logger.info(spec)
@@ -488,9 +490,9 @@ class ObjectiveTypesTest(unittest.TestCase):
         # set data base: 
         # could be done either before or after declaration
         database = Database()
-        database.add_model('Si/scc-1')
-        database.add_model('Si/scc')
-        database.add_model('Si/scc+1')
+        database.update('Si/scc-1')
+        database.update('Si/scc')
+        database.update('Si/scc+1')
         dat = [20, 12, 16]
         database.update('Si/scc-1', {'Etot': dat[0]})
         database.update('Si/scc', {'Etot': dat[1]})
@@ -549,7 +551,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         # could be done either before or after declaration
         database = Database()
         dat = [0.9, -0.5, 1.2]
-        database.add_model('Si/bs', {'me_GX_0': dat[0], 'mh_GX_0': dat[1],
+        database.update('Si/bs', {'me_GX_0': dat[0], 'mh_GX_0': dat[1],
                                      'me_GL_2':dat[2]})
         # check __call__()
         mdat, rdat, weights = objv.get(database)
@@ -717,7 +719,8 @@ class EvaluateObjectivesTest(unittest.TestCase):
         """
         # set data base
         database = Database()
-        db = database.add_model('A')
+        database.update('A')
+        db = database.get('A')
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
@@ -740,10 +743,11 @@ class EvaluateObjectivesTest(unittest.TestCase):
         db1 = {'item': 1.0}
         db2 = {'item': 1.0}
         db3 = {'item': 1.0}
-        _db = database.add_model('A', db1)
+        database.update('A', db1)
+        _db = database.get('A')
         self.assertDictEqual(_db, db1)
-        database.add_model('B', db2)
-        database.add_model('C', db3)
+        database.update('B', db2)
+        database.update('C', db3)
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
@@ -764,7 +768,8 @@ class EvaluateObjectivesTest(unittest.TestCase):
         """
         # set model data
         database = Database()
-        db1 = database.add_model('A')
+        database.update('A')
+        db1 = database.get('A')
         # declaration of objective
         spec = yaml.load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)

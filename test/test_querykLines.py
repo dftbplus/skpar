@@ -47,8 +47,8 @@ class GetAbscissakVectorTest(unittest.TestCase):
         database = Database()
         src = 'test_dftbutils/bs'
         get_bandstructure({'workroot': '.'}, database, src, 'test', latticeinfo=latticeinfo)
-        kLines = database.get('test', 'kLines')
-        bands = database.get('test', 'bands')
+        kLines = database.get_item('test', 'kLines')
+        bands = database.get_item('test', 'bands')
         logger.debug('Bands.shape: {}'.format(bands.shape))
         logger.debug('kLines     : {}'.format(kLines))
         xx, xt, xl = get_kvec_abscissa(lat, kLines)

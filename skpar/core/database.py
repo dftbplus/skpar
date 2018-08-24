@@ -5,72 +5,54 @@ from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
-def update(database, model, data):
-    """Update model database with input data items.
+def update(database, model, data=None):
+    """Update model storage with input data items.
 
     Args:
-        database(obj): database, supporting get(), update() and a way to check
-                       if item is contained
-        model(str): model name
-        data(dict): new data to be put in the model-own database
+        database(obj): supporting get() and update()
+        model(str or dict): model (dict) or model name
+        data(dict): key-value items for the model to be updated
     """
+    if data is None:
+        data = {}
     try:
-        # assume model already exists in the DB
-        modeldb = database.get_model(model)
-        modeldb.update(data)
-    except AttributeError:
-        database.add_model(model, data)
+        # model is a key and in DB; update it with data
+        database.get(model, None).update(data)
+    except (KeyError, AttributeError):
+        # model is a key but not in DB; None has no .update()
+        database.update({model: data})
+    except TypeError:
+        # model is a dict; not hashable
+        assert data == {}, data
+        database.update(model)
 
 
 class Database():
     """A database object providing several methods to access/modify the data.
-
-    The public methods for accessing the internal database are:
-        * update_modeldb -- add data to a model (create the model if missing)
-        * query -- get data from a model
-        * purge -- clear the internal database
     """
     def __init__(self):
         """Yield an object for data storage, NOT to be accessed directly."""
-        self._database = {}
+        self._storage = {}
 
-    def purge(self):
+    def clear(self):
         """Clear the contents of DB"""
-        self._database = {}
+        self._storage = {}
 
-    def get_model(self, model):
-        """Get a reference to a specific model in the database"""
-        try:
-            modelref = self._database[model]
-            return modelref
-        except KeyError:
-            return None
+    def update(self, model, data=None):
+        """Update storage with a new model"""
+        update(self._storage, model, data)
 
-    def add_model(self, model, data=None):
-        """Add model to the database and return its reference.
+    def get(self, model, default=None):
+        """Get a model."""
+        return self._storage.get(model, default)
 
-        If data is not None, initialise the data for the model.
-        If model happens to be already in the database and data is not None,
-        its data is being replaced with the input argument.
-        """
-        if data is not None:
-            self._database[model] = data
-        else:
-            if model not in self._database:
-                self._database[model] = {}
-        return self._database[model]
-
-    def update(self, model, data):
-        """Update the data of a given model in the database"""
-        update(self, model, data)
-
-    def get(self, model, item):
-        """Get a particular data item from a particular model."""
-        return self._database[model][item]
+    def get_item(self, model, item):
+        """Get an item from a model; None if either does not exist."""
+        return self._storage.get(model, {}).get(item, None)
 
     def all(self):
         """Yield internal database object"""
-        return self._database
+        return self._storage
 
     # legacy stuff; will  likely disappear when refactoring objectives
     def query(self, models, item, atleast_1d=True):
@@ -118,9 +100,9 @@ class Query():
         if isinstance(self.model_names, list):
             result = []
             for model in self.model_names:
-                result.append(database.get(model, self.key))
+                result.append(database.get(model, {}).get(self.key))
         else:
-            result = database.get(self.model_names, self.key)
+            result = database.get(self.model_names, {}).get(self.key)
         if atleast_1d:
             result = np.atleast_1d(result)
         return result

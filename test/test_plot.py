@@ -149,7 +149,7 @@ class GenericPlotTaskTest(unittest.TestCase):
         filename = '_workdir/test_plot/bs1.pdf'
         get_bandstructure(env, database, 'test_dftbutils/Si/bs/', model,
                           latticeinfo=latticeinfo)
-        modeldb = database.get_model(model)
+        modeldb = database.get(model)
         bands = modeldb['bands']
         eps = 0.25
         jitter = eps * (0.5 - random(bands.shape))

@@ -7,7 +7,7 @@ import logging
 import argparse
 import json
 import numpy as np
-from skpar.dftbutils.utils import get_logger, execute, Database
+from skpar.dftbutils.utils import get_logger, execute
 from skpar.dftbutils.queryDFTB import get_bandstructure
 from skpar.dftbutils.plot import plot_bs
 
@@ -112,10 +112,10 @@ def main_bands(args):
 
     if args.plot or args.plot_only:
         # hack the plotting directly, not via tasks, to avoid needing objectives
-        database = Database()
+        database = {}
         implargs = {'workroot': workroot}
         get_bandstructure(implargs, database, bsdir, 'dftb', latticeinfo=args.latticeinfo)
-        bsdata = database.get_model('dftb')
+        bsdata = database.get('dftb')
         logger.info('Band-gap (eV) = {:.3f}'.format(bsdata['Egap']))
         yy1 = bsdata['bands'] - bsdata['Evb']
         if args.latticeinfo:

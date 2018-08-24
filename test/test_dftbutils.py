@@ -118,13 +118,13 @@ class DetailedOutTest(unittest.TestCase):
         src = 'test_dftbutils/scc'
         dst = 'test.scc'
         get_dftbp_data(env, database, src, dst)
-        modeldict = database.get_model(dst)
+        modeldict = database.get(dst)
         self.assertDictEqual(modeldict, self.ref_scc)
         #
         src = 'test_dftbutils/bs'
         dst = 'test.bs'
         get_dftbp_data(env, database, src, dst)
-        modeldict = database.get_model(dst)
+        modeldict = database.get(dst)
         self.assertDictEqual(modeldict, self.ref_bs)
 
 
@@ -175,7 +175,7 @@ class BandsOutTest(unittest.TestCase):
         src = 'test_dftbutils/bs'
         dst = 'test.bs'
         get_bandstructure(env, database, src, dst)
-        modeldict = database.get_model(dst)
+        modeldict = database.get(dst)
         nptest.assert_array_almost_equal(modeldict['bands'], self.ref_bands)
         self.assertEqual(modeldict['nkpts'], self.ref_nk)
         self.assertEqual(modeldict['nbands'], self.ref_nb)
@@ -205,7 +205,7 @@ class MeffTest(unittest.TestCase):
         src = 'test_dftbutils/Si/bs'
         model = 'test.meff'
         get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
-        dst = database.get_model(model)
+        dst = database.get(model)
         # the values below are in oldskpar.debug.log in the above dir
         self.assertTrue(dst['withSOC'])
         self.assertEqual(dst['ivbtop'], 7)
@@ -233,7 +233,7 @@ class MeffTest(unittest.TestCase):
         # NOTABENE: the refdata here is from SOC calculation!!!
         src = 'test_dftbutils/Si/bs'
         get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
-        dst = database.get_model(model)
+        dst = database.get(model)
         directions = ['Gamma-X', 'Gamma-L', 'Gamma-K']
         # Example how to extract different masses over a different energy window:
         # Note that subsequent extractions overwrite final data in dst, so we start with
@@ -268,7 +268,7 @@ class EkTest(unittest.TestCase):
         model = 'test.Ek'
         src = 'test_dftbutils/Si/bs'
         get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
-        dst = database.get_model(model)
+        dst = database.get(model)
         get_special_Ek(env, database, model, model)
         self.assertAlmostEqual(dst['Ec_L_0'], 0.4  , places=3)
         self.assertAlmostEqual(dst['Ec_G_0'], 1.616, places=3)
@@ -289,7 +289,7 @@ class EkTest(unittest.TestCase):
         model = 'test.Ek'
         src = 'test_dftbutils/Si/bs'
         get_bandstructure(env, database, src, model, latticeinfo={'type': 'FCC', 'param': 5.431})
-        dst = database.get_model(model)
+        dst = database.get(model)
         get_special_Ek(env, database, model, model, sympts = ['K', 'L'], 
                         extract={'cb': [0, 2, 4, 6], 'vb': [0, 2, 4, 6]})
         self.assertAlmostEqual(dst['Ec_L_4'], 2.8089, places=3)

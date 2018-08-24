@@ -81,13 +81,13 @@ class OptimiseTest(unittest.TestCase):
         self.assertEqual(optimiser.evaluate.tasks[2].args,
                          ['yval', 'model_poly3_out.dat', 'poly3'])
         optimiser.evaluate.tasks[2](env, database)
-        modeldb = database.get_model('poly3') 
+        modeldb = database.get('poly3') 
         self.assertTrue(modeldb is not None)
         datafile = os.path.abspath(os.path.join(workdir, 'model_poly3_out.dat'))
         dataout = np.loadtxt(datafile)
         nptest.assert_array_equal(modeldb['yval'], dataout)
         logger.debug("Model DB poly3:")
-        logger.debug(database.get_model('poly3').items())
+        logger.debug(database.get('poly3').items())
 
     def test_optimisation_run(self):
         """Can we parse input, create an optimiser instance, and run the tasks?"""

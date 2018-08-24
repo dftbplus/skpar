@@ -109,7 +109,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
         for task in tasks:
             # LOGGER.info(task)
             task(coreargs, database)
-        self.assertEqual(np.atleast_1d(var), database.get('model', 'value'))
+        self.assertEqual(np.atleast_1d(var), database.get('model', {}).get('value'))
         shutil.rmtree('./tmp')
 
     def test_twopartemplates(self):
@@ -149,7 +149,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
             LOGGER.info(task)
             task(coreargs, database)
         self.assertListEqual([var1, var2],
-                             list(database.get('model', 'value')))
+                             list(database.get('model', {}).get('value')))
         shutil.rmtree('./tmp')
 
 
@@ -179,7 +179,7 @@ class GetTaskDFTBpTest(unittest.TestCase):
             print(task)
             task(env, database)
         # 'Si.bs' should be added through the task execution
-        db = database.get_model('Si.bs')
+        db = database.get('Si.bs')
         self.assertAlmostEqual(db['Egap'],   1.129, places=3)
         self.assertAlmostEqual(db['Ef'],   -3.0621, places=4)
         self.assertAlmostEqual(db['me_GX'],  0.935, places=3)
