@@ -1,12 +1,13 @@
+"""Bandstructure calculation by DFTB"""
+import sys
+import os
+from os.path import abspath, normpath, expanduser
+from os.path import join as joinpath
 import logging
 import argparse
 import json
-import sys, os
 import numpy as np
-from os.path import abspath, normpath, expanduser
-from os.path import join as joinpath
-from skpar.dftbutils.utils import get_logger
-from skpar.core.tasks import RunTask, GetTask
+from skpar.dftbutils.utils import get_logger, execute, Database
 from skpar.dftbutils.queryDFTB import get_bandstructure
 from skpar.dftbutils.plot import plot_bs
 
@@ -18,7 +19,6 @@ def set_bands_parser(parser=None):
         parser: python parser
             Typically, that will be a sub-parser passed from top executable.
     """
-    myname = 'bands'
     # Initialise argument parser if not provided
     if parser is None:
         parser = argparse.ArgumentParser(
@@ -30,9 +30,6 @@ def set_bands_parser(parser=None):
     parser.add_argument(
             "-v", dest="verbose", default=False, action="store_true", 
             help="Raise verbosity level from INFO to DEBUG for the console.")
-    parser.add_argument(
-            '-n', "--dry_run", dest="dry_run", default=False, action="store_true", 
-            help="Do not execute the tasks but print the tasklist.")
     parser.add_argument(
             '-p', "--plot", dest="plot", default=False, action="store_true", 
             help="Plot the band-structure.")
@@ -64,8 +61,7 @@ def set_bands_parser(parser=None):
     if subparser:
         parser.set_defaults(func=main_bands)
         return None
-    else:
-        return parser
+    return parser
 
 def main_bands(args):
     """
@@ -74,7 +70,7 @@ def main_bands(args):
     # setup logger
     # -------------------------------------------------------------------
     loglevel = logging.DEBUG if args.verbose else logging.INFO
-    logger   = get_logger(name='dftbutils', filename='dftbutils.bands.log',  
+    logger   = get_logger(name='dftbutils', filename='dftbutils.bands.log',
                           verbosity=loglevel)
 
     #logger.info(args)
@@ -87,41 +83,39 @@ def main_bands(args):
     bsdir   = abspath(joinpath(workdir, 'bs'))
     dftb    = args.dftb
     dftblog = 'dftb.log'
-    bands   = normpath(expanduser(args.bands))
+    bands   = abspath(expanduser(args.bands))
     if args.dos:
-        dos     = normpath(expanduser(args.dos))
+        dos = abspath(expanduser(args.dos))
     bandslog = 'dp_bands.log'
-    # Create the task list
-    tasks = []
-    tasks.append(RunTask(cmd=dftb, wd=sccdir, out=dftblog))
-    # Note that dftb+ (at least v1.2) exits with 0 status even if there are ERRORS
-    # Therefore, below we ensure we stop in such case, rather than diffusing the 
-    # problem through attempts of subsequent operations.
-    # check_dftblog is a bash script in skpar/bin/
-    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
-    if args.dos:
-        tasks.append(RunTask(cmd=[dos, 'band.out', 'dos_total.dat'], wd=sccdir, out=bandslog))
 
-    tasks.append(RunTask(cmd=['cp', '-f', sccchg, bsdir], out=None))
-    tasks.append(RunTask(cmd=dftb, wd=bsdir, out=dftblog))
-    tasks.append(RunTask(cmd=['check_dftblog', dftblog] , wd=sccdir, out='chk.log'))
-    tasks.append(RunTask(cmd=[bands, 'band.out', 'bands'], wd=bsdir, out=bandslog))
-
-    # align the loggers (could be done above in the initialization)
-    for tt in tasks:
-        tt.logger = logger
-
-    # execute
-    if not args.plot_only:
-        for tt in tasks:
-            logger.debug(tt)
-            if not args.dry_run:
-                tt(workroot=workroot)
+    if not args.plot.only:
+        # Execute the necessary commands
+        # scc calculation
+        execute(cmd=dftb, workdir=sccdir, outfile=dftblog)
+        # check log
+        execute(cmd=['check_dftblog', dftblog], workdir=sccdir,
+                outfile='chk.log')
+        # extract dos for plotting
+        if args.dos:
+            execute(cmd=[dos, 'band.out', 'dos_total.dat'], workdir=sccdir,
+                    outfile=bandslog)
+        # copy charges for klines calculation
+        execute(cmd=['cp', '-f', sccchg, bsdir], workdir='.', outfile=None)
+        # klines calculation
+        execute(cmd=dftb, workdir=bsdir, outfile=dftblog)
+        # check log
+        execute(cmd=['check_dftblog', dftblog], workdir=sccdir,
+                outfile='chk.log')
+        # extract bands for plotting
+        execute(cmd=[bands, 'band.out', 'bands'], workdir=bsdir,
+                outfile=bandslog)
 
     if args.plot or args.plot_only:
         # hack the plotting directly, not via tasks, to avoid needing objectives
-        bsdata = {}
-        get_bandstructure(workroot, bsdir, bsdata, latticeinfo=args.latticeinfo)
+        database = Database()
+        implargs = {'workroot': workroot}
+        get_bandstructure(implargs, database, bsdir, 'dftb', latticeinfo=args.latticeinfo)
+        bsdata = database.get_model('dftb')
         logger.info('Band-gap (eV) = {:.3f}'.format(bsdata['Egap']))
         yy1 = bsdata['bands'] - bsdata['Evb']
         if args.latticeinfo:
@@ -131,5 +125,4 @@ def main_bands(args):
             xx1 = np.asarray(range(yy1.shape[1]))
             xtl = None
         filename = os.path.join(workroot, workdir, 'bs.pdf')
-        fig, ax = plot_bs(xx1, yy1, filename=filename, ylim=args.ylim, 
-                        xticklabels=xtl)
+        plot_bs(xx1, yy1, filename=filename, ylim=args.ylim, xticklabels=xtl)
