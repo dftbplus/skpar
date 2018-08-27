@@ -86,25 +86,25 @@ def set_xylimits(ax, xval, yval, xlim=None, ylim=None, issetx=False, issety=Fals
             ax.set_xlim(np.min(_xmin), np.max(_xmax))
         else:
             ax.set_xlim((np.min(xval), np.max(xval)))
-    
+
 def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
         xticklabels=None, yticklabels=None, xlim=None, ylim=None, 
         xlabel=None, ylabel='Energy (eV)', filename=None,
         legendloc=0, **kwargs):
     """Routine for plotting band-structure.
-    
+
     Accepts one or more sets of k-vector and corresponding bands,
     but the k-vector may be shared too.
-    If you supply a set of ticks and labels for specific k-points, 
-    it will put them on X axis and will extend the xticks over 
+    If you supply a set of ticks and labels for specific k-points,
+    it will put them on X axis and will extend the xticks over
     all Y as thin lines; see xticklabels below.
-    
+
     Args:
         xx: 1D array or a list of such; k-points.shape = nk
         yy: 2D array or a list of such; bands.shape = nk, nE
             Notabene: each band is a column in its respective array
                       so that the lowest band is leftmost.
-        colors: list of colors, one per 2D array of bands; if None, 
+        colors: list of colors, one per 2D array of bands; if None,
                 default matplotlib Vega/D3 set of colours is used.
         linelabels: list of strings to label each set of bands in legend
         title: figure title
@@ -119,9 +119,9 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
     Kwargs:
         kticklabels: interpreted as xticklabels
         eticklabels: interpreted as yticklabels
-        No other kwargs are interpreted, but no exception is generated 
+        No other kwargs are interpreted, but no exception is generated
         if supplied.
-    
+
     Returns:
         fig, ax: matplotlib objects holding the plot
     """
@@ -135,7 +135,7 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
         yticklabels = kwargs.get('eticklabels', None)
     set_axes(ax, xlabel, ylabel, xticklabels, yticklabels,
                 extend_xticks=True)
-        
+
     # Colors for each line
     # this is somewhat primitive approach to choosing colors per set
     # with clear defaults
@@ -166,7 +166,7 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
     else:
         assert yy.ndim == 2, yy.shape
         issety = False
-    
+
     if linelabels:
         if not isinstance(linelabels, list):
             linelabels = [linelabels,]
@@ -179,7 +179,7 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
             linelabels.extend([None]*(len(yy)-len(linelabels)))
     else:
         linelabels = [''] * len(yy)
-        
+
     legenditems = []
     if (issety):
         # iterate within sets
@@ -209,10 +209,10 @@ def plot_bs(xx, yy, colors=None, linelabels=None, title=None, figsize=(6,7),
 
     # set limits at the end, to make sure no artist tries to expand
     set_xylimits(ax, xx, yy, xlim, ylim, issetx, issety)
-    
+
     if title:
         ax.set_title(title, fontsize=16)
-    
+
     if legenditems:
         ax.legend(legenditems, linelabels, fontsize=14, loc=legendloc)
 

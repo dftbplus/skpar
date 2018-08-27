@@ -17,5 +17,6 @@ TASKDICT = {
     'get_meff': get_effmasses,
     'get_Ek'  : get_special_Ek,
     # plot data
+# this one is currently used via the wrapper of PlotTask in ../core/taskdict.py
     'plot_bs' : magic_plot_bs,
     }

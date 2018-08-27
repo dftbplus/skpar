@@ -1,8 +1,8 @@
 """Dictionary with default tasks and their underlying functions."""
+import os
 import os.path
 import subprocess
 import numpy as np
-from pprint import pprint, pformat
 from skpar.core.utils import get_ranges, get_logger, islistoflists
 from skpar.core.plot import skparplot
 from skpar.core.parameters import update_parameters
@@ -177,7 +177,7 @@ class PlotTask(object):
     """Wrapper for skparplot; extracts data from objectives prior to plotting.
 
     This is a callable object that plots to file the model and reference data
-    associated with one or more objectives. 
+    associated with one or more objectives.
     The model and reference data constitute the Y-coordinates (ordinates).
     The X-coordinates (abscissas) are potentially held in a separate field of
     the model data dictionary, and implicitly it is assumed that the
@@ -195,7 +195,7 @@ class PlotTask(object):
     The initialisation of the PlotTask should establish what dictionary
     items are to be plotted as abscissas and ordinates and from which
     model dictionary, and how the latter are matched to the corresponding
-    reference data. 
+    reference data.
     Note however, that objectives may not be visible at the time the task is
     initialised. So at init time, we merely record the user's directions.
     Later – at call time – we do the data queries and call the plot function
@@ -225,11 +225,11 @@ class PlotTask(object):
         self.abscissa_key = abscissa_key
         self.absc_queries = []
         # Extra queries serve to pass extra data to plotting routine,
-        # for the decoration of the x and y axes, e.g. k-ticks and 
+        # for the decoration of the x and y axes, e.g. k-ticks and
         # k-labels for a bandstructure plot, etc.
         self.extra_query_keys = kwargs.get('queries', None)
         if self.extra_query_keys and not isinstance(self.extra_query_keys, list):
-                self.extra_query_keys = [self.extra_query_keys,]
+            self.extra_query_keys = [self.extra_query_keys,]
         # how to make up the plot name
         self.plotname = plotname
         # The following are passed to the back end plotting routine
@@ -263,7 +263,7 @@ class PlotTask(object):
             # The more general option assumes [(query_key, model_names), ...]
             # This may capture more than one objectives, but should be OK, since
             # in such a case the type of data will be the same
-            assert len(self.objv_selectors[0])==2, self.objv_selectors[0]
+            assert len(self.objv_selectors[0]) == 2, self.objv_selectors[0]
             self.objectives = []
             for objv in objectives:
                 for item in self.objv_selectors:
@@ -306,12 +306,10 @@ class PlotTask(object):
         logger = implargs.get('logger', LOGGER)
         iteration = implargs.get('iteration', None)
         objectives = implargs.get('objectives', None)
-        taskdict = implargs.get('taskdict', {})
+        logger.debug('Implicit arguments passed to PlotTask\n%s', implargs)
         self.pick_objectives(objectives, database)
-        try:
-            self.func = implargs.get(taskdict[self.func], skparplot)
-        except KeyError:
-            self.func = skparplot
+        self.func = implargs.get('taskdict', {}).get(self.func, skparplot)
+        logger.debug('Using plotting function %s', self.func)
         # get xy for plotting
         abscissas  = []
         ordinates  = []
@@ -344,11 +342,15 @@ class PlotTask(object):
         # Items in the lists may be of different type and size, depending on
         # objectives.
         # Ideally, we may parse and present them according to their type,
-        # i.e. kesy-values by markers, others by lines, etc.
+        # i.e. key-values by markers, others by lines, etc.
         # But in any case, we must map a set of x and y and provide
-        # different color for model and for ref.
+        # different colour for model and for ref.
         logger.debug('Collected {} abscissa and {} ordinate sets'.\
                      format(len(abscissas), len(ordinates)))
+        assert len(ordinates) and len(abscissas),\
+                '\nMake sure model names in plot arguments are correct!\n'\
+                'Missing data: abscissas: {}; ordinates: {}'.\
+                format(len(abscissas), len(ordinates))
         xval = []
         yval = []
         for xx, yy in zip(abscissas, ordinates):
@@ -408,6 +410,11 @@ class PlotTask(object):
         else:
             plotname = self.plotname
             title    = os.path.split(self.plotname)[-1]
+        # make sure directory where plot is to be saved exists
+        if os.path.basename(plotname).split('.')[-1] not in ['pdf', 'png']:
+            plotname = plotname + '.pdf'
+        if not os.path.exists(os.path.dirname(plotname)):
+            os.makedirs(os.path.dirname(plotname), exist_ok=True)
         self.kwargs['title'] = title
         # set legend labels (only 2 labels by default, consistent with
         # the colour setting
@@ -419,7 +426,7 @@ class PlotTask(object):
         # title, linelabels, colors, extra queries and extra incoming kwargs.
         # The extra incoming kwargs may contain plot specific stuff, like
         # x/ylimits, etc.
-        self.func(xval, yval, filename=plotname+'.pdf', **self.kwargs)
+        self.func(xval, yval, filename=plotname, **self.kwargs)
 
 def wrapper_PlotTask(env, database, *args, **kwargs):
     """Wrapper around the legacy PlotTask"""
