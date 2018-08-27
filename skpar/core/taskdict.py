@@ -1,6 +1,5 @@
 """Dictionary with default tasks and their underlying functions."""
 import os
-import os.path
 import subprocess
 import numpy as np
 from skpar.core.utils import get_ranges, get_logger, islistoflists
@@ -172,6 +171,32 @@ def substitute_parameters(implargs, database, templatefiles, **kwargs):
     logger.debug("Substituting parameters for iteration %s in %s.",\
                     iteration, workroot)
     update_parameters(workroot, templatefiles, parvalues, parnames)
+
+
+def prepare_for_plotsave(iteration, filename):
+    """Ensure directory of filename exists and embed iteration number"""
+    # Tag filename by iteration
+    if iteration is not None:
+        try:
+            # assume iteration is a tuple
+            filename = '{:s}_{:s}'.format(filename,\
+                                            '-'.join([str(it) for it \
+                                                    in iteration]))
+        except TypeError:
+            # iteration is a single integer, rather than a tuple
+            filename = "{:s}_{:d}".format(filename, iteration)
+    # Ensure we have a proper extension
+    if os.path.basename(filename).split('.')[-1] not in ['pdf', 'png']:
+        filename = filename + '.pdf'
+    # Ensure directory where plot is to be saved exists.
+    # Note that os.path.dirname may return '', hence the use of abspath.
+    # Also, exist_ok = True is a must since if we try to remove/re-create the
+    # directory, it may happen to destroy the current directory!
+    if not os.path.exists(os.path.abspath(os.path.dirname(filename))):
+        os.makedirs(os.path.abspath(os.path.dirname(filename)),
+                    exist_ok=True)
+    return filename
+
 
 class PlotTask(object):
     """Wrapper for skparplot; extracts data from objectives prior to plotting.
@@ -393,29 +418,10 @@ class PlotTask(object):
                 colors.append('#ff7f0e')
             self.kwargs['colors'] = colors
 
-        # tag the plot-name by iteration number; embed it in the plot title
-        if iteration is not None:
-            try:
-                # should work if iteration is a tuple
-                plotname = '{:s}_{:s}'.\
-                format(self.plotname, '-'.join([str(it) for it in iteration]))
-                title    = '{:s} ({:s})'.\
-                format(os.path.split(self.plotname)[-1],
-                       '_'.join([str(it) for it in iteration]))
-            except TypeError:
-                # if iteration is a single integer, rather than a sequence
-                plotname = "{:s}_{:d}".format(self.plotname, iteration)
-                title    = "{:s} ({:d})".\
-                format(os.path.split(self.plotname)[-1], iteration)
-        else:
-            plotname = self.plotname
-            title    = os.path.split(self.plotname)[-1]
-        # make sure directory where plot is to be saved exists
-        if os.path.basename(plotname).split('.')[-1] not in ['pdf', 'png']:
-            plotname = plotname + '.pdf'
-        if not os.path.exists(os.path.dirname(plotname)):
-            os.makedirs(os.path.dirname(plotname), exist_ok=True)
-        self.kwargs['title'] = title
+        # Tag the plot-name by iteration number; embed it in the plot title
+        # and prepare directory where plot is to be saved
+        filename = prepare_for_plotsave(iteration, self.plotname)
+        self.kwargs['title'] = os.path.splitext(os.path.basename(filename))[0]
         # set legend labels (only 2 labels by default, consistent with
         # the colour setting
         self.kwargs['linelabels'] = ['ref', 'model']
@@ -426,7 +432,8 @@ class PlotTask(object):
         # title, linelabels, colors, extra queries and extra incoming kwargs.
         # The extra incoming kwargs may contain plot specific stuff, like
         # x/ylimits, etc.
-        self.func(xval, yval, filename=plotname, **self.kwargs)
+        self.func(xval, yval, filename=filename, **self.kwargs)
+
 
 def wrapper_PlotTask(env, database, *args, **kwargs):
     """Wrapper around the legacy PlotTask"""
