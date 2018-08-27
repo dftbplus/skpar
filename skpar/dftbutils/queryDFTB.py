@@ -186,9 +186,9 @@ def get_dftbp_evol(implargs, database, source, model,
     strain = []
     for straindir in sccdirs:
         fin = joinpath(workdir, straindir, datafile)
-        logger.info('Reading {:s}'.format(fin))
+        logger.debug('Reading {:s}'.format(fin))
         data = DetailedOut.fromfile(fin)
-        logger.info('Done. Data: {}'.format(data))
+        logger.debug('Done. Data: {}'.format(data))
         e_tot.append(data['Etot'])
         e_elec.append(data['Eel'])
         strain.append(float(straindir) - 100)
@@ -198,8 +198,10 @@ def get_dftbp_evol(implargs, database, source, model,
     data['elecenergy_volume'] = e_elec
     data['strain'] = strain
     # report
-    logger.info('Done. totalenergy_volume: {}'.format(data['totalenergy_volume']))
-    logger.info('Done. elecenergy_volume: {}'.format(data['elecenergy_volume']))
+    logger.info('Done.')
+    logger.info('\ttotalenergy_volume: {}'.format(data['totalenergy_volume']))
+    logger.info('\telecenergy_volume: {}'.format(data['elecenergy_volume']))
+    logger.info('\tstrain: {}'.format(data['strain']))
     outstr = ['# Total Energy[eV], Electronic Energy[eV], Volume tag']
     for total, elec, tag in zip(e_tot, e_elec, sccdirs):
         outstr.append('{:12.6g} {:10.6g} {:>10s}'.format(total, elec, tag))

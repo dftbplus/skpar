@@ -30,12 +30,17 @@ def set_evol_parser(parser=None):
             help="Unsupported: Plot the energy-volume curve.")
     parser.add_argument(
             "-wd", dest='workdir', type=str, default='.', action="store",
-            help="(dflt: .) Working directory with sub-folders, "
-                "each sub-folder is for an scc calculation at a "
-                "specific volume. The execution is in workdir/strain/scc/)")
+            help="(default: .) Working directory with sub-folders, "
+                 "each sub-folder is for an scc calculation at a "
+                 "specific volume. The execution is in workdir/strain/scc/)")
+    parser.add_argument(
+            "-sccdir", dest='sccdir', type=str, default='.', action="store",
+            help="(default: the strain folder) Sub-directory under the "
+                 "strain-folders, where the scc calculation for a specific "
+                 "strain is performed. ")
     parser.add_argument(
             "-dftb", type=str, default='dftb+', action="store",
-            help="(dflt: dftb+) dftb executable")
+            help="(default: dftb+) dftb executable")
     if subparser:
         parser.set_defaults(func=main_evol)
         return None
@@ -69,6 +74,7 @@ def main_evol(args):
     # `workdir` is the main directory; under it there should be a
     # sub-folder for each volume.
     workdir = abspath(expanduser(args.workdir))
+    sccdir  = args.sccdir
     cwd = os.getcwd()
     os.chdir(workdir)
     # Automatically establish the available directories for different volumes.
@@ -77,12 +83,12 @@ def main_evol(args):
     # given strain.
     strain_dirs = [dd for dd in os.listdir() if dd.isdigit()]
     for _dir in strain_dirs:
-        sccdir = joinpath(workdir, _dir, 'scc')
-        execute(cmd=dftb, workdir=sccdir, outfile=dftblog)
+        calcdir = joinpath(workdir, _dir, sccdir)
+        execute(cmd=dftb, workdir=calcdir, outfile=dftblog)
         # Note that dftb+ (at least v1.2) exits with 0 status even if there are
         # ERRORS. Therefore, below we ensure we stop in such case, rather than
         # diffusing the problem through attempts of subsequent operations.
         # check_dftblog is a bash script in skpar/bin/ but this can be moved to
         # python instead
         execute(cmd=['check_dftblog', dftblog], workdir=sccdir, outfile='chk.log')
-    os.getcwd(cwd)
+    os.chdir(cwd)

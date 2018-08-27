@@ -351,7 +351,7 @@ class PlotTask(object):
             if self.absc_queries:
                 logger.debug("Querying for abscissas {}:".
                              format(self.absc_queries[i]))
-                absc = self.absc_queries[i]()
+                absc = self.absc_queries[i](database)
             else:
                 logger.debug("Constructing abscissas.")
                 if objvdata[1].ndim == 2:

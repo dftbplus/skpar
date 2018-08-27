@@ -27,10 +27,13 @@ def check_taskdict(tasklist, taskdict):
     """Check task names are in the task dictionary; quit otherwise."""
     for task in tasklist:
         if task[0] not in taskdict.keys():
-            LOGGER.critical('Task {:s} not in TASKDIR; Cannot continue'.\
+            LOGGER.critical('Task {:s} not in TASKDICT; Cannot continue'.\
                             format(task[0]))
-            LOGGER.critical('Check spelling and verify import of user modules')
-            LOGGER.critical('Use `usermodules: [lisf of modules]` in input')
+            LOGGER.info('Check spelling and verify import of user modules')
+            LOGGER.info('Use `usermodules: [lisf of modules]` in input')
+            LOGGER.info('TASKDICT currently contains:\n\t{:s}'.\
+                        format('\n\t'.join(['{:s}: {}'.format(name, func) for
+                                         name, func in taskdict.items()])))
             sys.exit(1)
 
 def initialise_tasks(tasklist, taskdict, report=False):

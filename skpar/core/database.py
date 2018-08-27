@@ -106,3 +106,13 @@ class Query():
         if atleast_1d:
             result = np.atleast_1d(result)
         return result
+
+    def __repr__(self):
+        """Yield a summary of the query.
+        """
+        srepr = []
+        srepr.append('\tQuery key: {}'.format(self.key))
+        srepr.append('\tModel Names: {}'.format(self.model_names))
+        if self.database:
+            srepr.append('\tQuery result: {}'.format(self.__call__()))
+        return '\n'+"\n".join(srepr)
