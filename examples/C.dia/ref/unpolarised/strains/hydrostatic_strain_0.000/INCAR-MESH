@@ -1,0 +1,28 @@
+# Header
+SYSTEM = diamond_primitive_PBE
+
+# Restart option
+ISTART = 1  ! read WAVECAR
+ICHARG = 11 ! read charge from CHGCAR and keep fixed
+
+# System
+ISPIN = 1    ! non spin polarized calculations
+ISMEAR = 0   ! gaussian smearing
+ISYM = 2     ! memory conserving symmetrisation of the ch. den.
+NBANDS = 12  ! Also excited states
+
+# OUTPUT
+LORBIT = 11 ! CREATE DOSCAR AND PROTCAR
+
+# Geometry optimization
+IBRION = -1  ! no relaxation
+
+# Electronic optimization
+ALGO = Normal      ! blocked Davidson iteration scheme
+PREC = Accurate    ! 1.3ENCUT
+
+# Parallelisation
+NPAR = 4 ! 16 proc
+
+ 
+ 

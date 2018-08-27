@@ -2,59 +2,24 @@ config:
     templatedir: template
     workroot: ./_workdir
     keepworkdirs: true
+    tagimports: false
 
-executables:
-    skgen: ./template/skf/skgen-opt.sh
-    bands: dftbutils bands
+usermodules:
+    - skpar.dftbutils.taskdict
 
 tasks:
-    - set: [skf/skdefs.template.py]
-    - run: [skgen, skf]
-    - run: [bands, C.dia/hydrostatic-0.00]
-    - run: [bands, C.dia/hydrostatic-0.01]
-    - run: [bands, C.dia/hydrostatic+0.01]
-    - run: [bands, C.dia/hydrostatic-0.02]
-    - run: [bands, C.dia/hydrostatic+0.02]
-    - get: [get_dftbp_bs, C.dia/hydrostatic-0.00/bs, C.dia.hs-0.00, 
-            {latticeinfo: {type: 'FCC', param: 3.56208625213847}}]
-    - get: [get_dftbp_bs, C.dia/hydrostatic-0.01/bs, C.dia.hs-0.01, 
-            {latticeinfo: {type: 'FCC', param: 3.526465389617086}}]
-    - get: [get_dftbp_bs, C.dia/hydrostatic+0.01/bs, C.dia.hs+0.01, 
-            {latticeinfo: {type: 'FCC', param: 3.597707114659854}}]
-    - get: [get_dftbp_bs, C.dia/hydrostatic-0.02/bs, C.dia.hs-0.02, 
-            {latticeinfo: {type: 'FCC', param: 3.490844527095700}}]
-    - get: [get_dftbp_bs, C.dia/hydrostatic+0.02/bs, C.dia.hs+0.02, 
-            {latticeinfo: {type: 'FCC', param: 3.633327977181240}}]
-
-    # This will show both objectives for CB and VB, but no band-gap between them,
-    # and no k-vector labels either!
-    #    - plot: [plot_objvs, Si-diam/100/bs/bs, [bands, Si.diam.100], kvector]
-
-    # The plot_bs does magic when it sees the first objective being 'Egap'.shape==(1,)
-    # it shifts the band-gap, so the band-structure is properly shown.
-    # For this to happen, objectives declaration must be such that VB precedes CB!!!
-    # The plot_bs will also show k-ticks and labels if requested, as below
-    - plot: [plot_bs, C.dia/bands.hs-0.02, [bands, C.dia.hs-0.02], 
-                kvector, queries: [kticklabels]]
-    - plot: [plot_bs, C.dia/bands.hs-0.01, [bands, C.dia.hs-0.01], 
-                kvector, queries: [kticklabels]]
-    - plot: [plot_bs, C.dia/bands.hs-0.00, [bands, C.dia.hs-0.00], 
-                kvector, queries: [kticklabels]]
-    - plot: [plot_bs, C.dia/bands.hs+0.01, [bands, C.dia.hs+0.01], 
-                kvector, queries: [kticklabels]]
-    - plot: [plot_bs, C.dia/bands.hs+0.02, [bands, C.dia.hs+0.02], 
-                kvector, queries: [kticklabels]]
-
-    # Nota bene: supplying the Egap as objective is optional. VB and CB are printed
-    # as-is if Egap is not given (e.g. for metal or for a single 'bands' objective.
-    #    - plot: [plot_bs, Si-diam/100/bs/bs_3, [bands, Si.diam.100], kvector, queries: kticklabels]
+    - set: [[skf/skdefs.template.py]]
+    - run: ['./skgen-opt.sh', skf]
+    - run: [dftbutils bands, C.dia/hydrostatic-0.00]
+    - get_bs: [C.dia/hydrostatic-0.00/bs, C.dia.hs-0.00, {latticeinfo: {type: 'FCC', param: 3.56208625213847}}]
+    - plot: [plot_bs, ../_plots/bands.hs-0.00, [bands, C.dia.hs-0.00], kvector, queries: [kticklabels]]
 
 objectives:
     - bands:
         doc: 'C.dia.hs-0.00: VB'
         models: 'C.dia.hs-0.00'
         ref:
-            # This is bandstructure from VASP, transformed so that bands 
+            # This is bandstructure from VASP, transformed so that bands
             # are columns in the file. Format is:
             # k-pt_Number Distance  Kx  Ky  Kz  band1(1)  band2(1)...
             # The advantage of this is that the band with lowest energy
@@ -65,26 +30,26 @@ objectives:
             # This is why, we must always transpose bands from dp_bands
             # or from vasputils, upon loading, and this is here accomplished
             # by the loader_args: {unpack: True} -- cf. numpy.loadtxt() for details.
-            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.000/bands.dat
+            file: /home/figaro/venv-py37/work/C.dia/ref/unpolarised/strains/hydrostatic_strain_0.000/bands.dat
             loader_args: {unpack: True}
-            process:  
-                # indexes and ranges below refer to file, not array, 
+            process:
+                # indexes and ranges below refer to file, not array,
                 # i.e. independent of 'unpack' loader argument
                 rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
         options:
-            # Indexes below refer to the resulting 2D array after loading, 
+            # Indexes below refer to the resulting 2D array after loading,
             # transposing, and application of the rm_rows/rm_columns above.
             use_ref: [[1, 4]]                # Fortran-style index-bounds of bands to use
             use_model: [[1, 4]]
             align_ref: [4, max]              # Fortran-style index of band-index and k-point-index,
             align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
-            subweights: 
+            subweights:
                 # NOTABENE:
                 # --------------------------------------------------
                 # Energy values are with respect to the ALIGNEMENT above.
                 # If we want to have the reference  band index as zero,
-                # we would have to do tricks with the range specification 
-                # behind the curtain, to allow both positive and negative 
+                # we would have to do tricks with the range specification
+                # behind the curtain, to allow both positive and negative
                 # band indexes, e.g. [-3, 0], inclusive of either boundary.
                 # Currently this is *not done*, so only standard Fortran
                 # range spec is supported. Therefore, band 1 is always
@@ -99,120 +64,12 @@ objectives:
                     - [4 , 2.5]       # emphasize the top VB (affects Heavy hole masses)
         weight: 3.   # emphasize the equilibrium structure
         eval: [rms, relerr]
-    - bands:
-        doc: 'C.dia.hs-0.01: VB'
-        models: 'C.dia.hs-0.01'
-        ref:
-            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_-0.010/bands.dat
-            loader_args: {unpack: True}
-            process:  
-                # indexes and ranges below refer to file, not array, 
-                # i.e. independent of 'unpack' loader argument
-                rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
-        options:
-            # Indexes below refer to the resulting 2D array after loading, 
-            # transposing, and application of the rm_rows/rm_columns above.
-            use_ref: [[1, 4]]                # Fortran-style index-bounds of bands to use
-            use_model: [[1, 4]]
-            align_ref: [4, max]              # Fortran-style index of band-index and k-point-index,
-            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
-            subweights: 
-                dflt: 1
-                values: # [[range], subweight] for E-k points in the given range of energy
-                # notabene: the range below is with respect to the alignment value
-                    - [[-0.1, 0.], 5.0]
-                bands: # [[range], subweight] of bands indexes; fortran-style
-                    - [[2, 3], 1.5]   # these affect Light and SO hole masses
-                    - [4 , 2.5]       # emphasize the top VB (affects Heavy hole masses)
-        weight: 1.5
-        eval: [rms, relerr]
-    - bands:
-        doc: 'C.dia.hs-0.02: VB'
-        models: 'C.dia.hs-0.02'
-        ref:
-            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_-0.020/bands.dat
-            loader_args: {unpack: True}
-            process:  
-                # indexes and ranges below refer to file, not array, 
-                # i.e. independent of 'unpack' loader argument
-                rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
-        options:
-            # Indexes below refer to the resulting 2D array after loading, 
-            # transposing, and application of the rm_rows/rm_columns above.
-            use_ref: [[1, 4]]                # Fortran-style index-bounds of bands to use
-            use_model: [[1, 4]]
-            align_ref: [4, max]              # Fortran-style index of band-index and k-point-index,
-            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
-            subweights: 
-                dflt: 1
-                values: # [[range], subweight] for E-k points in the given range of energy
-                # notabene: the range below is with respect to the alignment value
-                    - [[-0.1, 0.], 5.0]
-                bands: # [[range], subweight] of bands indexes; fortran-style
-                    - [[2, 3], 1.5]   # these affect Light and SO hole masses
-                    - [4 , 2.5]       # emphasize the top VB (affects Heavy hole masses)
-        weight: 1.0
-        eval: [rms, relerr]
-    - bands:
-        doc: 'C.dia.hs+0.01: VB'
-        models: 'C.dia.hs+0.01'
-        ref:
-            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.010/bands.dat
-            loader_args: {unpack: True}
-            process:  
-                # indexes and ranges below refer to file, not array, 
-                # i.e. independent of 'unpack' loader argument
-                rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
-        options:
-            # Indexes below refer to the resulting 2D array after loading, 
-            # transposing, and application of the rm_rows/rm_columns above.
-            use_ref: [[1, 4]]                # Fortran-style index-bounds of bands to use
-            use_model: [[1, 4]]
-            align_ref: [4, max]              # Fortran-style index of band-index and k-point-index,
-            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
-            subweights: 
-                dflt: 1
-                values: # [[range], subweight] for E-k points in the given range of energy
-                # notabene: the range below is with respect to the alignment value
-                    - [[-0.1, 0.], 5.0]
-                bands: # [[range], subweight] of bands indexes; fortran-style
-                    - [[2, 3], 1.5]   # these affect Light and SO hole masses
-                    - [4 , 2.5]       # emphasize the top VB (affects Heavy hole masses)
-        weight: 1.5
-        eval: [rms, relerr]
-    - bands:
-        doc: 'C.dia.hs+0.02: VB'
-        models: 'C.dia.hs+0.02'
-        ref:
-            file: ~/projects/skpar-pr1/work/c.dia/Diamond_bands/Lukas_Razinkovas-diamond_bands-da5bf19651a6/unpolarised/strains/hydrostatic_strain_0.020/bands.dat
-            loader_args: {unpack: True}
-            process:  
-                # indexes and ranges below refer to file, not array, 
-                # i.e. independent of 'unpack' loader argument
-                rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
-        options:
-            # Indexes below refer to the resulting 2D array after loading, 
-            # transposing, and application of the rm_rows/rm_columns above.
-            use_ref: [[1, 4]]                # Fortran-style index-bounds of bands to use
-            use_model: [[1, 4]]
-            align_ref: [4, max]              # Fortran-style index of band-index and k-point-index,
-            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
-            subweights: 
-                dflt: 1
-                values: # [[range], subweight] for E-k points in the given range of energy
-                # notabene: the range below is with respect to the alignment value
-                    - [[-0.1, 0.], 5.0]
-                bands: # [[range], subweight] of bands indexes; fortran-style
-                    - [[2, 3], 1.5]   # these affect Light and SO hole masses
-                    - [4 , 2.5]       # emphasize the top VB (affects Heavy hole masses)
-        weight: 1.0
-        eval: [rms, relerr]
 
 
 optimisation:
-    algo: PSO   # particle swarm optimisation
+    algo: PSO
     options:
-        npart: 5   # number of particles
-        ngen : 50  # number of generations
+        npart: 2
+        ngen : 1
     parameters:
         - R0  :  2.0 5.0
