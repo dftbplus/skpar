@@ -8,8 +8,8 @@ usermodules:
     - skpar.dftbutils.taskdict
 
 tasks:
-    - set: [[skf/skdefs.template.py]]
-    - run: ['./skgen-opt.sh', skf]
+    - set: [[skf/skdef.template.hsd]]
+    - run: ['skgen -o slateratom -t sktwocnt -I ../../../freeatoms/_build sktable -d C C', skf]
     - run: [dftbutils bands, C.dia/hydrostatic-0.00]
     - get_bs: [C.dia/hydrostatic-0.00/bs, C.dia.hs-0.00, {latticeinfo: {type: 'FCC', param: 3.56208625213847}}]
     - plot: [plot_bs, ../_plots/bands.hs-0.00, [bands, C.dia.hs-0.00], kvector, queries: [kticklabels]]
@@ -30,7 +30,7 @@ objectives:
             # This is why, we must always transpose bands from dp_bands
             # or from vasputils, upon loading, and this is here accomplished
             # by the loader_args: {unpack: True} -- cf. numpy.loadtxt() for details.
-            file: /home/figaro/venv-py37/work/C.dia/ref/unpolarised/strains/hydrostatic_strain_0.000/bands.dat
+            file: ~/venv-py37/work/C.dia/ref/unpolarised/strains/hydrostatic_strain_0.000/bands.dat
             loader_args: {unpack: True}
             process:
                 # indexes and ranges below refer to file, not array,
