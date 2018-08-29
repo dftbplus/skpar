@@ -174,6 +174,10 @@ class Evaluator(object):
         tasks = initialise_tasks(self.tasklist, self.taskdict, report=False)
         self.logger.info('Iteration %s', iteration)
         self.logger.info('===========================')
+        if self.parnames:
+            parstr = ['{:s}({:.4g})'.format(name,val) for
+                    name, val in zip(self.parnames, parametervalues)]
+            self.logger.info('Parameters: {:s}'.format(' '.join(parstr)))
 #        do we really need to pass workdir and to os.chdir???
 #        move the for loop to a function.
 #        execute_tasks(tasks, env, database, workdir, logger)
