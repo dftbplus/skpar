@@ -1,0 +1,65 @@
+* General
+
+  * Input files contain more than 100 characters per line
+    
+  * I would not allow for untagged module imports. We should rather allow for
+    module renaming on import or importing specific entries from the module:
+
+    usermodules:
+    - skpar.dftbutils.taskdict
+    - [skpar.dftbutils.taskdict, td]
+    - [skpar.dftbutils.taskdict, [get_evol, set_whatever]]
+
+  * Name skpar.dftbutils.taskdict is way too long! Why not just skpar.dftbutils?
+
+
+* examples/MoS2-repfit/skpar.in.yaml
+
+  * Without tagimport: how do you know where to get 'get_evol' from?
+
+
+* skpar/core/database.py
+
+  * Do you want to export update()?
+
+  * What do we need the Query object for?
+
+
+* skpar/core/evaluate.py
+
+  * kwargs is never used in Evaluator()
+
+  * utopia?
+
+  * Are all class attributes public?
+
+
+* skpar/core/test.py
+
+  * Why is this checked in?
+
+* skpar/core/usertasks.py
+
+  * ~/.local/share/skpar is a somewhat unfortunate choice. Also users should not
+    put their own module into the skpar source folder! They will hopefully
+    obtain skpar via pip and should not meddle with its folders themselves.
+
+  * I am not sure, whether trying to look up the file is a good idea at
+    all. (What about mypackage.subpackage.module.) Why not just simply try to
+    import the module?
+
+* bin/dftbutils
+
+  * Calling without argument fails
+
+
+* Testing
+
+  * resulst in 3 failing tests
+
+----- Additional notes from conversation:
+* Database -- use or remove
+* Execute task -- refactor to use popen and ensure continuous output
+* Testing executables -- refactor binaries to only import parsers; then call
+  the 'main' with options as though these have been parsed from the command
+  line.
