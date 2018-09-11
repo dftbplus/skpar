@@ -1,89 +1,110 @@
 """Test import of user modules and taskdict update by user-defined tasks"""
 import unittest
-import os
-import sys
-import shutil
 import yaml
-import skpar
 
-from skpar.core.usertasks import import_user_module, import_modules, update_taskdict
+from skpar.core.usertasks import import_taskdict, update_taskdict
+from skpar.core.taskdict import TASKDICT as coretd
+from skpar.dftbutils.taskdict import TASKDICT as dftbtd
 
 class UserTaskTest(unittest.TestCase):
     """Can we obtain taskdict from user modules"""
 
-    PKGPATH = os.path.dirname(os.path.dirname(skpar.__file__))
-
-    def check_core_import(self, name):
-        """check helper for core modules belonging to skpar"""
-        filename = os.path.join(self.PKGPATH, *name.split('.'))+'.py'
-        self.check_import(name, filename)
-
-    def check_import(self, name, filename, path=None):
-        """check helper"""
-        module = import_user_module(name, path)
-        print('Imported module: {}'.format(module))
-        print('Expected file  : {}'.format(filename))
-        if path is None:
-            path = os.getcwd()
-        self.assertEqual(module.__name__, name)
-        self.assertEqual(module.__file__, os.path.join(path, filename))
-
-    def test_userinp_yaml_singlemodule(self):
-        """Check import module from yaml; module on sys.path."""
-        userinp = """
-            modules: skpar.core.taskdict
-        """
-        sys.path.insert(4, '/Users/smarkov/Library/Python/3.6/lib/python/site-packages')
-        modulesinp = yaml.load(userinp)
-        name = modulesinp['modules']
-        self.check_core_import(name)
-
-    def test_userinp_yaml_list(self):
-        """Check import module from yaml; multiple modules on sys.path"""
-        userinp = """
-            modules:
-                - skpar.core.taskdict
-                - skpar.dftbutils.taskdict
-        """
-        modulesinp = yaml.load(userinp)
-        for name in modulesinp['modules']:
-            self.check_core_import(name)
-
-    def test_import(self):
-        """Can we import a user module?"""
-        name = 'usermodule'
-        filename = 'usermodule.py'
-        # from .
-        path = '.'
-        self.check_import(name, filename, None)
-        # from explicit path
-        path = './temp'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        shutil.copy(filename, path)
-        self.check_import(name, filename, path)
-        shutil.rmtree(path)
-
-    def test_import_modules(self):
-        """can we import several modules given a namelist?"""
-        namelist = [('usermodule', '.')]
-        modulefile = './usermodule.py'
-        modules = import_modules(namelist)
-        self.assertEqual(len(modules), 1)
-        mod = modules[0]
-        self.assertEqual(mod.__name__, namelist[0][0])
-        self.assertEqual(mod.__file__, modulefile)
+    def test_import_taskdict(self):
+        """Check we can import TASKDICT from a module"""
+        # skpar.core
+        modname, taskdict = import_taskdict('skpar.core.taskdict')
+        self.assertEqual(modname, 'skpar.core.taskdict')
+        self.assertDictEqual(coretd, taskdict)
+        # skpar.dftbutils
+        modname, taskdict = import_taskdict('skpar.dftbutils')
+        self.assertEqual(modname, 'skpar.dftbutils')
+        self.assertDictEqual(dftbtd, taskdict)
+        # fail module import (modulenotfounderror is py3.6+)
+        self.assertRaises((ImportError, ModuleNotFoundError),
+                          import_taskdict, 'skpar.missing')
+        # fail no TASKDICT (core.__init__.py is empty)
+        self.assertRaises(AttributeError, import_taskdict, 'skpar.core')
 
     def test_update_taskdict(self):
-        """can we update taskdict from usermodule?"""
+        """Check we can update taskdict from user module"""
+        yamlinput = """
+            usermodules:
+                - skpar.core.taskdict
+        """
+        userinp = yaml.load(yamlinput)['usermodules']
         taskdict = {}
-        userinp = ['usermodule']
         update_taskdict(taskdict, userinp)
-        func = sys.modules['usermodule'].userfunc
-        self.assertDictEqual(taskdict, {'greet': func})
-        tasklist = [taskdict['greet']]
-        greeting = tasklist[0]('Hello!')
-        self.assertEqual(greeting, 'SKPAR says Hello!')
+        tag = 'skpar.core.taskdict'
+        self.assertEqual(len(coretd), len(taskdict))
+        for key, val in coretd.items():
+            self.assertTrue('.'.join([tag, key]) in taskdict)
+            self.assertEqual(val, taskdict[tag+'.'+key])
+
+    def test_update_taskdict_multiple(self):
+        """Check we can update taskdict from multiple modules"""
+        yamlinput = """
+            usermodules:
+                - [skpar.core.taskdict, [set, get, run, plot]]
+                - [skpar.dftbutils, [get_bs]]
+        """
+        userinp = yaml.load(yamlinput)['usermodules']
+        taskdict = {}
+        update_taskdict(taskdict, userinp)
+        self.assertEqual(len(taskdict), 5)
+        for key in ['set', 'get', 'run', 'plot']:
+            self.assertTrue(key in taskdict)
+            self.assertEqual(coretd[key], taskdict[key])
+        for key in ['get_bs']:
+            self.assertTrue(key in taskdict)
+            self.assertEqual(dftbtd[key], taskdict[key])
+
+    def test_update_taskdict_string(self):
+        """Check we can update taskdict from user module"""
+        tag = 'skpar.core.taskdict'
+        taskdict = {}
+        update_taskdict(taskdict, tag)
+        self.assertEqual(len(coretd), len(taskdict))
+        for key, val in coretd.items():
+            self.assertTrue('.'.join([tag, key]) in taskdict)
+            self.assertEqual(val, taskdict[tag+'.'+key])
+
+    def test_update_taskdict_alias(self):
+        """Check we can update taskdict from user module with alias"""
+        yamlinput = """
+            usermodules:
+                - [skpar.dftbutils, dftb]
+        """
+        userinp = yaml.load(yamlinput)['usermodules']
+        taskdict = {}
+        update_taskdict(taskdict, userinp)
+        tag = 'dftb'
+        self.assertEqual(len(dftbtd), len(taskdict))
+        for key, val in dftbtd.items():
+            self.assertTrue('.'.join([tag, key]) in taskdict)
+            self.assertEqual(val, taskdict[tag+'.'+key])
+
+    def test_update_taskdict_explicit(self):
+        """Check we can update taskdict from user module with explicit tasks"""
+        yamlinput = """
+            usermodules:
+                - [skpar.core.taskdict, [set, get, run, plot]]
+        """
+        taskdict = {}
+        userinp = yaml.load(yamlinput)['usermodules']
+        update_taskdict(taskdict, userinp)
+        self.assertEqual(4, len(taskdict))
+        for key in ['set', 'get', 'run', 'plot']:
+            self.assertTrue(key in taskdict)
+            self.assertEqual(coretd[key], taskdict[key])
+        # check failing with missing task
+        yamlinput = """
+            usermodules:
+                - [skpar.core.taskdict, [set, mambo]]
+        """
+        taskdict = {}
+        userinp = yaml.load(yamlinput)['usermodules']
+        self.assertRaises(KeyError, update_taskdict, taskdict, userinp)
+
 
 if __name__ == '__main__':
     unittest.main()

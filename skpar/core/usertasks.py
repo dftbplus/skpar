@@ -1,130 +1,126 @@
 """Enable support for user-defined tasks, dynamically imported at runtime.
 
-User can deposit his python modules in one of the following directories:
 
-    :.:
-        where skpar is invoked
+Any function that is intended to perform a task must be present as a
+'task_name': 'callable_object' item in a dictionary called `TASKDICT` in the
+user module that is to be imported by skpar at run time.
 
-    :~/.local/share/skpar/:
-        must be created by user
+The desired TASKDICT should be ideally inside an installed package.
+Alternatively, modules must be found using the standard Python import mechanism,
+i.e. must be placed along sys.path.
 
-or any other directory of his choice, or even has his python package installed.
-
-Any function that is intended to perform a task must be listed in a dictionary
-called `TASKDICT`, as 'task_name': 'callable_object' within the user module
-that is to be imported by skpar at run time.
-NOTE that TASKDICT is all capital letters!
+.. note:: sys.path is not ever modified; consider using PYTHONPATH in the shell
 
 :task_name:
-    task name used in skpar input file
+    task name used in the ``tasks`` section the input file
 
 :callable object:
     the corresponding callable in the user module, that performs the task
 
-How to specify user modules in skpar input:
-    usermodules: [mod1, (mod2,path), ]
-
-If path is not specified, the above default directories and sys.path
-are checked for the named module (mod1 in the example above).
+.. note:: that TASKDICT is all capital letters!
 
 
-NOTE: sys.path is not ever modified; Therefore, if the user module
-      contains import statements, these can only refer to modules
-      that are already on sys.path, or else such imports will fail!
+There are three ways to import tasks from user modules, as per example below:
+
+.. code:: yaml
+
+    usermodules:
+        # 1
+        - mypackage.amodule
+        # 2
+        - [mypackage.amodule, alias]
+        # 3
+        - [mypackage.amodule, [taskname1, taskname2, ]]
+
+Each of the three cases mandates different ways to refer to the tasks later in
+the ``tasks`` section:
+
+    1. mypackage.amodule.taskname : ....
+
+    2. alias.taskname : ....
+
+    3. taskname1 : ....
+
+.. note:: The third case allows to overwrite core skpar tasks.
+
 """
-import os
-import importlib
+from importlib import import_module
 from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
-USER_MODULES_PATH = [os.path.expanduser('~/.local/share/skpar'),]
-
-def import_user_module(name, path=None):
-    """Import a user module with a given name
-
-    If path is not given, we try direct import, and if that fails, we
-    search sys.path, then '.', and the '~/.local/share/skpar' last.
-    If path is given, only there we search.
-    If all fails, let caller deal with it.
-    """
-    if path is None:
-        try:
-            # this will work for module on sys.path or in '.'
-            module = importlib.import_module(name)
-            LOGGER.info('Found module file %s', module.__file__)
-            return module
-        except ModuleNotFoundError:
-            LOGGER.info('Module %s not installed', name)
-            # prepare to search in common places
-            path = USER_MODULES_PATH
-    else:
-        assert isinstance(path, str)
-        path = [path]
-    # search along path
-    LOGGER.info('Looking for %s in %s', name, path)
-    for filedir in path:
-        if os.path.isdir(filedir):
-            filepath = os.path.join(filedir, name+'.py')
-            spec = importlib.util.spec_from_file_location(name, filepath)
-            module = importlib.util.module_from_spec(spec)
-            # this is the actual attempt to read the module file!
-            try:
-                spec.loader.exec_module(module)
-                LOGGER.info('Found module file %s', module.__file__)
-                break
-            except FileNotFoundError:
-                LOGGER.info('Module %s not found in %s', name, filedir)
-                # continue searching along path
-        else:
-            LOGGER.info('Omitting %s – non existent directory', filedir)
+def import_taskdict(modname):
+    """Import user module and return its name and TASKDICT"""
     try:
-        return module
-    except NameError:
-        LOGGER.info('Unable to find %s module. Cannot continue!', name)
-        raise RuntimeError
+        mod = import_module(modname)
+    except (ImportError, ModuleNotFoundError):
+        LOGGER.critical('Module %s not found. '
+                        'Check it is along PYTHONPATH', modname)
+        raise
+    try:
+        modtd = getattr(mod, 'TASKDICT')
+    except AttributeError:
+        LOGGER.critical('Module %s has no TASKDICT; '
+                        'Please, remove it from input, to continue.',
+                        mod.__name__)
+        raise
+    return mod.__name__, modtd
 
-def import_modules(namelist):
-    """Import user modules as specified in the name list.
-    """
-    modules = []
-    for item in namelist:
-        try:
-            name, path = item
-        except ValueError:
-            name, path = (item, None)
-        modules.append(import_user_module(name, path))
-    return modules
+def tag_dictkeys(tag, dictionary):
+    """Return the dictionary with tagged keys of the form 'tag.key'"""
+    tagged = {}
+    for key, val in dictionary.items():
+        tagged[tag+'.'+key] = val
+    return tagged
 
-def update_taskdict(taskdict, userinp, tag=False):
-    """Update taskdict with TASKDICT from modules described in user input.
+def update_taskdict(taskdict, userinp):
+    """Update taskdict with tasks from modules described in user input.
+
+    Provides support for the following userinp:
+
+    .. code:: yaml
+
+        usermodules:
+            #
+            # user must use modulename.taskname in tasks section
+            - modulename
+            #
+            # user must use modulealias.taskname in tasks section
+            - [modulename, modulealias]
+            #
+            # user must use taskname only in tasks section
+            - [modulename, [taskname1, taskname2, ...]]
 
     Args:
         taskdict(dict): dictionary to be updated
-        userinp(list): module names or tuples of (name,path)
-        tag(bool): include module name when forming keys to be updated/inserted.
+        userinp(list or str): list of modules or a string (single module)
 
     Returns:
         None
 
     Raises:
-        AttributeError if an imported module do not have a TASKDICT dictionary.
+        AttributeError if an explicit task is not found in user's module TASKDICT
     """
-    # Make sure we always have a list to work on, else userinp will be
-    # decomposed into characters
+    # Make sure we always have a list to work on, else userinp is a string,
+    # and will be decomposed into characters
     if isinstance(userinp, str):
         userinp = [userinp]
-    modules = import_modules(userinp)
-    for mod in modules:
-        try:
-            newdict = mod.TASKDICT
-        except AttributeError:
-            LOGGER.warning('Module %(name) has no TASKDICT; Ignored.',
-                           name=mod.__name__)
-        if not tag:
-            taskdict.update(newdict)
+    for item in userinp:
+        if not isinstance(item, list):
+            # treat as a module name; get all tasks
+            modname, modtd = import_taskdict(item)
+            taskdict.update(tag_dictkeys(modname, modtd))
         else:
-            name = mod.__name__
-            for key, val in newdict.items():
-                taggedkey = '.'.join([name, key])
-                taskdict[taggedkey] = val
+            modname, modtd = import_taskdict(item[0])
+            if isinstance(item[1], list):
+                # an explicit list of task names to import; do not tag
+                for key in item[1]:
+                    try:
+                        taskdict[key] = modtd[key]
+                    except KeyError:
+                        LOGGER.critical("Task name %s not in %s's TASKDICT",
+                                        key, modname)
+                        raise
+            else:
+                # alias the module name
+                taskdict.update(tag_dictkeys(item[1], modtd))
