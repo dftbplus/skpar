@@ -17,7 +17,10 @@ tasks:
     # currently blah will not  yield and plot will pick up skparplot
     - plot: [blah, 'polyfit2a', [[yval, poly3-2]]] 
     # directory must be either absolutised or relative to workroot/iteration
-    # e.g. - get: [get_model_data, /home/username/projects/skpar-pr1/skpar/test/reference_data/fakebands-2.dat, fakemodel, bands,
+    # e.g. 
+    # - get: [get_model_data, 
+    #         /home/username/projects/skpar-pr1/skpar/test/reference_data/fakebands-2.dat,
+    #         fakemodel, bands]
     - get: [bands, ../../../reference_data/fakebands-2.dat, fakemodel,
             {rm_columns: [1], unpack: True}]
     - plot: [skparplot, 'fakebandsplot', [[bands, fakemodel]]] 

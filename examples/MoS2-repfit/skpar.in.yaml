@@ -5,22 +5,29 @@ config:
     tagimports: false
 
 usermodules:
-    - skpar.dftbutils.taskdict
+    - [skpar.dftbutils, [get_evol]]
 
 tasks:
-    - set: [[skf/fitpoints.template.dat]]                     # update parameters -> skf/fitpoints.dat
-    - run: [skpar_splinerepfit, skf]                          # fit spline repulsive on given points and produce repulsive.dat
-    - run: ['skpar_addrepulsive -e Mo S', skf]                # add repulsive.dat to 1-2.skf and 2-1.skf
-    - run: ['dftbutils evol', MoS2.ml-evol]                   # energy-volume calculation in the subfolders 
-                                                              # of MoS2.ml-evol under _workdir/iteration/
+    - set: [[skf/fitpoints.template.dat]]
+    # fit spline repulsive on given points and produce repulsive.dat
+    - run: [skpar_splinerepfit, skf]
+    # add repulsive.dat to 1-2.skf and 2-1.skf
+    - run: ['skpar_addrepulsive -e Mo S', skf]
+    # energy-volume calculation in the subfolders 
+    # of MoS2.ml-evol under _workdir/iteration/
+    - run: ['dftbutils evol', MoS2.ml-evol]
 # if tagimports is true(default), then the task below must be:
 #   - skpar.dftbutils.taskdict.get_evol: [....]
-    - get_evol: [MoS2.ml-evol, MoS2.ml]                       # get total energy for all calculations in
-                                                              # MoS2.ml-evol subfolders and associate data
-                                                              # with MoS2.ml model
-    - plot: [skparplot, '../plots/etot.vs.strain.pdf',        # which routine to use for plotting, and filename
-             [totalenergy_volume, MoS2.ml],                   # what to plot -- objective, model name
-             'strain']                                        # what to use as abscissa (a query is constructed)
+    # get total energy for all calculations in
+    # MoS2.ml-evol subfolders and associate data
+    # with MoS2.ml model
+    - get_evol: [MoS2.ml-evol, MoS2.ml]
+    # which routine to use for plotting, and filename
+    # what to plot -- objective, model name
+    # what to use as abscissa (a query is constructed)
+    - plot: [skparplot, '../plots/etot.vs.strain.pdf',
+             [totalenergy_volume, MoS2.ml],
+             'strain']
 
 objectives:
     - totalenergy_volume:

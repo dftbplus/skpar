@@ -11,10 +11,11 @@ tasks:
     - run: [bs_dftb, Si, ]
     - run: [bs_dftb, SiO2, ]
     - get: [get_dftbp_data, Si, altSi]
-    # below we omit the destination, and results will update the source dictionary
+    # below we omit the destination, and results will update source dictionary
     - get: [get_dftbp_data, SiO2]   
     # 'G-K' or 'GK' both work for directions of effective masses
-    - get: [get_dftbp_meff, Si/bs, {directions: ['G-X', 'GK'], nb: 4, Erange: 0.002}]
+    - get: [get_dftbp_meff, Si/bs,
+            {directions: ['G-X', 'GK'], nb: 4, Erange: 0.002}]
 
 
 # Individual objectives
@@ -25,18 +26,26 @@ objectives:
         models: Si/bs
         ref: 
             file: ./reference_data/fakebands.dat # 
-            loader_args: {unpack: True} # transpose file data, so that band-index = array-row-index
-            process:       # eliminate unused columns, like k-pt enumeration
+            # transpose file data, so that band-index = array-row-index
+            loader_args: {unpack: True}
+            process:
+                # eliminate unused columns, like k-pt enumeration
                 # indexes and ranges below refer to file, not array, 
                 # i.e. independent of 'unpack' loader argument
-                rm_columns: 1                # filter k-point enumeration, and bands, potentially
-                # rm_rows   : [[18,36], [1,4]] # filter k-points if needed for some reason
-                # scale     : 1                # for unit conversion, e.g. Hartree to eV, if needed
+                # filter k-point enumeration, and bands, potentially
+                rm_columns: 1
+                # filter k-points if needed for some reason
+                # rm_rows   : [[18,36], [1,4]]
+                # for unit conversion, e.g. Hartree to eV, if needed
+                # scale     : 1                
         options:
-            use_ref: [[1, 4]]                # fortran-style index-bounds of bands to use
+            # fortran-style index-bounds of bands to use
+            use_ref: [[1, 4]]
             use_model: [[1, 4]]
-            align_ref: [4, max]              # fortran-style index of band and k-point,
-            align_model: [4, max]            # or a function (e.g. min, max) instead of k-point
+            # fortran-style index of band and k-point,
+            align_ref: [4, max]
+            # or a function (e.g. min, max) instead of k-point
+            align_model: [4, max]
             subweights: 
                 # NOTABENE:
                 # --------------------------------------------------
@@ -50,8 +59,9 @@ objectives:
                 # the lowest lying, and e.g. band 4 is the third above it.
                 # --------------------------------------------------
                 dflt: 1
-                values: # [[range], subweight] for E-k points in the given range of energy
-                # notabene: the range below is with respect to the alignment value
+                # [[range], subweight] for E-k points in the given energy range
+                values:
+                # notabene: range below is with respect to the alignment value
                     - [[-0.3, 0.], 3.0]
                 bands: # [[range], subweight] of bands indexes; fortran-style
                     - [[2, 3], 1.5]   # two valence bands below the top VB
@@ -66,18 +76,27 @@ objectives:
             file: ./reference_data/fakebands.dat # 
             loader_args: {unpack: True}
             process:       
-                rm_columns: 1              # filter k-point enumeration, and bands, potentially
+            # filter k-point enumeration, and bands, potentially
+                rm_columns: 1              
         options:
-            use_ref: [5, 6]                # fortran-style index enumeration: NOTABENE: not a range here!
-            use_model: [5, 6]              # using [[5,6]] would be a range with the same effect
-            align_ref: [1, 9]              # fortran-style index of band and k-point, (happens to be the minimum
-            align_model: [1, min]          # or a function (e.g. min, max) instead of k-point
+            # fortran-style index enumeration: NOTABENE: not a range here!
+            use_ref: [5, 6]
+            # using [[5,6]] would be a range with the same effect
+            use_model: [5, 6]
+            # fortran-style index of band and k-point, (happens to be minimum)
+            align_ref: [1, 9]
+            # or a function (e.g. min, max) instead of k-point
+            align_model: [1, min]
             subweights: 
-                values:                    # [[range], subweight] for E-k points in the given range of energy
-                    - [[0.0, 0.2], 3.0]    # bottom of CB and 200meV above
-                bands:                     # [[range], subweight] of bands indexes; fortran-style
-                    - [1, 2.0]             # the LUMO only increased in weight; note the indexing
-                                           # reflects the 'use_' clauses above
+                # [[range], subweight] for E-k points in the given energy range
+                values:
+                  # bottom of CB and 200meV above
+                    - [[0.0, 0.2], 3.0]
+                # [[range], subweight] of bands indexes; fortran-style
+                bands:
+                  # the LUMO only increased in weight; note the indexing
+                  # reflects the 'use_' clauses above
+                    - [1, 2.0]
         weight: 2.0
 
     - band_gap:
@@ -92,14 +111,17 @@ objectives:
         ref: 
             file: ./reference_data/meff-Si.dat
             loader_args: 
-                dtype:                      # NOTABENE: yaml cannot read in tuples, so we must
-                                            #           use the dictionary formulation of dtype
+                dtype:
+                  # NOTABENE: yaml cannot read in tuples, so we must
+                  #           use the dictionary formulation of dtype
                     names: ['keys', 'values']
                     formats: ['S15', 'float']
         options:
             subweights: 
-                dflt: 0.                    # changing the default (from 1.) to 0. allows us to consider 
-                me_GX_0: 2.                 # only select entries
+                # changing the default (from 1.) to 0. allows us to consider
+                dflt: 0.
+                # only select entries
+                me_GX_0: 2.
                 mh_GX_0: 1.
         weight: 1.5
 
@@ -118,7 +140,8 @@ objectives:
             file: reference_data/volen-Si.dat
             loader_args: {unpack: True}
             process:       
-                rm_columns: 1               # remove the column with volume data
+              # remove the column with volume data
+                rm_columns: 1
         options:
             subweights: [1., 1., 1., 2., 3., 5., 3., 2., 1., 1., 1.]
             ## alternative specification for subweights:
