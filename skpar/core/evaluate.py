@@ -159,8 +159,8 @@ class Evaluator(object):
         #     get_modeldb(modelname) -- return a ref to modeldb
         # The point is that for every individual evaluation, we must
         # have individual model DB, so evaluations can be done in parallel.
-        #database = Database()
-        database = {}
+        database = Database()
+        # database = {}
         # Wrap the environment in a single dict
         env = {'workroot': workdir,
                'logger': self.logger,
