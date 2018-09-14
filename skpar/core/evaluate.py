@@ -20,10 +20,10 @@ DEFAULT_CONFIG = {
 def abserr(ref, model):
     """Return the per-element difference model and reference.
     """
-    rr = np.asarray(ref)
-    mm = np.asarray(model)
-    assert rr.shape == mm.shape, (rr.shape, mm.shape)
-    return mm - ref
+    aref = np.asarray(ref)
+    amod = np.asarray(model)
+    assert aref.shape == amod.shape, (aref.shape, amod.shape)
+    return amod - aref
 
 def relerr(ref, model):
     """Return the per-element relative difference between model and reference.
@@ -37,19 +37,19 @@ def relerr(ref, model):
         * take the model as a denominator, thus yielding 1, where
           `ref` vanishes but `model` is non zero
     """
-    rr = np.asarray(ref)
-    mm = np.asarray(model)
+    aref = np.asarray(ref)
+    amod = np.asarray(model)
     # get deviations
-    err = abserr(rr, mm)
+    err = abserr(aref, amod)
     # fix the denominator
-    denom = rr.copy()
-    denom[rr == 0.] = mm[rr == 0.]
+    denom = aref.copy()
+    denom[aref == 0.] = amod[aref == 0.]
     # assert 0 absolute error even for 0 denominator
-    rele = np.zeros(err.shape)
-    rele[err != 0] = err[err != 0] / denom[err != 0]
-    return rele
+    rel_err = np.zeros(err.shape)
+    rel_err[err != 0] = err[err != 0] / denom[err != 0]
+    return rel_err
 
-def cost_RMS(ref, model, weights, errf=abserr):
+def cost_rms(ref, model, weights, errf=abserr):
     """Return the weighted-RMS deviation"""
     assert np.asarray(ref).shape == np.asarray(model).shape
     assert np.asarray(ref).shape == np.asarray(weights).shape
@@ -58,8 +58,7 @@ def cost_RMS(ref, model, weights, errf=abserr):
     return rms
 
 def eval_objectives(objectives, database):
-    """
-    """
+    """Evaluate fitness/cost"""
     fitness = np.array([objv(database) for objv in objectives])
     return fitness
 
@@ -70,14 +69,14 @@ def eval_objectives(objectives, database):
 # the input parser coerces any capitalisation in advance
 
 # cost functions
-COSTF = {"rms": cost_RMS, }
+COSTF = {"rms": cost_rms, }
 
 # error types
 ERRF = {"abs": abserr, "rel": relerr, "abserr": abserr, "relerr": relerr,}
 # ----------------------------------------------------------------------
 
 
-class Evaluator(object):
+class Evaluator():
     """**Evaluator**
 
     The evaluator is the only thing visible to the optimiser.
@@ -96,36 +95,30 @@ class Evaluator(object):
        good to also return the max error, to be used as a stopping criterion.
 
     """
-    def __init__(self, objectives, tasklist, taskdict, parameternames, config=None,
-                 costf=COSTF[DEFAULT_GLOBAL_COST_FUNC], utopia=None,
-                 verbose=False, **kwargs):
+    def __init__(self, objectives, tasklist, taskdict, parameternames,
+                 config=None, costf=COSTF[DEFAULT_GLOBAL_COST_FUNC],
+                 utopia=None, verbose=False):
         self.objectives = objectives
         self.weights = normalise([oo.weight for oo in objectives])
         self.tasklist = tasklist # list of name,options pairs
         self.taskdict = taskdict # name:function mapping
         self.parnames = parameternames
         self.config = config if config is not None else DEFAULT_CONFIG
-        workroot = self.config['workroot']
-        if workroot is not None:
-            workroot = os.path.abspath(workroot)
-            if not os.path.exists(workroot):
-                os.makedirs(workroot)
         self.costf = costf
         if utopia is None:
             self.utopia = np.zeros(len(objectives))
         else:
             assert len(utopia) == len(objectives), (len(utopia), len(objectives))
             self.utopia = utopia
-        self.verbose = verbose
         # configure logger
         self.logger = LOGGER
-        if self.verbose:
-            self.msg = self.logger.info
+        if verbose:
+            self._msg = self.logger.info
         else:
-            self.msg = self.logger.debug
+            self._msg = self.logger.debug
         # report objectives; these do not change over time
         for item in objectives:
-            self.msg(item)
+            self._msg(item)
 
     def evaluate(self, parametervalues, iteration=None):
         """Evaluate the global fitness of a given point in parameter space.
@@ -160,7 +153,7 @@ class Evaluator(object):
         # The point is that for every individual evaluation, we must
         # have individual model DB, so evaluations can be done in parallel.
         database = Database()
-        # database = {}
+        # database = {} currently works too
         # Wrap the environment in a single dict
         env = {'workroot': workdir,
                'logger': self.logger,
@@ -175,8 +168,8 @@ class Evaluator(object):
         self.logger.info('Iteration %s', iteration)
         self.logger.info('===========================')
         if self.parnames:
-            parstr = ['{:s}({:.4g})'.format(name,val) for
-                    name, val in zip(self.parnames, parametervalues)]
+            parstr = ['{:s}({:.4g})'.format(name, val) for
+                      name, val in zip(self.parnames, parametervalues)]
             self.logger.info('Parameters: {:s}'.format(' '.join(parstr)))
 #        do we really need to pass workdir and to os.chdir???
 #        move the for loop to a function.
@@ -191,10 +184,9 @@ class Evaluator(object):
 
         # Evaluate individual fitness for each objective
         objvfitness = eval_objectives(self.objectives, database)
-        ref = self.utopia
         # Evaluate global fitness
-        cost = self.costf(ref, objvfitness, self.weights)
-        self.msg('{:<15s}: {}\n'.format('Overall cost', cost))
+        cost = self.costf(self.utopia, objvfitness, self.weights)
+        self._msg('{:<15s}: {}\n'.format('Overall cost', cost))
 
         # Remove iteration-specific working dir if not needed:
         if (not self.config['keepworkdirs']) and (workroot is not None):
@@ -207,23 +199,24 @@ class Evaluator(object):
         return self.evaluate(parametervalues, iteration)
 
     def __repr__(self):
-        ss = []
-        ss.append('Evaluator:')
-        ss.append('\n-- Tasks:')
-        ss.append('--------------------')
+        srepr = []
+        srepr.append('Evaluator:')
+        srepr.append('\n-- Tasks:')
+        srepr.append('--------------------')
 #        for item in self.tasks:
-#            ss.append(item.__repr__())
-        ss.append('\n-- Objectives:')
-        ss.append('--------------------')
+#            srepr.append(item.__repr__())
+        srepr.append('\n-- Objectives:')
+        srepr.append('--------------------')
         for item in self.objectives:
-            ss.append(item.__repr__())
-        ss.append('\n-- Cost Func.:')
-        ss.append('--------------------')
-        ss.append(self.costf.__name__)
-        return '\n'.join(ss)
+            srepr.append(item.__repr__())
+        srepr.append('\n-- Cost Func.:')
+        srepr.append('--------------------')
+        srepr.append(self.costf.__name__)
+        return '\n'.join(srepr)
 
 
 def get_workdir(iteration, workroot):
+    """Find what is the root of the work-tree at a given iteration"""
     if workroot is None:
         workdir = None
     else:
@@ -239,6 +232,7 @@ def get_workdir(iteration, workroot):
 
 
 def create_workdir(workdir, templatedir):
+    """Create a new and clean work directory tree from template"""
     if workdir is None:
         return
     if os.path.exists(workdir):
@@ -250,5 +244,6 @@ def create_workdir(workdir, templatedir):
 
 
 def destroy_workdir(workdir):
+    """Remove the entire work directory tree"""
     if workdir is not None:
         shutil.rmtree(workdir)

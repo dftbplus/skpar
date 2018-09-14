@@ -36,7 +36,6 @@ class EvaluatorTest(unittest.TestCase):
         parnames = ['p0']
         evaluator = ev.Evaluator(objvs, tasklist, taskdict, parnames)
         nptest.assert_array_equal(evaluator.weights,np.array([.5, .5]))
-        self.assertFalse(evaluator.verbose)
         params, iteration = [2.], 1
         fitness = evaluator(params, iteration)
         self.assertEqual(fitness, 2)
@@ -51,7 +50,6 @@ class EvaluatorTest(unittest.TestCase):
         evaluator = ev.Evaluator(objvs, tasklist, taskdict, parnames,
                                  utopia=np.ones(2))
         nptest.assert_array_equal(evaluator.weights,np.array([.5, .5]))
-        self.assertFalse(evaluator.verbose)
         par, ii = [2.], 1
         fitness = evaluator(par, ii)
         self.assertEqual(fitness, 1)

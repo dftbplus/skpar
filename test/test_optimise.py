@@ -7,7 +7,7 @@ import sys
 from os.path import abspath, normpath, expanduser
 from skpar.core.input import parse_input
 from skpar.core.evaluate import Evaluator, eval_objectives,\
-                                cost_RMS, create_workdir
+                                cost_rms, create_workdir
 from skpar.core.optimise import Optimiser, get_optargs
 from skpar.core.database import Database, Query
 from skpar.core.tasks import initialise_tasks
