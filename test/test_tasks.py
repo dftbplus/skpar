@@ -41,8 +41,10 @@ class TaskParsingTest(unittest.TestCase):
     def test_parsetask(self):
         """Can we parse task declarations successfully"""
         taskdict = {}
-        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
-        update_taskdict(taskdict, 'skpar.dftbutils.taskdict', tag=False)
+        update_taskdict(taskdict,
+                        [['skpar.core.taskdict', ['set', 'run']]])
+        update_taskdict(taskdict,
+                        [['skpar.dftbutils', ['get_meff','get_data']]])
         userinp = yaml.load(self.yamldata)['tasks']
         tasklist = []
         tasklist = get_tasklist(userinp)
@@ -76,7 +78,8 @@ class CoreTaskExecutionTest(unittest.TestCase):
                 - get: [value, tmp/value.dat, model]
             """
         taskdict = {}
-        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+        update_taskdict(taskdict,
+                        [['skpar.core.taskdict', ['get', 'sub', 'run']]])
         yamldata = yaml.load(yamldata)
         # print('yaml data')
         # pprint(yamldata)
@@ -121,7 +124,8 @@ class CoreTaskExecutionTest(unittest.TestCase):
                 - get: [value, tmp/values.dat, model]
             """
         taskdict = {}
-        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+        update_taskdict(taskdict,
+                        [['skpar.core.taskdict', ['get', 'sub', 'run']]])
         yamldata = yaml.load(yamldata)['tasks']
         tasklist = []
         tasklist = get_tasklist(yamldata)
@@ -167,8 +171,10 @@ class GetTaskDFTBpTest(unittest.TestCase):
     def test_execution_get_dftbp(self):
         """Can we execute the declared get_dftbp_* tasks?"""
         taskdict = {}
-        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
-        update_taskdict(taskdict, 'skpar.dftbutils.taskdict', tag=False)
+        update_taskdict(taskdict,
+                        [['skpar.core.taskdict', ['get', 'sub', 'run']]])
+        update_taskdict(taskdict,
+                        [['skpar.dftbutils', ['get_bs', 'get_meff', 'get_Ek']]])
         userinp = yaml.load(self.yamlin)
         tasklist = get_tasklist(userinp['tasks'])
         tasks = initialise_tasks(tasklist, taskdict)

@@ -4,6 +4,7 @@ Routines to handle the input file of skpar
 import os
 import json
 import yaml
+import skpar.core.taskdict as coretd
 from skpar.core.utils      import get_logger
 from skpar.core.objectives import set_objectives
 from skpar.core.tasks      import get_tasklist, check_taskdict
@@ -46,13 +47,17 @@ def parse_input(filename, verbose=True):
     # TASKS
     taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
-    update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+    print (coretd.__name__)
+    print (coretd.TASKDICT)
+    print (list(coretd.TASKDICT.keys()))
+    # Note the statement below emulates a yaml-like input which delivers
+    # a list of [module, [list of functions]] items.
+    update_taskdict(taskdict,
+                    [[coretd.__name__, list(coretd.TASKDICT.keys())]])
     # Import user tasks after the core ones, to allow potential
     # replacement of `taskdict` entries with user-defined functions
-    # if `tagimports` is false.
-    tag = config['tagimports']
     if usermodulesinp:
-        update_taskdict(taskdict, usermodulesinp, tag=tag)
+        update_taskdict(taskdict, usermodulesinp)
     #
     taskinp = userinp.get('tasks', None)
     tasklist = get_tasklist(taskinp)
@@ -82,7 +87,6 @@ def get_config(userinp, report=True):
     config['templatedir'] = templatedir
     config['keepworkdirs'] = userinp.get('keepworkdirs', False)
     # related to interpretation of input file
-    config['tagimports'] = userinp.get('tagimports', True)
     if report:
         LOGGER.info('The following configuration was understood:')
         for key, val in config.items():

@@ -50,7 +50,6 @@ class ParseConfigTest(unittest.TestCase):
             'templatedir': os.path.abspath('./test_optimise'),
             'workroot': os.path.abspath('./_workdir/test_optimise'),
             'keepworkdirs': True,
-            'tagimports': False,
         }
         self.assertDictEqual(refdict, config)
         return config
@@ -58,7 +57,8 @@ class ParseConfigTest(unittest.TestCase):
     def test_parse_tasks_core(self):
         """Can we read tasks well and initialise correctly?"""
         taskdict = {}
-        update_taskdict(taskdict, 'skpar.core.taskdict', tag=False)
+        update_taskdict(taskdict,
+                        [['skpar.core.taskdict', ['sub', 'get', 'run']]])
         skparin = 'example-tasks.yaml'
         userinp = get_input(skparin)
         tasklist = get_tasklist(userinp['tasks'])

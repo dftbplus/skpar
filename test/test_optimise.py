@@ -6,7 +6,8 @@ import os
 import sys
 from os.path import abspath, normpath, expanduser
 from skpar.core.input import parse_input
-from skpar.core.evaluate import Evaluator, eval_objectives, cost_RMS, create_workdir
+from skpar.core.evaluate import Evaluator, eval_objectives,\
+                                cost_RMS, create_workdir
 from skpar.core.optimise import Optimiser, get_optargs
 from skpar.core.database import Database, Query
 from skpar.core.tasks import initialise_tasks
@@ -22,9 +23,13 @@ class OptimiseTest(unittest.TestCase):
     Verify basic functionality of optimiser
     """
     def test_parse_input(self):
-        """Can we parse input, create an optimiser instance, and run the tasks?"""
+        """Can we parse input, create an optimiser instance, and run the tasks?
+        """
         filename = "skpar_in_optimise.yaml"
-        taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
+        taskdict, tasklist, objectives, optimisation, config =\
+            parse_input(filename)
+        print (taskdict)
+        print (tasklist)
         workroot = config.get('workroot', None)
         templatedir = config.get('templatedir', None)
         create_workdir(workroot, templatedir)
@@ -36,9 +41,9 @@ class OptimiseTest(unittest.TestCase):
         params = np.array([10.0, -2.5, 0.5, 0.05])
         for pini, par in zip(params, optimiser.parameters):
             par.value = pini
-        logger.debug ("\n### -------------------------------------------------- ###")
-        logger.debug ("### ----------- Parameters --------------------------- ###")
-        logger.debug ("### -------------------------------------------------- ###")
+        logger.debug ("### ---------------------------------------- ###")
+        logger.debug ("### ----------- Parameters ----------------- ###")
+        logger.debug ("### ---------------------------------------- ###")
         for pp in optimiser.parameters:
             logger.debug (pp)
 
@@ -71,7 +76,8 @@ class OptimiseTest(unittest.TestCase):
         self.assertEqual(optimiser.evaluate.tasks[1].name, 'run')
         self.assertEqual(optimiser.evaluate.tasks[1].func,
                          core_taskdict.execute)
-        self.assertEqual(optimiser.evaluate.tasks[1].args, ['python model_poly3.py'])
+        self.assertEqual(optimiser.evaluate.tasks[1].args,
+                         ['python model_poly3.py'])
         optimiser.evaluate.tasks[1](env, database)
 
         # check task 2
@@ -90,9 +96,11 @@ class OptimiseTest(unittest.TestCase):
         logger.debug(database.get('poly3').items())
 
     def test_optimisation_run(self):
-        """Can we parse input, create an optimiser instance, and run the tasks?"""
+        """Can we parse input, create an optimiser instance, and run the tasks?
+        """
         filename   = "skpar_in_optimise.yaml"
-        taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
+        taskdict, tasklist, objectives, optimisation, config =\
+                parse_input(filename)
         algo, options, parameters = optimisation
         parnames = [p.name for p in parameters]
         evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
@@ -103,8 +111,10 @@ class OptimiseTest(unittest.TestCase):
         # hence below we have to use the .func to make the correct comparison
         self.assertTrue(optimiser.optimise.toolbox.evaluate.func is evaluate)
         optimiser()
-        logger.debug("GBest iteration   : {}".format(optimiser.optimise.swarm.gbest_iteration))
-        logger.debug("GBest fitness     : {}".format(optimiser.optimise.swarm.gbest.fitness.values))
+        logger.debug("GBest iteration   : {}".\
+                     format(optimiser.optimise.swarm.gbest_iteration))
+        logger.debug("GBest fitness     : {}".\
+                     format(optimiser.optimise.swarm.gbest.fitness.values))
         gbestpars = optimiser.optimise.swarm.gbest.renormalized
         logger.debug("GBest parameters  : {}".format(gbestpars))
         ideal = np.array([10.0, -2.5, 0.5, 0.05])
@@ -116,11 +126,13 @@ class EvaluateSiTest(unittest.TestCase):
     Verify we can evaluate correctly the fitness for Si from old calculations
     """
     def test_parse_input(self):
-        """Can we parse input, create an evaluator instance, and run the tasks?"""
+        """Can we parse input, create an evaluator instance, and run the tasks?
+        """
         filename   = "skpar_in_Si.yaml"
         testfolder = "test_eval_Si"
         # parfile    = os.path.join(testfolder, 'current.par')
-        taskdict, tasklist, objectives, optimisation, config = parse_input(filename)
+        taskdict, tasklist, objectives, optimisation, config =\
+                parse_input(filename)
         workroot = config.get('workroot', None)
         templatedir = config.get('templatedir', None)
         create_workdir(workroot, templatedir)

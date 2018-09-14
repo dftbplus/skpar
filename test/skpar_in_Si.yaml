@@ -5,8 +5,7 @@ config:
     keepworkdirs: true
 
 usermodules:
-    - skpar.dftbutils
-    
+  - [skpar.dftbutils, [get_bs, get_Ek, get_meff] ]    
 # What to do when evaluating a point in parameter space
 tasks:
     #- set: [parfile, workdir, optional_arguments]
