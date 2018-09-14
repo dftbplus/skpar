@@ -1,65 +1,81 @@
 * General
 
-  * Input files contain more than 100 characters per line
-    
-  * I would not allow for untagged module imports. We should rather allow for
+√  * Input files contain more than 100 characters per line: shrunk
+
+√  * I would not allow for untagged module imports. We should rather allow for
     module renaming on import or importing specific entries from the module:
 
     usermodules:
     - skpar.dftbutils.taskdict
     - [skpar.dftbutils.taskdict, td]
     - [skpar.dftbutils.taskdict, [get_evol, set_whatever]]
+    
+    Implemented
 
-  * Name skpar.dftbutils.taskdict is way too long! Why not just skpar.dftbutils?
+√  * Name skpar.dftbutils.taskdict is way too long! Why not just skpar.dftbutils?
+     Implemented
 
 
-* examples/MoS2-repfit/skpar.in.yaml
+√ * examples/MoS2-repfit/skpar.in.yaml
 
-  * Without tagimport: how do you know where to get 'get_evol' from?
+√   * Without tagimport: how do you know where to get 'get_evol' from?: Gone
 
 
 * skpar/core/database.py
 
-  * Do you want to export update()?
+√  * Do you want to export update()?: not used on own currently
 
-  * What do we need the Query object for?
+√  * What do we need the Query object for?: used in objectives and .core.plot
 
 
 * skpar/core/evaluate.py
 
-  * kwargs is never used in Evaluator()
+√  * kwargs is never used in Evaluator(): removed
 
-  * utopia?
+√  * utopia?: desirable point, which may or may not be within achievable space
 
-  * Are all class attributes public?
+√  * Are all class attributes public? Probably don't need to be,
+    and will be refactored when style and test-coverage for the module are
+    worked on; Currently the code is not very neat, and linter complains about
+    too many attributes (Evaluate) and call parameters (__init__).
 
 
 * skpar/core/test.py
 
-  * Why is this checked in?
+√  * Why is this checked in?: removed
 
 * skpar/core/usertasks.py
 
-  * ~/.local/share/skpar is a somewhat unfortunate choice. Also users should not
+√  * ~/.local/share/skpar is a somewhat unfortunate choice. Also users should not
     put their own module into the skpar source folder! They will hopefully
     obtain skpar via pip and should not meddle with its folders themselves.
+    Not used any more
 
-  * I am not sure, whether trying to look up the file is a good idea at
+√  * I am not sure, whether trying to look up the file is a good idea at
     all. (What about mypackage.subpackage.module.) Why not just simply try to
     import the module?
+    Not done any more
 
 * bin/dftbutils
 
-  * Calling without argument fails
+√ * Calling without argument fails: fixed
 
 
 * Testing
 
-  * resulst in 3 failing tests
+√  * resulst in 3 failing tests: not if run within the tests directory
+
 
 ----- Additional notes from conversation:
-* Database -- use or remove
-* Execute task -- refactor to use popen and ensure continuous output
+
+√ * Database -- use or remove: use
+
+* Execute task 
+  - re-think the useage of kwargs[-1]; alternative is explicit: options={}
+  - refactor to use popen and ensure continuous output
+
 * Testing executables -- refactor binaries to only import parsers; then call
   the 'main' with options as though these have been parsed from the command
   line.
+  
+* remove function definitions inside functions
