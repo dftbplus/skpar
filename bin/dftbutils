@@ -20,6 +20,7 @@ def main():
             help="Do not run; Only report the setup, i.e. tasklist."
             )
     subparsers = parser.add_subparsers(title="Available sub-commands:",
+                                       dest='command',
                                        help="")
 
     # Band-structure calculation
@@ -33,9 +34,13 @@ def main():
     set_evol_parser(parser_evol)
 
     args = parser.parse_args()
+    # this is sub-optimal as we call parse_args twice...
+    if args.command:
+        args.func(args)
+    else:
+        args = parser.parse_args(['-h'])
 
     # func is set in the appropriate subparser
-    args.func(args)
 
 if __name__ == "__main__":
     main()
