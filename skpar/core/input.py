@@ -47,9 +47,6 @@ def parse_input(filename, verbose=True):
     # TASKS
     taskdict = {}
     usermodulesinp = userinp.get('usermodules', None)
-    print (coretd.__name__)
-    print (coretd.TASKDICT)
-    print (list(coretd.TASKDICT.keys()))
     # Note the statement below emulates a yaml-like input which delivers
     # a list of [module, [list of functions]] items.
     update_taskdict(taskdict,
