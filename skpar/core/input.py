@@ -17,17 +17,21 @@ LOGGER = get_logger(__name__)
 def get_input(filename):
     """Read input; Exception for non-existent file.
     """
+    _, intype = os.path.splitext('filename')
     with open(filename, 'r') as infile:
-        try:
-            spec = yaml.load(infile)
-        except yaml.YAMLError:
-            LOGGER.warning('Input not a valid YAML')
+        if intype == 'json':
             try:
                 spec = json.load(infile)
             except (ValueError, json.JSONDecodeError):
             # json.JSONDecodeError is available only python3.5 onwards
-                LOGGER.critical('Cannot handle %s as JSON or YAML file.',
-                                filename)
+                LOGGER.critical('Input not a valid JSON')
+                raise
+        else:
+        #if intype == 'yaml':
+            try:
+                spec = yaml.load(infile)
+            except yaml.YAMLError:
+                LOGGER.warning('Input not a valid YAML')
                 raise
     return spec
 
