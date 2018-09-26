@@ -48,7 +48,7 @@
 
 √  * ~/.local/share/skpar is a somewhat unfortunate choice. Also users should not
     put their own module into the skpar source folder! They will hopefully
-    obtain skpar via pip and should not meddle with its folders themselves.
+    obtain skpar via pip and should not meddle with its folders themselves.:
     Not used any more
 
 √  * I am not sure, whether trying to look up the file is a good idea at
@@ -71,11 +71,13 @@
 √ * Database -- use or remove: use
 
 * Execute task 
-  - re-think the useage of kwargs[-1]; alternative is explicit: options={}
-  - refactor to use popen and ensure continuous output
+√ - re-think the useage of kwargs[-1]; alternative is explicit: options={}: keep
+    as is for the moment
+√ - refactor to use popen and ensure continuous output: using subprocess.call()
+    is sufficient
 
 * Testing executables -- refactor binaries to only import parsers; then call
   the 'main' with options as though these have been parsed from the command
-  line.
+  line.: work on this on a separate branch (test-coverage)
   
-* remove function definitions inside functions
+√ remove function definitions inside functions
