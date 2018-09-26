@@ -15,70 +15,91 @@ def write_output(out, outfile):
             filep.write(out)
             LOGGER.debug("Output is in {:s}.\n".format(outfile))
 
-def call(cmd, outfile='out.log', **kwargs):
-    """Execute `cmd` via `subproces.check_output`.
-
-    `kwargs` are those of subprocess.check_output.
-    `stderr` is forwarded to outfile unless in `kwargs`
-
-    Exceptions shall be handled by caller.
+def parse_cmd(cmd):
+    """Parse shell command for globbing and environment variables.
     """
     if not isinstance(cmd, list):
         cmd = shlex.split(cmd)
-        parsed_cmd = [cmd[0],]
-        for word in cmd[1:]:
-            if word[0] == '$':
-                var = word[1:].strip('{').strip('}')
-                varval = os.environ.get(var, word)
-                parsed_cmd.append(varval)
+    parsed_cmd = [cmd[0],]
+    for word in cmd[1:]:
+        if word[0] == '$':
+            var = word[1:].strip('{').strip('}')
+            varval = os.environ.get(var, word)
+            parsed_cmd.append(varval)
+        else:
+            if '*' in word:
+                items = glob.glob(word)
+                for item in items:
+                    parsed_cmd.append(item)
             else:
-                if '*' in word:
-                    items = glob.glob(word)
-                    for item in items:
-                        parsed_cmd.append(item)
-                else:
-                    parsed_cmd.append(word)
-        cmd = parsed_cmd
-    out = subprocess.check_output(cmd, universal_newlines=True,
-                                  stderr=subprocess.STDOUT, **kwargs)
-    outfile = kwargs.get('stdout', 'out.log')
-    write_output(out, outfile)
-    return out
+                parsed_cmd.append(word)
+    return parsed_cmd
 
-def execute(cmd, workdir, outfile='out.log', purge_workdir=False, **kwargs):
-    """Execute external command in workdir; direct output/error to outfile"""
+def execute(cmd, workdir='.', outfile='run.log', purge_workdir=False, **kwargs):
+    """Execute external command in workdir, streaming output/error to outfile.
+
+    Args:
+        cmd (str): command; executed in `workir`; if it contains `$` or 
+                   `*`-globbing, these are shell-expanded
+        workdir (path-like): execution directory relative to workroot
+        outfile (str): output file for the stdout/stderr stream; continuously
+                       updated during execution
+        purge_workdir (bool): if true, any existing working directory is purged
+        kwargs (dict): passed directly to the underlying `subprocess.call()`
+
+    Returns:
+        None
+
+    Raises:
+        OSError: if `cmd` cannot be executed
+        RuntimeError: if `cmd` returncode is nonzero
+        SubprocessError: other possible circumstances
+    """
+    # prepare workdir
     origdir = os.getcwd()
+    workroot = implargs.get('workroot', '.')
+    _workdir = os.path.abspath(os.path.join(workroot, workdir))
     try:
-        os.makedirs(workdir)
+        os.makedirs(_workdir)
     except OSError:
         # directory exists
         if purge_workdir:
             # that's a bit brutal, but saves to worry of links and subdirs
-            shutil.rmtree(workdir)
-            os.makedirs(workdir)
-    os.chdir(workdir)
+            shutil.rmtree(_workdir)
+            os.makedirs(_workdir)
+    os.chdir(_workdir)
+    # prepare out/err handling
+    filename = kwargs.pop('stdout', outfile)
+    if filename:
+        kwargs['stdout'] = open(filename, 'w')
+    filename = kwargs.pop('stderr', None)
+    if filename:
+        kwargs['stderr'] = open(filename, 'w')
+    else:
+        kwargs['stderr'] = subprocess.STDOUT
+    # execute the command, make sure output is not streamed
+    _cmd = parse_cmd(cmd)
     try:
-        output = call(cmd, **kwargs)
-        write_output(output, outfile)
+        returncode = subprocess.call(_cmd, **kwargs)
+        if returncode:
+            LOGGER.critical('Execution of {:s} FAILED with exit status {:d}'.
+                            format(_cmd, returncode))
+            raise RuntimeError
     #
-    except subprocess.CalledProcessError as exc:
-        LOGGER.critical('Execution of {:s} FAILED with exit status {:d}'.
-                        format(cmd, exc.returncode))
-        write_output(exc.output, outfile)
+    except subprocess.SubprocessError:
+        LOGGER.critical('Subprocess call of {:s} FAILED'.format(_cmd))
         raise
     #
-    except OSError as exc:
+    except (OSError, FileNotFoundError) as exc:
         LOGGER.critical("Abnormal termination: OS could not execute %s in %s",
-                        cmd, workdir)
-        LOGGER.critical("If the command is a script,"\
-                        " check permissions and that is has a shebang!")
+                        _cmd, _workdir)
+        LOGGER.critical("If the command is a script ,"\
+                        "check permissions and that is has a shebang!")
         raise
     #
     finally:
         # make sure we return to where we started from in any case!
         os.chdir(origdir)
-
-def configure_logger(name, filename=None, verbosity=logging.INFO):
     """Get parent logger: logging INFO on the console and DEBUG to file.
     """
     if filename is None:

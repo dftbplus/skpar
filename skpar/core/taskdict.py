@@ -1,6 +1,9 @@
 """Dictionary with default tasks and their underlying functions."""
 import os
 import subprocess
+import shlex
+import shutil
+import glob
 import numpy as np
 from skpar.core.utils import get_ranges, get_logger, islistoflists
 from skpar.core.plot import skparplot
@@ -9,75 +12,94 @@ from skpar.core.database import Query
 
 LOGGER = get_logger(__name__)
 
-def execute(implargs, database, cmd, cdir='.', outfile='out.log', **kwargs):
-    """Wrapper over external executables.
+def parse_cmd(cmd):
+    """Parse shell command for globbing and environment variables.
+    """
+    if not isinstance(cmd, list):
+        cmd = shlex.split(cmd)
+    parsed_cmd = [cmd[0],]
+    for word in cmd[1:]:
+        if word[0] == '$':
+            var = word[1:].strip('{').strip('}')
+            varval = os.environ.get(var, word)
+            parsed_cmd.append(varval)
+        else:
+            if '*' in word:
+                items = glob.glob(word)
+                for item in items:
+                    parsed_cmd.append(item)
+            else:
+                parsed_cmd.append(word)
+    return parsed_cmd
+
+def execute(implargs, database, cmd, workdir='.', outfile='run.log',
+            purge_workdir=False, **kwargs):
+    """Execute external command in workdir, streaming output/error to outfile.
 
     Args:
-        implargs(dict): implicit argument passed by the caller
-        cmd(list): command to be executed [0] and command line arguments [1:]
-        cdir(str): directory, relative to implargs[workroot], where executable
-            should be run; if workroot is not found, cdir is relative to '.'
-        outfile: output log file
+        implargs (dict): caller environment variables
+        database (dict-like): not used, but needed to maintain a task-signature
+        cmd (str): command; executed in `implargs['workroot']+workir`;
+                   if it contains `$` or `*`-globbing, these are shell-expanded
+        workdir (path-like): execution directory relative to workroot
+        outfile (str): output file for the stdout/stderr stream; continuously
+                       updated during execution
+        purge_workdir (bool): if true, any existing working directory is purged
+        kwargs (dict): passed directly to the underlying `subprocess.call()`
+
+    Returns:
+        None
 
     Raises:
-        subprocess.CalledProcessError: if command fails during its execution
-        OSError: if command cannot be executed for some reason
+        OSError: if `cmd` cannot be executed
+        RuntimeError: if `cmd` returncode is nonzero
+        SubprocessError: other possible circumstances
     """
-    logger = implargs.get('logger', LOGGER)
-    #
-    def write_out(out, outfile):
-        """Write subprocess output to a file"""
-        if outfile is not None:
-            with open(outfile, 'w') as filep:
-                filep.write(out)
-                logger.debug("Output is in {:s}.\n".format(outfile))
-    #
+    # prepare workdir
     origdir = os.getcwd()
     workroot = implargs.get('workroot', '.')
-    workdir = os.path.abspath(os.path.join(workroot, cdir))
+    _workdir = os.path.abspath(os.path.join(workroot, workdir))
     try:
-        os.chdir(workdir)
-    except:
-        # this should not happen; typically, the workdir should already
-        # be there and contain some input file and data
-        logger.critical("Cannot change to working directory %s", workdir)
+        os.makedirs(_workdir)
+    except OSError:
+        # directory exists
+        if purge_workdir:
+            # that's a bit brutal, but saves to worry of links and subdirs
+            shutil.rmtree(_workdir)
+            os.makedirs(_workdir)
+    os.chdir(_workdir)
+    # prepare out/err handling
+    filename = kwargs.pop('stdout', outfile)
+    if filename:
+        kwargs['stdout'] = open(filename, 'w')
+    filename = kwargs.pop('stderr', None)
+    if filename:
+        kwargs['stderr'] = open(filename, 'w')
+    else:
+        kwargs['stderr'] = subprocess.STDOUT
+    # execute the command, make sure output is not streamed
+    _cmd = parse_cmd(cmd)
+    try:
+        returncode = subprocess.call(_cmd, **kwargs)
+        if returncode:
+            LOGGER.critical('Execution of {:s} FAILED with exit status {:d}'.
+                            format(_cmd, returncode))
+            raise RuntimeError
+    #
+    except subprocess.SubprocessError:
+        LOGGER.critical('Subprocess call of {:s} FAILED'.format(_cmd))
         raise
     #
-    if outfile is not None:
-        outfile = os.path.abspath(outfile)
-    #
-    try:
-        logger.debug("Running %s in %s...", cmd, workdir)
-        try:
-            # user may have entered the command without ',' separators between
-            # command and arguments, which is more natural
-            # of course if user has arguments with spaces this will fail;
-            # in such case user must separate each argument by comma.
-            cmd = cmd.split(' ')
-        except AttributeError:
-            pass
-        out = subprocess.check_output(
-            cmd, universal_newlines=True, stderr=subprocess.STDOUT,
-            cwd=workdir, **kwargs)
-        logger.debug('Done.')
-        write_out(out, outfile)
-    #
-    except subprocess.CalledProcessError as exc:
-        logger.critical('...task FAILED with exit status %s.', exc.returncode)
-        write_out(exc.output, outfile)
-        raise
-    #
-    except OSError as exc:
-        logger.critical("Abnormal termination: OS could not execute %s in %s",
-                        cmd, cdir)
-        logger.critical("If the command is a script,"\
-                        " make sure there is a shebang!")
+    except (OSError, FileNotFoundError) as exc:
+        LOGGER.critical("Abnormal termination: OS could not execute %s in %s",
+                        _cmd, _workdir)
+        LOGGER.critical("If the command is a script ,"\
+                        "check permissions and that is has a shebang!")
         raise
     #
     finally:
         # make sure we return to where we started from in any case!
         os.chdir(origdir)
-
 
 def get_model_data(implargs, database, item, source, model,
                    rm_columns=None, rm_rows=None, scale=1., **kwargs):
