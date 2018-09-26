@@ -82,8 +82,8 @@ def execute(implargs, database, cmd, workdir='.', outfile='run.log',
     try:
         returncode = subprocess.call(_cmd, **kwargs)
         if returncode:
-            LOGGER.critical('Execution of {:s} FAILED with exit status {:d}'.
-                            format(_cmd, returncode))
+            LOGGER.critical('Execution of %s FAILED with exit status %d',
+                            _cmd, returncode)
             raise RuntimeError
     #
     except subprocess.SubprocessError:

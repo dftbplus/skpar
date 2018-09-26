@@ -8,13 +8,6 @@ import shlex
 import glob
 import logging
 
-def write_output(out, outfile):
-    """Write subprocess output to a file"""
-    if outfile is not None:
-        with open(outfile, 'w') as filep:
-            filep.write(out)
-            LOGGER.debug("Output is in {:s}.\n".format(outfile))
-
 def parse_cmd(cmd):
     """Parse shell command for globbing and environment variables.
     """
@@ -57,17 +50,15 @@ def execute(cmd, workdir='.', outfile='run.log', purge_workdir=False, **kwargs):
     """
     # prepare workdir
     origdir = os.getcwd()
-    workroot = implargs.get('workroot', '.')
-    _workdir = os.path.abspath(os.path.join(workroot, workdir))
     try:
-        os.makedirs(_workdir)
+        os.makedirs(workdir)
     except OSError:
         # directory exists
         if purge_workdir:
             # that's a bit brutal, but saves to worry of links and subdirs
-            shutil.rmtree(_workdir)
-            os.makedirs(_workdir)
-    os.chdir(_workdir)
+            shutil.rmtree(workdir)
+            os.makedirs(workdir)
+    os.chdir(workdir)
     # prepare out/err handling
     filename = kwargs.pop('stdout', outfile)
     if filename:
@@ -92,7 +83,7 @@ def execute(cmd, workdir='.', outfile='run.log', purge_workdir=False, **kwargs):
     #
     except (OSError, FileNotFoundError) as exc:
         LOGGER.critical("Abnormal termination: OS could not execute %s in %s",
-                        _cmd, _workdir)
+                        _cmd, workdir)
         LOGGER.critical("If the command is a script ,"\
                         "check permissions and that is has a shebang!")
         raise
@@ -100,6 +91,8 @@ def execute(cmd, workdir='.', outfile='run.log', purge_workdir=False, **kwargs):
     finally:
         # make sure we return to where we started from in any case!
         os.chdir(origdir)
+
+def configure_logger(name, filename=None, verbosity=logging.INFO):
     """Get parent logger: logging INFO on the console and DEBUG to file.
     """
     if filename is None:
