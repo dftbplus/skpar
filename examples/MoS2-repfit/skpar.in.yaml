@@ -2,7 +2,6 @@ config:
     templatedir: template
     workroot: ./_workdir/
     keepworkdirs: true
-    tagimports: false
 
 usermodules:
     - [skpar.dftbutils, [get_evol]]
@@ -16,8 +15,6 @@ tasks:
     # energy-volume calculation in the subfolders 
     # of MoS2.ml-evol under _workdir/iteration/
     - run: ['dftbutils evol', MoS2.ml-evol]
-# if tagimports is true(default), then the task below must be:
-#   - skpar.dftbutils.taskdict.get_evol: [....]
     # get total energy for all calculations in
     # MoS2.ml-evol subfolders and associate data
     # with MoS2.ml model
