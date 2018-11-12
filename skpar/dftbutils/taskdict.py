@@ -6,6 +6,7 @@ from skpar.dftbutils.queryDFTB import get_dftbp_data, get_bandstructure
 from skpar.dftbutils.queryDFTB import get_dftbp_evol
 from skpar.dftbutils.queryDFTB import get_effmasses, get_special_Ek
 from skpar.dftbutils.plot import magic_plot_bs
+from skpar.dftbutils.temp import temptask
 
 LOGGER = get_logger(__name__)
 
@@ -19,4 +20,5 @@ TASKDICT = {
     # plot data
 # this one is currently used via the wrapper of PlotTask in ../core/taskdict.py
     'plot_bs' : magic_plot_bs,
+    'testref' : temptask,
     }
