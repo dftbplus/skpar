@@ -29,21 +29,19 @@ class SKPAR():
         # -------------------------------------------------------------------
         # parse input file
         self.logger.info('Parsing input file {:s}'.format(infile))
-        taskdict, tasklist, objectives, optimisation, config =\
-            parse_input(infile, verbose=verbose)
-        if optimisation is not None:
-            algo, options, parameters = optimisation
+        setup = parse_input(infile, verbose=verbose)
+        if setup['optimisation'] is not None:
+            algo, options, parameters = setup['optimisation']
             parnames = [p.name for p in parameters]
         else:
             parnames = None
 
         # instantiate the evaluator machinery
         self.logger.info('Instantiating Evaluator')
-        self.evaluator = Evaluator(objectives, tasklist, taskdict, parnames,
-                                   config, verbose=verbose)
+        self.evaluator = Evaluator(setup, parnames, verbose=verbose)
 
         # instantiate the optimiser
-        if optimisation is not None:
+        if setup['optimisation'] is not None:
             self.do_optimisation = True
             self.logger.info('Instantiating Optimiser')
             self.optimiser = Optimiser(algo, parameters, self.evaluator,

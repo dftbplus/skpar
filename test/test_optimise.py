@@ -26,8 +26,12 @@ class OptimiseTest(unittest.TestCase):
         """Can we parse input, create an optimiser instance, and run the tasks?
         """
         filename = "skpar_in_optimise.yaml"
-        taskdict, tasklist, objectives, optimisation, config =\
-            parse_input(filename)
+        setup = parse_input(filename)
+        taskdict = setup['taskdict']
+        tasklist = setup['tasklist']
+        objectives = setup['objectives']
+        optimisation = setup['optimisation']
+        config = setup['config']
         print (taskdict)
         print (tasklist)
         workroot = config.get('workroot', None)
@@ -99,8 +103,12 @@ class OptimiseTest(unittest.TestCase):
         """Can we parse input, create an optimiser instance, and run the tasks?
         """
         filename   = "skpar_in_optimise.yaml"
-        taskdict, tasklist, objectives, optimisation, config =\
-                parse_input(filename)
+        setup = parse_input(filename)
+        taskdict = setup['taskdict']
+        tasklist = setup['tasklist']
+        objectives = setup['objectives']
+        optimisation = setup['optimisation']
+        config = setup['config']
         algo, options, parameters = optimisation
         parnames = [p.name for p in parameters]
         evaluate = Evaluator(objectives, tasklist, taskdict, parnames, config)
@@ -131,8 +139,12 @@ class EvaluateSiTest(unittest.TestCase):
         filename   = "skpar_in_Si.yaml"
         testfolder = "test_eval_Si"
         # parfile    = os.path.join(testfolder, 'current.par')
-        taskdict, tasklist, objectives, optimisation, config =\
-                parse_input(filename)
+        setup = parse_input(filename)
+        taskdict = setup['taskdict']
+        tasklist = setup['tasklist']
+        objectives = setup['objectives']
+        optimisation = setup['optimisation']
+        config = setup['config']
         workroot = config.get('workroot', None)
         templatedir = config.get('templatedir', None)
         create_workdir(workroot, templatedir)

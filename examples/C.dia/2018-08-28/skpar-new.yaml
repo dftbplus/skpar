@@ -1,0 +1,140 @@
+config:
+    templatedir: template
+    workroot: ./_workdir
+    keepworkdirs: true
+
+usermodules:
+    - [skpar.dftbutils, [get_bs, plot_bs, get_meff, get_Ek]]
+
+
+usermodules:
+    - [skpar.dftbutils, [get_bs]]
+
+tasks:
+    - set: [[skf/skdef.template.hsd]]
+    - run: ['skgen -o slateratom -t sktwocnt '
+            '-I ../../../freeatoms/_build sktable -d C C', skf]
+    - run: [dftbutils bands, C.dia/hydrostatic-0.00]
+    - get_bs: [C.dia/hydrostatic-0.00/bs, C.dia.hs-0.00,
+               {latticeinfo: {type: 'FCC', param: 3.56208625213847}}]
+    - plot: [plot_bs, ../_plots/bands.hs-0.00, [bands, C.dia.hs-0.00],
+             kvector, queries: [kticklabels]]
+
+reference:
+
+    c.dia.hs-0.00--Egap:
+        doc: 'C.dia.hs-0.00: band-gap'
+        # experimental: see Intrinsic edge absorption in diamond 
+        # C. D. Clark, P. J. Dean, P. V. Harris
+        data: 5.47  # our DFT ref is much lower
+
+    c.dia.hs-0.00--VB: # ID, potentially machine generated
+        source: 
+            file: "~/venv-py37/work/C.dia/ref/unpolarised/strains/\
+                  hydrostatic_strain_0.000/bands.dat"
+            loader_args: {unpack: True}
+        process: 
+            rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
+            options:
+                # Indexes below refer to the resulting 2D array after loading, 
+                # transposing, and application of the rm_rows/rm_columns above.
+                use:   [[1, 4]]
+                align: [4, max]
+        doc: 'C.dia.hs-0.00: VB'
+
+    c.dia.hs-0.00--CB: # ID, potentially machine generated
+        source: 
+            file: "~/venv-py37/work/C.dia/ref/unpolarised/strains/\
+                  hydrostatic_strain_0.000/bands.dat"
+            loader_args: {unpack: True}
+        process: 
+            rm_columns: [[1,5]]      # remove Nr Dist Kx Ky Kz columns
+            options:
+                # Indexes below refer to the resulting 2D array after loading, 
+                # transposing, and application of the rm_rows/rm_columns above.
+                use:   [[5, 8]]
+                align: [1, min]
+        doc: 'C.dia.hs-0.00: CB'
+
+objectives:
+    - c.dia.hs-0.00-Egap: # ID, potentially machine generated
+        doc: 'C.dia.hs-0.00: band-gap'
+        ref:  c.dia.hs-0.00-Egap
+        models: 'C.dia.hs-0.00'
+        weight: 5.0
+        eval: [rms, relerr]
+
+    - c.dia.hs-0.00--VB:
+        doc: 'C.dia.hs-0.00: VB'
+        ref: c.dia.hs-0.00--VB
+        models: 'C.dia.hs-0.00'
+        options:
+            subweights:
+                # NOTABENE:
+                # --------------------------------------------------
+                # Energy values are with respect to the ALIGNEMENT above.
+                # If we want to have the reference  band index as zero,
+                # we would have to do tricks with the range specification
+                # behind the curtain, to allow both positive and negative
+                # band indexes, e.g. [-3, 0], inclusive of either boundary.
+                # Currently this is *not done*, so only standard Fortran
+                # range spec is supported. Therefore, band 1 is always
+                # the lowest lying, and e.g. band 4 is the third above it.
+                # --------------------------------------------------
+                default: 1
+                # [[range], subweight] for E-k points in the given energy range
+                values:
+                # notabene:
+                # the range below is with respect to the alignment value
+                    - [[-0.1, 0.], 5.0]
+                # [[range], subweight] of bands indexes; fortran-style
+                bands:
+                  # these affect Light and SO hole masses
+                    - [[2, 3], 1.5]
+                  # emphasize the top VB (affects Heavy hole masses)
+                    - [4 , 2.5]
+        # emphasize the equilibrium structure
+        weight: 3.
+        eval: [rms, relerr]
+
+    - c.dia.hs-0.00--CB:
+        doc: 'C.dia.hs-0.00: CB'
+        ref: c.dia.hs-0.00--CB
+        models: 'C.dia.hs-0.00'
+        options:
+            subweights:
+                # NOTABENE:
+                # --------------------------------------------------
+                # Energy values are with respect to the ALIGNEMENT above.
+                # If we want to have the reference  band index as zero,
+                # we would have to do tricks with the range specification
+                # behind the curtain, to allow both positive and negative
+                # band indexes, e.g. [-3, 0], inclusive of either boundary.
+                # Currently this is *not done*, so only standard Fortran
+                # range spec is supported. Therefore, band 1 is always
+                # the lowest lying, and e.g. band 4 is the third above it.
+                # --------------------------------------------------
+                default: 1
+                # [[range], subweight] for E-k points in the given energy range
+                values:
+                # notabene:
+                # the range below is with respect to the alignment value
+                    - [[-0.1, 0.], 5.0]
+                # [[range], subweight] of bands indexes; fortran-style
+                bands:
+                  # these affect Light and SO hole masses
+                    - [[2, 3], 1.5]
+                  # emphasize the top VB (affects Heavy hole masses)
+                    - [4 , 2.5]
+        # emphasize the equilibrium structure
+        weight: 3.
+        eval: [rms, relerr]
+
+
+optimisation:
+    algo: PSO
+    options:
+        npart: 2
+        ngen : 1
+    parameters:
+        - R0  :  2.0 5.0

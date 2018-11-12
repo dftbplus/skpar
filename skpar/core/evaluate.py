@@ -95,20 +95,24 @@ class Evaluator():
        good to also return the max error, to be used as a stopping criterion.
 
     """
-    def __init__(self, objectives, tasklist, taskdict, parameternames,
-                 config=None, costf=COSTF[DEFAULT_GLOBAL_COST_FUNC],
+    def __init__(self, setup, parameternames,
+                 costf=COSTF[DEFAULT_GLOBAL_COST_FUNC],
                  utopia=None, verbose=False):
-        self.objectives = objectives
-        self.weights = normalise([oo.weight for oo in objectives])
-        self.tasklist = tasklist # list of name,options pairs
-        self.taskdict = taskdict # name:function mapping
+        self.objectives = setup['objectives']
+        self.weights = normalise([oo.weight for oo in setup['objectives']])
+        self.tasklist = setup['tasklist'] # list of name,options pairs
+        self.taskdict = setup['taskdict'] # name:function mapping
         self.parnames = parameternames
-        self.config = config if config is not None else DEFAULT_CONFIG
+        if setup['config'] is not None:
+            self.config = setup['config']
+        else:
+            DEFAULT_CONFIG
         self.costf = costf
         if utopia is None:
-            self.utopia = np.zeros(len(objectives))
+            self.utopia = np.zeros(len(self.objectives))
         else:
-            assert len(utopia) == len(objectives), (len(utopia), len(objectives))
+            assert len(utopia) == len(self.objectives),\
+                (len(utopia), len(self.objectives))
             self.utopia = utopia
         # configure logger
         self.logger = LOGGER
@@ -117,7 +121,7 @@ class Evaluator():
         else:
             self._msg = self.logger.debug
         # report objectives; these do not change over time
-        for item in objectives:
+        for item in self.objectives:
             self._msg(item)
 
     def evaluate(self, parametervalues, iteration=None):

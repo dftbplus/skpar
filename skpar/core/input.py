@@ -38,15 +38,12 @@ def get_input(filename):
 def parse_input(filename, verbose=True):
     """Parse input filename and return the setup
     """
+    setup = {}
     userinp = get_input(filename)
-    #
-    # CONFIG
-    configinp = userinp.get('config', None)
-    config = get_config(configinp, report=True)
-    #
-    # OPTIMISATION
-    optinp = userinp.get('optimisation', None)
-    optimisation = get_optargs(optinp)
+
+    setup['config'] = get_config(userinp.get('config', None), report=True)
+    setup['refdata'] = get_refdata(userinp.get('reference', None))
+    setup['optimisation'] = get_optargs(userinp.get('optimisation', None))
     #
     # TASKS
     taskdict = {}
@@ -59,6 +56,7 @@ def parse_input(filename, verbose=True):
     # replacement of `taskdict` entries with user-defined functions
     if usermodulesinp:
         update_taskdict(taskdict, usermodulesinp)
+    setup['taskdict'] = taskdict
     #
     taskinp = userinp.get('tasks', None)
     tasklist = get_tasklist(taskinp)
@@ -66,12 +64,13 @@ def parse_input(filename, verbose=True):
     # do trial initialisation in order to report what and how's been parsed
     # no assignment means we discard the tasks list here
     initialise_tasks(tasklist, taskdict, report=True)
+    setup['tasklist'] = tasklist
     #
     # OBJECTIVES
-    objectivesinp = userinp.get('objectives', None)
-    objectives = set_objectives(objectivesinp, verbose=verbose)
+    setup['objectives'] = set_objectives(userinp.get('objectives', None),
+                                         setup['refdata'], verbose=verbose)
     #
-    return taskdict, tasklist, objectives, optimisation, config
+    return setup
 
 def get_config(userinp, report=True):
     """Parse the arguments of 'config' key in user input"""
