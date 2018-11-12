@@ -2,6 +2,8 @@
 """
 import numpy as np
 import uuid
+from os.path import abspath, expanduser
+from skpar.core.utils import get_ranges
 
 def parse_refdata_input(userinp, db=None):
     """Get reference data based on user directives.
@@ -13,7 +15,8 @@ def parse_refdata_input(userinp, db=None):
         db = {}
 
     for uid, item in userinp.items():
-        _ref = ReferenceItem(uid, item)
+        _ref = ReferenceItem(item, uid)
+        print(_ref)
         db.update({_ref.uid: _ref})
     return db
 
@@ -24,14 +27,14 @@ def get_refdata(uid, db):
     # stored -- could be a dictionary, could be an object that emulates
     # dictionary; all we need is a .get() support
     refitem = db.get(uid)
-    return refitem.get('data')
+    return refitem.get()
 
 def parse_refsource(userinp):
     """Parse users input and return reference data.
     """
     if 'file' in userinp.keys():
         # user input is an instruction where/how to obtain values
-        _file = normpath(expanduser(userinp['file']))
+        _file = abspath(expanduser(userinp['file']))
         # actual data in file -> load it
         # set default loader_args, assuming 'column'-organised data
         loader_args = {} #{'unpack': False}
@@ -43,11 +46,11 @@ def parse_refsource(userinp):
                 loader_args['unpack'] = False
         # read file
         try:
-            _data = np.loadtxt(file, **loader_args)
+            _data = np.loadtxt(_file, **loader_args)
         except ValueError:
             # `file` was not understood
             print ('np.loadtxt cannot understand the contents of {}'\
-                    .format(file))
+                    .format(_file))
             print ('with the given loader arguments: {}'\
                     .format(**loader_args))
             raise
@@ -88,13 +91,14 @@ class ReferenceItem():
     def __init__(self, userinp, uid=None):
         """Reference item contains unique id and data"""
 
+        assert isinstance(userinp, dict)
         self.uid = uuid.uuid1() if uid is None else uid
         doc = userinp.get('doc', None)
         self.doc = self.uid if doc is None else doc
         #
         _source = userinp.get('source', None)
         if _source is not None:
-            self.data = parse_refsource(userinp)
+            self.data = parse_refsource(_source)
         #
         else:
             _data = userinp.get('data', None)
@@ -120,9 +124,9 @@ class ReferenceItem():
         return self.data
 
     def __repr__(self):
-        ss = ""
-        ss.append('uid: {}'.format(self.uid))
-        ss.append('doc: {}'.format(self.doc))
-        ss.append('data: {}'.format(self.data))
-        return ss
+        ss = []
+        ss.append('refid: {}'.format(self.uid))
+        ss.append('  doc: {}'.format(self.doc))
+        ss.append(' data: {}'.format(self.data))
+        return "\n"+"\n".join(ss)
 
