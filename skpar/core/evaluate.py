@@ -98,11 +98,9 @@ class Evaluator():
     def __init__(self, setup, parameternames,
                  costf=COSTF[DEFAULT_GLOBAL_COST_FUNC],
                  utopia=None, verbose=False):
-        self.objectives = setup['objectives']
+        self.env = setup
+        self.env['parameternames'] = parameternames
         self.weights = normalise([oo.weight for oo in setup['objectives']])
-        self.tasklist = setup['tasklist'] # list of name,options pairs
-        self.taskdict = setup['taskdict'] # name:function mapping
-        self.parnames = parameternames
         if setup['config'] is not None:
             self.config = setup['config']
         else:
@@ -116,6 +114,7 @@ class Evaluator():
             self.utopia = utopia
         # configure logger
         self.logger = LOGGER
+        self.env['logger'] = self.logger
         if verbose:
             self._msg = self.logger.info
         else:
@@ -159,14 +158,11 @@ class Evaluator():
         database = Database()
         # database = {} currently works too
         # Wrap the environment in a single dict
-        env = {'workroot': workdir,
-               'logger': self.logger,
-               'parameternames': self.parnames,
-               'parametervalues': parametervalues,
-               'iteration': iteration,
-               'taskdict': self.taskdict,
-               'objectives': self.objectives
-              }
+        env = self.env
+        env.update({'workroot': workdir,
+                    'parametervalues': parametervalues,
+                    'iteration': iteration,
+                    })
         # Initialise and then execute the tasks
         tasks = initialise_tasks(self.tasklist, self.taskdict, report=False)
         self.logger.info('Iteration %s', iteration)
