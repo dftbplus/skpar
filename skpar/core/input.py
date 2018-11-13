@@ -7,6 +7,7 @@ import yaml
 import skpar.core.taskdict as coretd
 from skpar.core.utils      import get_logger
 from skpar.core.objectives import set_objectives
+from skpar.core.refdata    import parse_refdata_input
 from skpar.core.tasks      import get_tasklist, check_taskdict
 from skpar.core.tasks      import initialise_tasks
 from skpar.core.optimise   import get_optargs
@@ -42,7 +43,8 @@ def parse_input(filename, verbose=True):
     userinp = get_input(filename)
 
     setup['config'] = get_config(userinp.get('config', None), report=True)
-    setup['refdata'] = get_refdata(userinp.get('reference', None))
+    # obtain a ditionary with reference items, each item has a unique ID
+    setup['refdata'] = parse_refdata_input(userinp.get('reference', None))
     setup['optimisation'] = get_optargs(userinp.get('optimisation', None))
     #
     # TASKS

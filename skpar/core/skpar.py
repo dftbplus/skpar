@@ -35,10 +35,11 @@ class SKPAR():
             parnames = [p.name for p in parameters]
         else:
             parnames = None
+        setup['parameternames'] = parnames
 
         # instantiate the evaluator machinery
         self.logger.info('Instantiating Evaluator')
-        self.evaluator = Evaluator(setup, parnames, verbose=verbose)
+        self.evaluator = Evaluator(setup, verbose=verbose)
 
         # instantiate the optimiser
         if setup['optimisation'] is not None:

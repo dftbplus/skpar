@@ -10,41 +10,50 @@ tasks:
     - get: [yval, model_poly3_out.dat,  poly3-2]
     - get: [xval, model_poly3_xval.dat, poly3]
     - get: [xval, model_poly3_xval.dat, poly3-2]
-    - plot: [skparplot, 'polyfit1', [2], xval] 
-    - plot: [skparplot, 'polyfit2', [[yval, poly3]], xval] 
+    - plot: [skparplot, 'polyfit1', [2], xval]
+    - plot: [skparplot, 'polyfit2', [[yval, poly3]], xval]
     - plot: [skparplot, 'polyfit3', [[yval, poly3], [yval, poly3-2]], xval,
              {colors: ['b', 'r', 'g', 'm'], marker:[None, 'o']}]
     # currently blah will not  yield and plot will pick up skparplot
-    - plot: [blah, 'polyfit2a', [[yval, poly3-2]]] 
+    - plot: [blah, 'polyfit2a', [[yval, poly3-2]]]
     # directory must be either absolutised or relative to workroot/iteration
-    # e.g. 
-    # - get: [get_model_data, 
+    # e.g.
+    # - get: [get_model_data,
     #         /home/username/projects/skpar-pr1/skpar/test/reference_data/fakebands-2.dat,
     #         fakemodel, bands]
     - get: [bands, ../../../reference_data/fakebands-2.dat, fakemodel,
             {rm_columns: [1], unpack: True}]
-    - plot: [skparplot, 'fakebandsplot', [[bands, fakemodel]]] 
+    - plot: [skparplot, 'fakebandsplot', [[bands, fakemodel]]]
 
-objectives:
-    - bands:
-        models: fakemodel
-        ref: 
+
+reference:
+    poly3ref:
+        doc: 'polynomial values'
+        data: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+    bandsref:
+        doc: 'fake bands'
+        source:
             # path is relative to SKPAR invokation directory
             file: ./reference_data/fakebands.dat
             loader_args: {unpack: True}
             process:
                 rm_columns: [1, 2, [8, 9]]
 
+objectives:
+    - bands:
+        ref: bandsref
+        models: fakemodel
+
     - yval:
         doc: 3-rd order polynomial values for some values of the argument
+        ref: poly3ref
         models: poly3
-        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
         eval: [rms, relerr]
 
     - yval:
         doc: 3-rd order polynomial values for some values of the argument
+        ref: poly3ref
         models: poly3-2
-        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
         eval: [rms, relerr]
 
 optimisation:

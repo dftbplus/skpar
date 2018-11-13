@@ -95,22 +95,16 @@ class Evaluator():
        good to also return the max error, to be used as a stopping criterion.
 
     """
-    def __init__(self, setup, parameternames,
-                 costf=COSTF[DEFAULT_GLOBAL_COST_FUNC],
+    def __init__(self, setup, costf=COSTF[DEFAULT_GLOBAL_COST_FUNC],
                  utopia=None, verbose=False):
         self.env = setup
-        self.env['parameternames'] = parameternames
         self.weights = normalise([oo.weight for oo in setup['objectives']])
-        if setup['config'] is not None:
-            self.config = setup['config']
-        else:
-            DEFAULT_CONFIG
         self.costf = costf
+        nobj = len(setup['objectives'])
         if utopia is None:
-            self.utopia = np.zeros(len(self.objectives))
+            self.utopia = np.zeros(nobj)
         else:
-            assert len(utopia) == len(self.objectives),\
-                (len(utopia), len(self.objectives))
+            assert len(utopia) == nobj, (len(utopia), nobj)
             self.utopia = utopia
         # configure logger
         self.logger = LOGGER
@@ -120,7 +114,7 @@ class Evaluator():
         else:
             self._msg = self.logger.debug
         # report objectives; these do not change over time
-        for item in self.objectives:
+        for item in setup['objectives']:
             self._msg(item)
 
     def evaluate(self, parametervalues, iteration=None):
@@ -140,12 +134,12 @@ class Evaluator():
 
         # Create individual working directory for each evaluation
         origdir = os.getcwd()
-        workroot = self.config['workroot']
+        workroot = self.env['config']['workroot']
         if workroot is None:
             workdir = origdir
         else:
             workdir = get_workdir(iteration, workroot)
-            create_workdir(workdir, self.config['templatedir'])
+            create_workdir(workdir, self.env['config']['templatedir'])
 
         # Initialise model database
         self.logger.info('Initialising ModelDataBase.')
@@ -164,12 +158,13 @@ class Evaluator():
                     'iteration': iteration,
                     })
         # Initialise and then execute the tasks
-        tasks = initialise_tasks(self.tasklist, self.taskdict, report=False)
+        tasks = initialise_tasks(self.env['tasklist'], self.env['taskdict'],
+                                 report=False)
         self.logger.info('Iteration %s', iteration)
         self.logger.info('===========================')
-        if self.parnames:
-            parstr = ['{:s}({:.4g})'.format(name, val) for
-                      name, val in zip(self.parnames, parametervalues)]
+        if self.env['parameternames']:
+            parstr = ['{:s}({:.4g})'.format(name, val) for name, val in
+                      zip(self.env['parameternames'], parametervalues)]
             self.logger.info('Parameters: {:s}'.format(' '.join(parstr)))
 #        do we really need to pass workdir and to os.chdir???
 #        move the for loop to a function.
@@ -183,13 +178,13 @@ class Evaluator():
                 raise
 
         # Evaluate individual fitness for each objective
-        objvfitness = eval_objectives(self.objectives, database)
+        objvfitness = eval_objectives(self.env['objectives'], database)
         # Evaluate global fitness
         cost = self.costf(self.utopia, objvfitness, self.weights)
         self._msg('{:<15s}: {}\n'.format('Overall cost', cost))
 
         # Remove iteration-specific working dir if not needed:
-        if (not self.config['keepworkdirs']) and (workroot is not None):
+        if (not self.env['config']['keepworkdirs']) and (workroot is not None):
             destroy_workdir(workdir)
         os.chdir(origdir)
 
@@ -207,7 +202,7 @@ class Evaluator():
 #            srepr.append(item.__repr__())
         srepr.append('\n-- Objectives:')
         srepr.append('--------------------')
-        for item in self.objectives:
+        for item in self.env['objectives']:
             srepr.append(item.__repr__())
         srepr.append('\n-- Cost Func.:')
         srepr.append('--------------------')

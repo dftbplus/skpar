@@ -29,14 +29,20 @@ tasks:
              [totalenergy_volume, MoS2.ml],
              'strain']
 
+reference:
+    ref_1:
+        doc: energy-volume
+        source:
+            file: refdata/toten-MoS2.ml.dat # ./ is where this .yaml is
+            loader_args:
+                usecols: 0 # Etot[eV]; col[1] is % of equil.lat.const.
+
+
 objectives:
     - totalenergy_volume:
         doc: MoS2.ml Energy-Volume dependence
         models: MoS2.ml
-        ref:
-            file: refdata/toten-MoS2.ml.dat # ./ is where this .yaml is
-            loader_args:
-                usecols: 0 # Etot[eV]; col[1] is % of equil.lat.const.
+        ref: ref_1
         options:
             align_ref: 5
             align_model: 5

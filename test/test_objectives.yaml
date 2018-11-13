@@ -17,14 +17,11 @@ tasks:
     - get: [get_dftbp_meff, Si/bs,
             {directions: ['G-X', 'GK'], nb: 4, Erange: 0.002}]
 
+reference:
 
-# Individual objectives
-objectives:
-
-    - bands: 
-        doc: Valence Band, Si
-        models: Si/bs
-        ref: 
+    ref_1:
+        doc: 'valence band, Si'
+        source: 
             file: ./reference_data/fakebands.dat # 
             # transpose file data, so that band-index = array-row-index
             loader_args: {unpack: True}
@@ -38,6 +35,64 @@ objectives:
                 # rm_rows   : [[18,36], [1,4]]
                 # for unit conversion, e.g. Hartree to eV, if needed
                 # scale     : 1                
+
+    ref_2:
+        doc: 'conduction band, Si'
+        source:
+            file: ./reference_data/fakebands.dat # 
+            loader_args: {unpack: True}
+            process:       
+            # filter k-point enumeration, and bands, potentially
+                rm_columns: 1              
+
+    ref_3:
+        doc: 'band gap'
+        data: 1.12
+
+    ref_4:
+        doc: 'meff'
+        source:
+            file: ./reference_data/meff-Si.dat
+            loader_args: 
+                dtype:
+                  # NOTABENE: yaml cannot read in tuples, so we must
+                  #           use the dictionary formulation of dtype
+                    names: ['keys', 'values']
+                    formats: ['S15', 'float']
+
+    ref_5:
+        doc: another meff
+        data: 0.92
+
+    ref_6:
+        doc: energy vs volume
+        source:
+            file: reference_data/volen-Si.dat
+            loader_args: {unpack: True}
+            process:       
+              # remove the column with volume data
+                rm_columns: 1
+
+    ref_7:
+        doc: heat of formation
+        data: 1.8
+
+    ref_8:
+        doc: energy delta between strain delta
+        data: 0.5
+
+    ref_9:
+        doc: energy delta between different phases
+        data: 0.5
+
+
+# Individual objectives
+objectives:
+
+    - bands: 
+        doc: Valence Band, Si
+        models: Si/bs
+        ref: ref_1
         options:
             # fortran-style index-bounds of bands to use
             use_ref: [[1, 4]]
@@ -72,12 +127,7 @@ objectives:
     - bands: 
         doc: Conduction Band, Si
         models: Si/bs
-        ref: 
-            file: ./reference_data/fakebands.dat # 
-            loader_args: {unpack: True}
-            process:       
-            # filter k-point enumeration, and bands, potentially
-                rm_columns: 1              
+        ref: ref_2
         options:
             # fortran-style index enumeration: NOTABENE: not a range here!
             use_ref: [5, 6]
@@ -102,20 +152,13 @@ objectives:
     - band_gap:
         doc: Band-gap of Si (diamond)
         models: Si/bs
-        ref: 1.12
+        ref: ref_3
         weight: 4.0
 
     - effective_mass:
         doc: Effective masses, Si
         models: Si/bs
-        ref: 
-            file: ./reference_data/meff-Si.dat
-            loader_args: 
-                dtype:
-                  # NOTABENE: yaml cannot read in tuples, so we must
-                  #           use the dictionary formulation of dtype
-                    names: ['keys', 'values']
-                    formats: ['S15', 'float']
+        ref: ref_4
         options:
             subweights: 
                 # changing the default (from 1.) to 0. allows us to consider
@@ -128,7 +171,7 @@ objectives:
     - me_GX_0:
         doc: Single query for effective mass
         models: Si/bs
-        ref: 0.92
+        ref: ref_5
         weigh: 0.4
 
     - Etot:
@@ -136,12 +179,7 @@ objectives:
         models: [Si/scc-5, Si/scc-4, Si/scc-3, Si/scc-2, Si/scc-1,
                  Si,
                  Si/scc+1, Si/scc+2, Si/scc+3, Si/scc+4, Si/scc+5]
-        ref: 
-            file: reference_data/volen-Si.dat
-            loader_args: {unpack: True}
-            process:       
-              # remove the column with volume data
-                rm_columns: 1
+        ref: ref_6
         options:
             subweights: [1., 1., 1., 2., 3., 5., 3., 2., 1., 1., 1.]
             ## alternative specification for subweights:
@@ -160,7 +198,7 @@ objectives:
             - [SiO2-quartz/scc, 1.]
             - [Si/scc, -0.5] 
             - [O2/scc, -1]
-        ref: 1.8 
+        ref: ref_7
         weight: 1.2
 
     - Etot:
@@ -168,31 +206,16 @@ objectives:
         models: 
             - [SiO2-quartz/0.0, -1.]
             - [SiO2-quartz/+0.01, 1.]
-        ref: 0.5
+        ref: ref_8
             
     - Etot:
         doc: "energy difference between phases of SiO2"
         models: 
             - [SiO2-quartz/geopt, 1.]
             - [SiO2-cristobalite/geopt, -1.]
-        ref: 0.5
-            
-       
-# How to define a global criterion of success/fitness
-# Note that the definition of individual objectives 
-# decalres its own scalarisation procedure,
-# while this field remains for the global objective function.
-# CURRENTLY NOT SUPPORTED. Defaults are below
-# criterion:
-#     # details of the objective function
-#     objfun: WES # weighted exponential sum
-#     objfunpar:
-#         exp: 2    # exponent
+        ref: ref_9
 
 
-# How to explore the parameter space
-# E.g. if support for algorithms other than PSO is provided
-# in the future; Currently this part is ignored
 optimisation:
      
     algo: PSO   # particle swarm optimisation

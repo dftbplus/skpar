@@ -8,11 +8,16 @@ tasks:
     - run: ['python model_poly3.py']
     - get: [yval, model_poly3_out.dat, poly3]
 
+reference:
+    poly3ref:
+        doc: 'polynomial values'
+        data: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
+
 objectives:
     - yval:
         doc: 3-rd order polynomial values for some values of the argument
+        ref: poly3ref
         models: poly3
-        ref: [ 36.55, 26.81875, 10., 13.43125,  64.45 ]
         eval: [rms, relerr]
 
 optimisation:
