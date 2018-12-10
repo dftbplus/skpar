@@ -43,7 +43,7 @@ def set_bands_parser(parser=None):
     parser.add_argument(
             '-l', '--latticeinfo', dest='latticeinfo', default=None,
             action='store', type=json.loads, help='Lattice info, e.g.:'
-            '{"type": FCC, "param": 5.43}')
+            '{"type": "TET", "param": [5.43, 100.0]}')
     parser.add_argument(
             "-wd", dest='workdir', type=str, default='.', action="store",
             help="(dflt: .) Working directory with atoms, scc/ and bs/")

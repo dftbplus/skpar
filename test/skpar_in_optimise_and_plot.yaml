@@ -5,7 +5,7 @@ config:
 
 tasks:
     - set: [[template.parameters.dat]]
-    - run: ['python model_poly3.py']
+    - run: ['python3 model_poly3.py']
     - get: [yval, model_poly3_out.dat,  poly3]
     - get: [yval, model_poly3_out.dat,  poly3-2]
     - get: [xval, model_poly3_xval.dat, poly3]

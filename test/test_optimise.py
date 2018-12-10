@@ -72,12 +72,12 @@ class OptimiseTest(unittest.TestCase):
         self.assertListEqual(parnames, _names)
 
         # check task 1
-        exe = 'python'.split()
+        exe = 'python3'.split()
         self.assertEqual(optimiser.evaluate.tasks[1].name, 'run')
         self.assertEqual(optimiser.evaluate.tasks[1].func,
                          core_taskdict.execute)
         self.assertEqual(optimiser.evaluate.tasks[1].args,
-                         ['python model_poly3.py'])
+                         ['python3 model_poly3.py'])
         optimiser.evaluate.tasks[1](env, database)
 
         # check task 2
