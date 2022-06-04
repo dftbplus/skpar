@@ -45,7 +45,7 @@ class TaskParsingTest(unittest.TestCase):
                         [['skpar.core.taskdict', ['set', 'run']]])
         update_taskdict(taskdict,
                         [['skpar.dftbutils', ['get_meff','get_data']]])
-        userinp = yaml.load(self.yamldata)['tasks']
+        userinp = yaml.safe_load(self.yamldata)['tasks']
         tasklist = []
         tasklist = get_tasklist(userinp)
         tasks = initialise_tasks(tasklist, taskdict)
@@ -80,7 +80,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
         taskdict = {}
         update_taskdict(taskdict,
                         [['skpar.core.taskdict', ['get', 'sub', 'run']]])
-        yamldata = yaml.load(yamldata)
+        yamldata = yaml.safe_load(yamldata)
         # print('yaml data')
         # pprint(yamldata)
         jsondata = json.loads(jsondata)
@@ -126,7 +126,7 @@ class CoreTaskExecutionTest(unittest.TestCase):
         taskdict = {}
         update_taskdict(taskdict,
                         [['skpar.core.taskdict', ['get', 'sub', 'run']]])
-        yamldata = yaml.load(yamldata)['tasks']
+        yamldata = yaml.safe_load(yamldata)['tasks']
         tasklist = []
         tasklist = get_tasklist(yamldata)
         tasks = initialise_tasks(tasklist, taskdict)
@@ -175,7 +175,7 @@ class GetTaskDFTBpTest(unittest.TestCase):
                         [['skpar.core.taskdict', ['get', 'sub', 'run']]])
         update_taskdict(taskdict,
                         [['skpar.dftbutils', ['get_bs', 'get_meff', 'get_Ek']]])
-        userinp = yaml.load(self.yamlin)
+        userinp = yaml.safe_load(self.yamlin)
         tasklist = get_tasklist(userinp['tasks'])
         tasks = initialise_tasks(tasklist, taskdict)
         #
@@ -199,5 +199,3 @@ class GetTaskDFTBpTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-

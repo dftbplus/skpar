@@ -31,7 +31,7 @@ class UserTaskTest(unittest.TestCase):
             usermodules:
                 - skpar.core.taskdict
         """
-        userinp = yaml.load(yamlinput)['usermodules']
+        userinp = yaml.safe_load(yamlinput)['usermodules']
         taskdict = {}
         update_taskdict(taskdict, userinp)
         tag = 'skpar.core.taskdict'
@@ -47,7 +47,7 @@ class UserTaskTest(unittest.TestCase):
                 - [skpar.core.taskdict, [set, get, run, plot]]
                 - [skpar.dftbutils, [get_bs]]
         """
-        userinp = yaml.load(yamlinput)['usermodules']
+        userinp = yaml.safe_load(yamlinput)['usermodules']
         taskdict = {}
         update_taskdict(taskdict, userinp)
         self.assertEqual(len(taskdict), 5)
@@ -74,7 +74,7 @@ class UserTaskTest(unittest.TestCase):
             usermodules:
                 - [skpar.dftbutils, dftb]
         """
-        userinp = yaml.load(yamlinput)['usermodules']
+        userinp = yaml.safe_load(yamlinput)['usermodules']
         taskdict = {}
         update_taskdict(taskdict, userinp)
         tag = 'dftb'
@@ -90,7 +90,7 @@ class UserTaskTest(unittest.TestCase):
                 - [skpar.core.taskdict, [set, get, run, plot]]
         """
         taskdict = {}
-        userinp = yaml.load(yamlinput)['usermodules']
+        userinp = yaml.safe_load(yamlinput)['usermodules']
         update_taskdict(taskdict, userinp)
         self.assertEqual(4, len(taskdict))
         for key in ['set', 'get', 'run', 'plot']:
@@ -102,7 +102,7 @@ class UserTaskTest(unittest.TestCase):
                 - [skpar.core.taskdict, [set, mambo]]
         """
         taskdict = {}
-        userinp = yaml.load(yamlinput)['usermodules']
+        userinp = yaml.safe_load(yamlinput)['usermodules']
         self.assertRaises(KeyError, update_taskdict, taskdict, userinp)
 
 

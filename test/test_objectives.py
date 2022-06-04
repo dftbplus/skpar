@@ -37,8 +37,8 @@ class ParseWeightsKeyValueTest(unittest.TestCase):
         expected = np.array(spec)
         ww = oo.parse_weights_keyval(spec, self.data, normalised=False)
         compare = np.all(ww == expected)
-        self.assertTrue(compare) 
-        
+        self.assertTrue(compare)
+
     def test_parse_weights_keyval_keys(self):
         """Check correct parsing of key:value spec and data.
         """
@@ -78,7 +78,7 @@ class ParseWeightsTest(unittest.TestCase):
                 - [[4, 10], 2.5]
                 - [[2, 5], 3.5]
         """
-    wspec = yaml.load(yamldata)['subweights']
+    wspec = yaml.safe_load(yamldata)['subweights']
 
     def test_parse_weights_indexes(self):
         """Can we specify weights by a list of (index, weight) tuples?
@@ -100,7 +100,7 @@ class ParseWeightsTest(unittest.TestCase):
         expected[1, 4] = 3.5
         ww = oo.parse_weights(self.wspec, shape=shape, ikeys=['Ek'], normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
-        
+
     def test_parse_weights_range_of_indexes(self):
         """Can we specify weights by a list of (index_range, weight) tuples?
         """
@@ -109,14 +109,14 @@ class ParseWeightsTest(unittest.TestCase):
         i0 = 0
         dflt = self.wspec.get('dflt', 1.)
         expected = np.ones(shape)*dflt
-        # note that the spec range is interpreted as **inclusive** 
+        # note that the spec range is interpreted as **inclusive**
         # and has a non-zero reference index (i0)
         expected[0:4] = 1.
         expected[2:4] = 2.
         # note here that the lower value is ignored for bands assigned with
         # a higher weight already
         expected[3:5] = 3.5
-        ww = oo.parse_weights(self.wspec, shape=shape, i0=i0, rikeys=['nb'], 
+        ww = oo.parse_weights(self.wspec, shape=shape, i0=i0, rikeys=['nb'],
                                 normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
         # alternative key for range specification
@@ -146,12 +146,12 @@ class ParseWeightsTest(unittest.TestCase):
         ww = oo.parse_weights(self.wspec, refdata=data, rfkeys=['eV'],
                                 normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
-        
+
     def test_parse_weights_list_of_weights(self):
         altdata = """subweights: [1., 1., 2., 3., 5., 3., 2., 1., 1.]
             """
-        wspec = yaml.load(altdata)['subweights']
-        expected = yaml.load(altdata)['subweights']
+        wspec = yaml.safe_load(altdata)['subweights']
+        expected = yaml.safe_load(altdata)['subweights']
         ww = oo.parse_weights(wspec, nn=len(wspec), normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
 
@@ -240,7 +240,7 @@ class ObjectiveRefDataTest(unittest.TestCase):
                 'loader_args': {'unpack':True} }
         res = oo.get_refdata(ref_input)
         nptest.assert_array_equal(res, exp, verbose=True)
-        
+
     def test_process(self):
         """Can we handle file data and post-process it?"""
         ref_input = {'file': './reference_data/refdata_example.dat',
@@ -308,7 +308,7 @@ class GetSubsetIndTest(unittest.TestCase):
 
     def test_singlerange(self):
         """Check we get an index array from multiple ranges"""
-        rangespec = yaml.load("""range: [ 1, 3, [4, 6], 8]""")['range']
+        rangespec = yaml.safe_load("""range: [ 1, 3, [4, 6], 8]""")['range']
         expected = np.array([0, 2, 3, 4, 5, 7])
         result = oo.get_subset_ind(rangespec)
         nptest.assert_array_equal(result, expected, verbose=True)
@@ -387,7 +387,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         """
         dat = 1.2
         ow  = 1.
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         que = 'band_gap'
         ref = 1.12
         www = 3.0
@@ -417,25 +417,25 @@ class ObjectiveTypesTest(unittest.TestCase):
         yamldata = """objectives:
             - Etot(Vol):
                 doc: 'Energy-Volume dependnce of Wurtziteac structure'
-                models: GaN-W-ac 
+                models: GaN-W-ac
                 ref: [-20.236, -21.099, -21.829, -22.45, -22.967,
-                    -23.387, -23.719, -23.974, 
+                    -23.387, -23.719, -23.974,
                     -24.158, -24.278, -24.304, -24.348, -24.309,
-                    -24.228, -24.11 , -23.952, 
+                    -24.228, -24.11 , -23.952,
                     -23.769, -23.559, -23.328, -23.076, -22.809]
                 options:
                     subweights: [1,1,1,1,1, 2,2,2, 3,3,3,3,3, 2,2,2, 1,1,1,1,1]
         """
         data = [-20.24,-21.1,-21.83,-22.45,-22.97,
             -23.4,-23.72,-23.97,
-            -24.2,-24.3,-24.3,-24.35,-24.31, 
+            -24.2,-24.3,-24.3,-24.35,-24.31,
             -24.23,-24.11,-23.9,
             -23.77,-23.56,-23.3,-23.1,-22.8]
         logger.info(data)
         que = 'Etot(Vol)'
         ref = [-20.236, -21.099, -21.829, -22.45,-22.967,
                     -23.387, -23.719, -23.974,
-                    -24.158, -24.278, -24.304,  -24.348, -24.309, 
+                    -24.158, -24.278, -24.304,  -24.348, -24.309,
                     -24.228, -24.11,  -23.952,
                     -23.769, -23.559, -23.328,  -23.076, -22.809]
         sbw = [1,1,1,1,1, 2,2,2, 3,3,3,3,3, 2,2,2, 1,1,1,1,1]
@@ -446,7 +446,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         database.update(model)
         modeldb = database.get(model)
         # check declaration
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         logger.info(spec)
         objv = oo.get_objective(spec)
         self.assertEqual(objv.model_names, model)
@@ -474,7 +474,7 @@ class ObjectiveTypesTest(unittest.TestCase):
                     normalise: false
                     subweights: [1., 3., 1.,]
         """
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         que = 'Etot'
         ref = [23., 10, 15.]
         mnm = ['Si/scc-1', 'Si/scc', 'Si/scc+1',]
@@ -487,7 +487,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
         self.assertEqual(objv.query_key, que)
-        # set data base: 
+        # set data base:
         # could be done either before or after declaration
         database = Database()
         database.update('Si/scc-1')
@@ -509,9 +509,9 @@ class ObjectiveTypesTest(unittest.TestCase):
             - meff:
                 doc: Effective masses, Si
                 models: Si/bs
-                ref: 
+                ref:
                     file: ./reference_data/meff-Si.dat
-                    loader_args: 
+                    loader_args:
                         dtype:
                         # NOTABENE: yaml cannot read in tuples, so we must
                         #           use the dictionary formulation of dtype
@@ -519,14 +519,14 @@ class ObjectiveTypesTest(unittest.TestCase):
                             formats: ['S15', 'float']
                 options:
                     normalise: false
-                    subweights: 
+                    subweights:
                         # consider only a couple of entries from available data
                         dflt: 0.
                         me_GX_0: 2.
                         mh_GX_0: 1.
                 weight: 1.5
         """
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         que = 'meff'
         # NOTABENE: order here must coincide with order in ref:file
         ref = np.array([('me_GX_0', 0.916), ('mh_GX_0', -0.276)],
@@ -547,7 +547,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
         self.assertEqual(objv.query_key, ['me_GX_0', 'mh_GX_0'])
         self.assertEqual(objv.objtype, 'keyval_pairs')
-        # set data base: 
+        # set data base:
         # could be done either before or after declaration
         database = Database()
         dat = [0.9, -0.5, 1.2]
@@ -568,14 +568,14 @@ class ObjectiveTypesTest(unittest.TestCase):
         yamldata = """objectives:
             - Etot:
                 doc: "heat of formation, SiO2"
-                models: 
+                models:
                     - [SiO2-quartz/scc, 1.]
-                    - [Si/scc, -0.5] 
+                    - [Si/scc, -0.5]
                     - [O2/scc, -1]
-                ref: 1.8 
+                ref: 1.8
                 weight: 1.2
         """
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         que = 'Etot'
         ref = spec[que]['ref']
         doc = spec[que]['doc']
@@ -583,7 +583,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         mnm = [m[0] for m in spec[que]['models']]
         mww = np.asarray([m[1] for m in spec[que]['models']])
         subw = 1.
-        # set data base: 
+        # set data base:
         # could be done either before or after declaration
         database = Database()
         # check declaration
@@ -609,14 +609,14 @@ class ObjectiveTypesTest(unittest.TestCase):
     def test_objtype_bands(self):
         """Can we create objective from spec for bands?"""
         yamldata = """objectives:
-            - bands: 
+            - bands:
                 doc: Valence Band, Si
                 models: Si/bs
-                ref: 
-                    file: ./reference_data/fakebands.dat 
+                ref:
+                    file: ./reference_data/fakebands.dat
                     loader_args: {unpack: True}
                     process:       # eliminate unused columns, like k-pt enumeration
-                        # indexes and ranges below refer to file, not array, 
+                        # indexes and ranges below refer to file, not array,
                         # i.e. independent of 'unpack' loader argument
                         rm_columns: 1                # filter k-point enumeration, and bands, potentially
                         # rm_rows   : [[18,36], [1,4]] # filter k-points if needed for some reason
@@ -629,13 +629,13 @@ class ObjectiveTypesTest(unittest.TestCase):
                     align_ref: [3, max]              # fortran-style index of band and k-point,
                     align_model: [3, max]            # or a function (e.g. min, max) instead of k-point
                     normalise: false
-                    subweights: 
+                    subweights:
                         # NOTABENE:
                         # --------------------------------------------------
                         # Energy values are with respect to the ALIGNEMENT.
                         # If we want to have the reference  band index as zero,
-                        # we would have to do tricks with the range specification 
-                        # behind the curtain, to allow both positive and negative 
+                        # we would have to do tricks with the range specification
+                        # behind the curtain, to allow both positive and negative
                         # band indexes, e.g. [-3, 0], INCLUSIVE of either boundary.
                         # Currently this is not done, so only standard Fortran
                         # range spec is supported. Therefore, band 1 is always
@@ -651,7 +651,7 @@ class ObjectiveTypesTest(unittest.TestCase):
                         # not supported yet     ipoint:
                 weight: 1.0
             """
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         que  = 'bands'
         doc  = spec[que]['doc']
         model  = 'Si/bs'
@@ -698,7 +698,7 @@ class SetObjectivesTest(unittest.TestCase):
         """Can we create a number of objectives from input spec?"""
         with open("test_objectives.yaml", 'r') as ff:
             try:
-                spec = yaml.load(ff)['objectives']
+                spec = yaml.safe_load(ff)['objectives']
             except yaml.YAMLError as exc:
                 logger.debug (exc)
         objectives = oo.set_objectives(spec)
@@ -722,7 +722,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
         database.update('A')
         db = database.get('A')
         # declaration of objective
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
         # evaluate
         db['item'] = 1.2
@@ -749,7 +749,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
         database.update('B', db2)
         database.update('C', db3)
         # declaration of objective
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
         # evaluate
         self.assertAlmostEqual(1.4142135623730951, objv(database))
@@ -757,9 +757,9 @@ class EvaluateObjectivesTest(unittest.TestCase):
     def test_evaluate_bands(self):
         """Can we evaluate value-type objective of type bands (2D array)"""
         yamldata = """objectives:
-            - bands: 
+            - bands:
                 models: A
-                ref: 
+                ref:
                     file: ./reference_data/fakebands.dat
                     loader_args: {unpack: False}
                     process:
@@ -771,7 +771,7 @@ class EvaluateObjectivesTest(unittest.TestCase):
         database.update('A')
         db1 = database.get('A')
         # declaration of objective
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.safe_load(yamldata)['objectives'][0]
         objv = oo.get_objective(spec)
         self.assertAlmostEqual(1., np.sum(objv.subweights))
         #logger.debug(objv.ref_data)
@@ -785,4 +785,3 @@ class EvaluateObjectivesTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

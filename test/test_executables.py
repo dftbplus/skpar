@@ -18,7 +18,7 @@ class ExecutablesTest(unittest.TestCase):
             lammps: mpirun -n 4 lmp_mpi
             bands: dp_bands band.out bands
         """
-        exedict = yaml.load(yamldata).get('executables', None)
+        exedict = yaml.safe_load(yamldata).get('executables', None)
         try:
             for key, val in exedict.items():
                 logger.debug ("{:>10s} : {}".format(key, " ".join(val.split())))

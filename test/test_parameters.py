@@ -25,7 +25,7 @@ class ParametersTest(unittest.TestCase):
             - rc_O_sp:  1.5 4
             - ep_O_sp:  8 i
             """
-        spec = yaml.load(yamldata)['parameters']
+        spec = yaml.safe_load(yamldata)['parameters']
         logging.debug(spec)
         params = get_parameters(spec)
         self.assertEqual(len(params), 4)
@@ -59,7 +59,7 @@ class TemplateTest(unittest.TestCase):
             - Bear : 27
             - Fear
             """
-        spec = yaml.load(yamldata)['parameters']
+        spec = yaml.safe_load(yamldata)['parameters']
         logging.debug(spec)
         params = get_parameters(spec)
         pardict = dict([(p.name, p.value) for p in params])
@@ -130,4 +130,3 @@ class UpdateParametersTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
