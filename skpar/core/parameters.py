@@ -21,7 +21,8 @@ The following assumptions are made:
 import os.path
 from skpar.core.utils import get_logger
 
-LOGGER = get_logger('__name__')
+LOGGER = get_logger("__name__")
+
 
 def get_parameters(userinp):
     """Parse user input for definitions of parameters.
@@ -35,18 +36,28 @@ def get_parameters(userinp):
             # Due to yaml/json representation, each parameter definition is a
             # dictionary on its own, with one item. Using (key, val), we
             # extract the one and only item in this dict.
-            (pname, pdef), = pardef.items()
+            ((pname, pdef),) = pardef.items()
         except AttributeError:
             # pardef cannot be itemised => assume just pname
             pname = pardef
             pdef = ""
         try:
-            parstring = " ".join([pname,] + pdef.split())
+            parstring = " ".join(
+                [
+                    pname,
+                ]
+                + pdef.split()
+            )
         except AttributeError:
             # pdef turns out to not be a string
             try:
                 # assume it is a list of floats
-                parstring = " ".join([pname,] + ["{}".format(v) for v in pdef])
+                parstring = " ".join(
+                    [
+                        pname,
+                    ]
+                    + ["{}".format(v) for v in pdef]
+                )
             except TypeError:
                 # pdef not iterable; assume it is a single float
                 parstring = " ".join([pname, str(pdef)])
@@ -54,6 +65,7 @@ def get_parameters(userinp):
         newpar = Parameter(parstring)
         params.append(newpar)
     return params
+
 
 class Parameter(object):
     """
@@ -66,20 +78,21 @@ class Parameter(object):
 
     ParameterName must be alphanumeric, allowing _ too.
     Iinit/Min/MaxValue can be integer or float
-    ParameterType is optional (float by default), and indicated 
+    ParameterType is optional (float by default), and indicated
     by either 'i'(int) or 'f'(float)
     White space separation is mandatory.
     """
+
     # permitted parameter types
-    typedict = {'i': int, 'f': float}
+    typedict = {"i": int, "f": float}
 
     def __init_from_kwargs(self, name, **kwargs):
         """
-        Look for one obligatory argument -- name, and 
+        Look for one obligatory argument -- name, and
         the rest is optional.
         """
         self.name = name
-        for key in ['value', 'minv', 'maxv']:
+        for key in ["value", "minv", "maxv"]:
             _val = kwargs.get(key, None)
             setattr(self, key, _val)
 
@@ -111,37 +124,43 @@ class Parameter(object):
             except ValueError:
                 try:
                     self.minv, self.maxv = list(map(self.ptype, floats))
-                    self.value = 0.
+                    self.value = 0.0
                 except ValueError:
                     # note at this stage value is a single item, not a list
                     self.value = list(map(self.ptype, floats))[0]
                     self.minv = None
                     self.maxv = None
                 except:
-                    print ("Parameter string not understood: {}".format(parstring))
+                    print("Parameter string not understood: {}".format(parstring))
             except:
-                print ("Parameter string not understood: {}".format(parstring))
+                print("Parameter string not understood: {}".format(parstring))
         else:
             self.ptype = float
-            self.name  = words[0]
+            self.name = words[0]
             self.value = None
-            self.minv  = None
-            self.maxv  = None
+            self.minv = None
+            self.maxv = None
 
     def __init__(self, string, **kwargs):
         """wrapper init method
 
         The whole thing became patchy. It needs a careful revision.
         """
-        if string.split() == [string,] and kwargs:
+        if (
+            string.split()
+            == [
+                string,
+            ]
+            and kwargs
+        ):
             self.__init_from_kwargs(string, **kwargs)
         else:
             self.__init_from_string(string)
 
     def __repr__(self):
-        return "Parameter {name} = {val}, range=[{minv},{maxv}]".\
-            format(name=self.name, val=self.value,
-                   minv=self.minv, maxv=self.maxv)
+        return "Parameter {name} = {val}, range=[{minv},{maxv}]".format(
+            name=self.name, val=self.value, minv=self.minv, maxv=self.maxv
+        )
 
 
 def substitute_template(parameters, parnames, templatefile, resultfile):
@@ -155,15 +174,14 @@ def substitute_template(parameters, parnames, templatefile, resultfile):
         templatefile (str): Name of template file with substitution patterns.
         resultfile (str): Name of file to contain the substituted result.
     """
-    with open(templatefile, 'r') as fin:
+    with open(templatefile, "r") as fin:
         template = fin.read()
     try:
         pardict = dict([(p.name, p.value) for p in parameters])
     except AttributeError:
-        pardict = dict([(name, val)
-                        for (name, val) in zip(parnames, parameters)])
+        pardict = dict([(name, val) for (name, val) in zip(parnames, parameters)])
     updated = update_template(template, pardict)
-    with open(resultfile, 'w') as fout:
+    with open(resultfile, "w") as fout:
         fout.write(updated)
 
 
@@ -196,10 +214,12 @@ def update_parameters(workroot, templates, parameters, parnames=None):
     """
     # Overwrite parnames with the names of the parameter objects, if available
     try:
-        parnames = [p.name  for p in parameters]
+        parnames = [p.name for p in parameters]
     except AttributeError:
         # parameters is a list of floats; double check!
-        assert all([isinstance(p, (float, int)) for p in parameters]), "{}".format(parameters)
+        assert all([isinstance(p, (float, int)) for p in parameters]), "{}".format(
+            parameters
+        )
         # test consistency if parnames is given (may be None)
         if parnames is not None:
             assert len(parameters) == len(parnames)
@@ -222,6 +242,6 @@ def update_parameters(workroot, templates, parameters, parnames=None):
             assert parnames is not None
             fin = os.path.normpath(os.path.join(workroot, ftempl))
             path, templname = os.path.split(fin)
-            name = templname.replace('template.', '')
+            name = templname.replace("template.", "")
             fout = os.path.join(path, name)
             substitute_template(parvalues, parnames, fin, fout)

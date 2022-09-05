@@ -49,29 +49,32 @@ from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
+
 def import_taskdict(modname):
     """Import user module and return its name and TASKDICT"""
     try:
         mod = import_module(modname)
     except (ImportError, ModuleNotFoundError):
-        LOGGER.critical('Module %s not found. '
-                        'Check it is along PYTHONPATH', modname)
+        LOGGER.critical("Module %s not found. " "Check it is along PYTHONPATH", modname)
         raise
     try:
-        modtd = getattr(mod, 'TASKDICT')
+        modtd = getattr(mod, "TASKDICT")
     except AttributeError:
-        LOGGER.critical('Module %s has no TASKDICT; '
-                        'Please, remove it from input, to continue.',
-                        mod.__name__)
+        LOGGER.critical(
+            "Module %s has no TASKDICT; " "Please, remove it from input, to continue.",
+            mod.__name__,
+        )
         raise
     return mod.__name__, modtd
+
 
 def tag_dictkeys(tag, dictionary):
     """Return the dictionary with tagged keys of the form 'tag.key'"""
     tagged = {}
     for key, val in dictionary.items():
-        tagged[tag+'.'+key] = val
+        tagged[tag + "." + key] = val
     return tagged
+
 
 def update_taskdict(taskdict, userinp):
     """Update taskdict with tasks from modules described in user input.
@@ -118,8 +121,9 @@ def update_taskdict(taskdict, userinp):
                     try:
                         taskdict[key] = modtd[key]
                     except KeyError:
-                        LOGGER.critical("Task name %s not in %s's TASKDICT",
-                                        key, modname)
+                        LOGGER.critical(
+                            "Task name %s not in %s's TASKDICT", key, modname
+                        )
                         raise
             else:
                 # alias the module name

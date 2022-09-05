@@ -6,57 +6,59 @@ import yaml
 from skpar.core import objectives as oo
 from skpar.core.database import Database, Query
 from skpar.core.evaluate import relerr
-np.set_printoptions(precision=3, formatter={'float_kind':lambda x: "%.2f" % x})
+
+np.set_printoptions(precision=3, formatter={"float_kind": lambda x: "%.2f" % x})
 
 logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(format='%(message)s')
+logging.basicConfig(format="%(message)s")
 logger = logging.getLogger(__name__)
 
 
 class ParseWeightsKeyValueTest(unittest.TestCase):
-    """Check correct parsing of key-value type of weight spec.
-    """
+    """Check correct parsing of key-value type of weight spec."""
+
     filedata = {
-            'mh_GX_0': -0.27600000000000002,
-            'mh_GK_0': -0.57899999999999996,
-            'mh_GL_0': -0.73799999999999999,
-            'mh_GX_2': -0.20399999999999999,
-            'mh_GK_2': -0.14699999999999999,
-            'mh_GL_2': -0.13900000000000001,
-            'mh_GX_4': -0.23400000000000001,
-            'mh_GK_4': -0.23400000000000001,
-            'mh_GL_4': -0.23400000000000001,
-            'me_GX_0': 0.91600000000000004,}
-    dtype = [('keys','S15'), ('values','float')]
-    data = np.array([(k,v) for k,v in filedata.items()], dtype=dtype)
+        "mh_GX_0": -0.27600000000000002,
+        "mh_GK_0": -0.57899999999999996,
+        "mh_GL_0": -0.73799999999999999,
+        "mh_GX_2": -0.20399999999999999,
+        "mh_GK_2": -0.14699999999999999,
+        "mh_GL_2": -0.13900000000000001,
+        "mh_GX_4": -0.23400000000000001,
+        "mh_GK_4": -0.23400000000000001,
+        "mh_GL_4": -0.23400000000000001,
+        "me_GX_0": 0.91600000000000004,
+    }
+    dtype = [("keys", "S15"), ("values", "float")]
+    data = np.array([(k, v) for k, v in filedata.items()], dtype=dtype)
 
     def test_parse_weights_keyval_array(self):
-        """Check correct parsing of explicit array of weights as spec.
-        """
-        spec = [ 4.,  1.,  1.,  4.,  1.,  1.,  1.,  1.,  1.,  1.]
+        """Check correct parsing of explicit array of weights as spec."""
+        spec = [4.0, 1.0, 1.0, 4.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         expected = np.array(spec)
         ww = oo.parse_weights_keyval(spec, self.data, normalised=False)
         compare = np.all(ww == expected)
-        self.assertTrue(compare) 
-        
+        self.assertTrue(compare)
+
     def test_parse_weights_keyval_keys(self):
-        """Check correct parsing of key:value spec and data.
-        """
-        spec = { 'dflt': 1.,
-                'me_GX_0': 4,
-                'mh_GX_0': 4, }
-        expected = np.ones(len(self.data))*spec.get('dflt', 0)
-        for k,v in spec.items():
-            if k != 'dflt':
-                expected[self.data['keys']==k.encode()]=v
+        """Check correct parsing of key:value spec and data."""
+        spec = {
+            "dflt": 1.0,
+            "me_GX_0": 4,
+            "mh_GX_0": 4,
+        }
+        expected = np.ones(len(self.data)) * spec.get("dflt", 0)
+        for k, v in spec.items():
+            if k != "dflt":
+                expected[self.data["keys"] == k.encode()] = v
         ww = oo.parse_weights_keyval(spec, self.data, normalised=False)
         compare = np.all(ww == expected)
         self.assertTrue(compare)
 
 
 class ParseWeightsTest(unittest.TestCase):
-    """Check  correct parsing of weights with yaml spec.
-    """
+    """Check  correct parsing of weights with yaml spec."""
+
     yamldata = """subweights:
             # indexes and ranges are specified in FORTRAN style
             dflt: 0 # default value of subweights
@@ -78,109 +80,118 @@ class ParseWeightsTest(unittest.TestCase):
                 - [[4, 10], 2.5]
                 - [[2, 5], 3.5]
         """
-    wspec = yaml.load(yamldata)['subweights']
+    wspec = yaml.load(yamldata)["subweights"]
 
     def test_parse_weights_indexes(self):
-        """Can we specify weights by a list of (index, weight) tuples?
-        """
-        dflt = self.wspec.get('dflt', 1.)
+        """Can we specify weights by a list of (index, weight) tuples?"""
+        dflt = self.wspec.get("dflt", 1.0)
         # test weights for a 1D-type of data
-        nn=5
-        expected = np.ones(nn)*dflt
-        expected[0] = 2.
-        expected[3] = 4.
-        expected[1] = 2.
-        ww = oo.parse_weights(self.wspec, nn=nn, ikeys=['indexes'], normalised=False)
+        nn = 5
+        expected = np.ones(nn) * dflt
+        expected[0] = 2.0
+        expected[3] = 4.0
+        expected[1] = 2.0
+        ww = oo.parse_weights(self.wspec, nn=nn, ikeys=["indexes"], normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
 
         # test weights for a 2D-type of data
         shape = (8, 10)
-        expected = np.ones(shape)*dflt
+        expected = np.ones(shape) * dflt
         expected[3, 9] = 2.5
         expected[1, 4] = 3.5
-        ww = oo.parse_weights(self.wspec, shape=shape, ikeys=['Ek'], normalised=False)
+        ww = oo.parse_weights(self.wspec, shape=shape, ikeys=["Ek"], normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
-        
+
     def test_parse_weights_range_of_indexes(self):
-        """Can we specify weights by a list of (index_range, weight) tuples?
-        """
+        """Can we specify weights by a list of (index_range, weight) tuples?"""
         shape = (8, 10)
         # note that counting starts from 0
         i0 = 0
-        dflt = self.wspec.get('dflt', 1.)
-        expected = np.ones(shape)*dflt
-        # note that the spec range is interpreted as **inclusive** 
+        dflt = self.wspec.get("dflt", 1.0)
+        expected = np.ones(shape) * dflt
+        # note that the spec range is interpreted as **inclusive**
         # and has a non-zero reference index (i0)
-        expected[0:4] = 1.
-        expected[2:4] = 2.
+        expected[0:4] = 1.0
+        expected[2:4] = 2.0
         # note here that the lower value is ignored for bands assigned with
         # a higher weight already
         expected[3:5] = 3.5
-        ww = oo.parse_weights(self.wspec, shape=shape, i0=i0, rikeys=['nb'], 
-                                normalised=False)
+        ww = oo.parse_weights(
+            self.wspec, shape=shape, i0=i0, rikeys=["nb"], normalised=False
+        )
         nptest.assert_array_equal(ww, expected, verbose=True)
         # alternative key for range specification
-        expected = np.ones(shape)*dflt
+        expected = np.ones(shape) * dflt
         expected[0:3] = 2
         expected[2:4] = 5
-        ww = oo.parse_weights(self.wspec, shape=shape, rikeys=['ranges'],
-                                normalised=False)
+        ww = oo.parse_weights(
+            self.wspec, shape=shape, rikeys=["ranges"], normalised=False
+        )
         nptest.assert_array_equal(ww, expected, verbose=True)
 
     def test_parse_weights_range_of_values(self):
-        """Check we can specify weights via range of data values.
-        """
+        """Check we can specify weights via range of data values."""
         shape = (5, 5)
         data = np.array(
-                [[ 0.42797684,  0.05719739, -0.06808132, -0.22651268, -0.03900927],
-                [-0.18729846, -0.22162966, -0.09027381,  0.05959901, -0.46305776],
-                [ 0.31494925,  0.23866489,  0.15701333,  0.11416699,  0.06721533],
-                [ 0.45913109,  0.49479448,  0.29115756,  0.46113443, -0.05136717],
-                [-0.28060449, -0.09965275, -0.28691529, -0.10078479,  0.40829291]])
+            [
+                [0.42797684, 0.05719739, -0.06808132, -0.22651268, -0.03900927],
+                [-0.18729846, -0.22162966, -0.09027381, 0.05959901, -0.46305776],
+                [0.31494925, 0.23866489, 0.15701333, 0.11416699, 0.06721533],
+                [0.45913109, 0.49479448, 0.29115756, 0.46113443, -0.05136717],
+                [-0.28060449, -0.09965275, -0.28691529, -0.10078479, 0.40829291],
+            ]
+        )
         expected = np.array(
-                [[ 6.,  0., 4., 0., 4.],
-                [ 0., 0., 4., 0., 0.],
-                [ 6., 6., 0., 0., 0.],
-                [ 6., 6., 6., 6., 4.],
-                [ 0., 4., 0., 0., 6.]])
-        ww = oo.parse_weights(self.wspec, refdata=data, rfkeys=['eV'],
-                                normalised=False)
+            [
+                [6.0, 0.0, 4.0, 0.0, 4.0],
+                [0.0, 0.0, 4.0, 0.0, 0.0],
+                [6.0, 6.0, 0.0, 0.0, 0.0],
+                [6.0, 6.0, 6.0, 6.0, 4.0],
+                [0.0, 4.0, 0.0, 0.0, 6.0],
+            ]
+        )
+        ww = oo.parse_weights(self.wspec, refdata=data, rfkeys=["eV"], normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
-        
+
     def test_parse_weights_list_of_weights(self):
         altdata = """subweights: [1., 1., 2., 3., 5., 3., 2., 1., 1.]
             """
-        wspec = yaml.load(altdata)['subweights']
-        expected = yaml.load(altdata)['subweights']
+        wspec = yaml.load(altdata)["subweights"]
+        expected = yaml.load(altdata)["subweights"]
         ww = oo.parse_weights(wspec, nn=len(wspec), normalised=False)
         nptest.assert_array_equal(ww, expected, verbose=True)
 
 
 class GetModelsTest(unittest.TestCase):
-    """Check if model names and weights are parsed correctly.
-    """
+    """Check if model names and weights are parsed correctly."""
+
     def test_get_models_str(self):
-        """Can we get model name and weight of 1. from single string?
-        """
-        mm = 'Si/bs'
-        expected = ('Si/bs', 1.0)
+        """Can we get model name and weight of 1. from single string?"""
+        mm = "Si/bs"
+        expected = ("Si/bs", 1.0)
         models = oo.get_models(mm)
         self.assertSequenceEqual(models, expected)
 
     def test_get_models_list_of_str(self):
-        """Can we get model names and weights of 1. from a list of string?
-        """
-        mm = ['Si/scc-3', 'Si/scc-2', 'Si/scc-1', 'Si', 'Si/scc+1', 'Si/scc+2', 'Si/scc+3']
+        """Can we get model names and weights of 1. from a list of string?"""
+        mm = [
+            "Si/scc-3",
+            "Si/scc-2",
+            "Si/scc-1",
+            "Si",
+            "Si/scc+1",
+            "Si/scc+2",
+            "Si/scc+3",
+        ]
         mm_names = mm
-        mm_weights = [1.]*len(mm)
+        mm_weights = [1.0] * len(mm)
         expected = (mm_names, mm_weights)
         models = oo.get_models(mm)
         self.assertSequenceEqual(models, expected)
 
     def test_get_models_list_of_mw_tupples(self):
-        """Can we get model names and weights from a list of (model_name,weight) tuples?
-        """
-        mm = [['SiO2-quartz/scc', 1.0], ['Si/scc', -0.5], ['O2/scc', -1]]
+        """Can we get model names and weights from a list of (model_name,weight) tuples?"""
+        mm = [["SiO2-quartz/scc", 1.0], ["Si/scc", -0.5], ["O2/scc", -1]]
         mm_names = [m[0] for m in mm]
         mm_weights = [m[1] for m in mm]
         expected = (mm_names, mm_weights)
@@ -194,7 +205,11 @@ class ObjectiveRefDataTest(unittest.TestCase):
     def test_value(self):
         """Can we handle a single value and return an array with (1,) shape?"""
         ref_input = 42
-        expected = np.array([ref_input,])
+        expected = np.array(
+            [
+                ref_input,
+            ]
+        )
         result = oo.get_refdata(ref_input)
         self.assertEqual(result.shape, (1,))
         nptest.assert_array_equal(result, expected, verbose=True)
@@ -212,47 +227,58 @@ class ObjectiveRefDataTest(unittest.TestCase):
         result = oo.get_refdata(ref_input)
         nptest.assert_array_equal(result, expected, verbose=True)
         # try 2D array
-        ref_input = np.array([1, 11, 42, 54, 3, 33]).reshape((2,3))
+        ref_input = np.array([1, 11, 42, 54, 3, 33]).reshape((2, 3))
         expected = ref_input
         result = oo.get_refdata(ref_input)
         nptest.assert_array_equal(result, expected, verbose=True)
 
     def test_keyvalue_pairs(self):
         """Can we handle a dictionary with key-value pairs of data and return structured array?"""
-        ref_input = { 'ab': 7, 'cd': 8 }
+        ref_input = {"ab": 7, "cd": 8}
         expected = np.array
-        dtype = [('keys','S15'), ('values','float')]
-        exp = np.array([(k,v) for k,v in ref_input.items()], dtype=dtype)
+        dtype = [("keys", "S15"), ("values", "float")]
+        exp = np.array([(k, v) for k, v in ref_input.items()], dtype=dtype)
         res = oo.get_refdata(ref_input)
         nptest.assert_array_equal(res, exp, verbose=True)
 
     def test_file(self):
         """Can we handle dictionary spec with 'file:' item and read from file?"""
-        ref_input = {'file': './reference_data/refdata_example.dat',
-                'loader_args': {'unpack':False} }
-        shape = (7, 10) # expect 7-row, 10-col data
-        exp = np.array(list(range(shape[1]))*shape[0]).reshape(*shape)
+        ref_input = {
+            "file": "./reference_data/refdata_example.dat",
+            "loader_args": {"unpack": False},
+        }
+        shape = (7, 10)  # expect 7-row, 10-col data
+        exp = np.array(list(range(shape[1])) * shape[0]).reshape(*shape)
         res = oo.get_refdata(ref_input)
         nptest.assert_array_equal(res, exp, verbose=True)
         # check default unpack works
         exp = np.transpose(exp)
-        ref_input = {'file': './reference_data/refdata_example.dat',
-                'loader_args': {'unpack':True} }
+        ref_input = {
+            "file": "./reference_data/refdata_example.dat",
+            "loader_args": {"unpack": True},
+        }
         res = oo.get_refdata(ref_input)
         nptest.assert_array_equal(res, exp, verbose=True)
-        
+
     def test_process(self):
         """Can we handle file data and post-process it?"""
-        ref_input = {'file': './reference_data/refdata_example.dat',
-                     'loader_args': {'unpack':False} ,
-                     'process': {'scale': 2.,
-                                 'rm_columns': [1, [2, 4],],
-                                 'rm_rows': [1, 3, [5,7]]}}
-        shape = (7, 10) # expect 7-row, 10-col data
-        exp = np.array(list(range(shape[1]))*shape[0]).reshape(*shape)
+        ref_input = {
+            "file": "./reference_data/refdata_example.dat",
+            "loader_args": {"unpack": False},
+            "process": {
+                "scale": 2.0,
+                "rm_columns": [
+                    1,
+                    [2, 4],
+                ],
+                "rm_rows": [1, 3, [5, 7]],
+            },
+        }
+        shape = (7, 10)  # expect 7-row, 10-col data
+        exp = np.array(list(range(shape[1])) * shape[0]).reshape(*shape)
         exp = np.delete(exp, obj=[0, 2, 4, 5, 6], axis=0)
         exp = np.delete(exp, obj=[0, 1, 2, 3], axis=1)
-        exp = exp * 2.
+        exp = exp * 2.0
         res = oo.get_refdata(ref_input)
         nptest.assert_array_equal(res, exp, verbose=True)
 
@@ -262,43 +288,43 @@ class GetRangesTest(unittest.TestCase):
 
     def test_f2prange_single(self):
         """Check fortran to python range conversion for 1-wide range"""
-        rng = (2,2)
-        expected = (1,2)
+        rng = (2, 2)
+        expected = (1, 2)
         result = oo.f2prange(rng)
         self.assertEqual(result, expected)
 
     def test_f2prange_wide(self):
         """Check fortran to python range conversion for wide range"""
-        rng = (2,20)
-        expected = (1,20)
+        rng = (2, 20)
+        expected = (1, 20)
         result = oo.f2prange(rng)
         self.assertEqual(result, expected)
 
     def test_getranges_singleindex(self):
         """Can we translate single index to python range spec?"""
         data = 42
-        exp = [(41,42)]
+        exp = [(41, 42)]
         res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
     def test_getranges_listofindexes(self):
         """Can we translate list of indexes to python range spec?"""
         data = [42, 33, 1, 50]
-        exp = [(41,42), (32,33), (0,1), (49,50)]
+        exp = [(41, 42), (32, 33), (0, 1), (49, 50)]
         res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
     def test_getranges_listofranges(self):
         """Can we translate list of ranges to python range spec?"""
         data = [[3, 33], [1, 50]]
-        exp = [(2,33), (0,50)]
+        exp = [(2, 33), (0, 50)]
         res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
     def test_get_ranges_mix_indexesandranges(self):
         """Can we translate list of ranges to python range spec?"""
         data = [7, 42, [3, 33], [1, 50], 5]
-        exp = [(6, 7), (41,42), (2,33), (0,50), (4,5)]
+        exp = [(6, 7), (41, 42), (2, 33), (0, 50), (4, 5)]
         res = oo.get_ranges(data)
         self.assertEqual(res, exp, msg="r:{}, e:{}".format(res, exp))
 
@@ -308,7 +334,7 @@ class GetSubsetIndTest(unittest.TestCase):
 
     def test_singlerange(self):
         """Check we get an index array from multiple ranges"""
-        rangespec = yaml.load("""range: [ 1, 3, [4, 6], 8]""")['range']
+        rangespec = yaml.load("""range: [ 1, 3, [4, 6], 8]""")["range"]
         expected = np.array([0, 2, 3, 4, 5, 7])
         result = oo.get_subset_ind(rangespec)
         nptest.assert_array_equal(result, expected, verbose=True)
@@ -321,16 +347,16 @@ class GetObjTypeTest(unittest.TestCase):
         """Can we try to guess, fail, and return default?"""
         nmod = 1
         ref = np.random.rand((1))
-        objtype = oo.get_type(nmod, ref, dflt_type='unknown')
-        self.assertEqual(objtype, 'unknown')
+        objtype = oo.get_type(nmod, ref, dflt_type="unknown")
+        self.assertEqual(objtype, "unknown")
         nmod = 1
         ref = np.random.rand((1))
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'values')
+        self.assertEqual(objtype, "values")
         nmod = 3
         ref = np.random.rand((3))
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'values')
+        self.assertEqual(objtype, "values")
 
     def test_getobjtype_values(self):
         """Can we guess objective is of type 'values'?"""
@@ -338,39 +364,40 @@ class GetObjTypeTest(unittest.TestCase):
         nmod = 1
         ref = np.random.rand(1)
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'values')
+        self.assertEqual(objtype, "values")
         # many models, as many values
         nmod = 3
         ref = np.random.rand(3)
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'values')
+        self.assertEqual(objtype, "values")
 
     def test_getobjtype_keyvaluepairs(self):
         """Can we guess objective is of type 'keyvalpairs'?"""
         nmod = 1
         filedata = {
-            'mh_GX_0': -0.27600000000000002,
-            'mh_GK_0': -0.57899999999999996,
-            'mh_GL_0': -0.73799999999999999,
-           'me_GX_0': 0.91600000000000004,}
-        dtype = [('keys','S15'), ('values','float')]
-        ref = np.array([(k,v) for k,v in filedata.items()], dtype=dtype)
+            "mh_GX_0": -0.27600000000000002,
+            "mh_GK_0": -0.57899999999999996,
+            "mh_GL_0": -0.73799999999999999,
+            "me_GX_0": 0.91600000000000004,
+        }
+        dtype = [("keys", "S15"), ("values", "float")]
+        ref = np.array([(k, v) for k, v in filedata.items()], dtype=dtype)
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'keyval_pairs')
+        self.assertEqual(objtype, "keyval_pairs")
 
     def test_getobjtype_weightedsum(self):
         """Can we guess objective is of type 'weighted_sum'?"""
         nmod = 5
         ref = np.random.rand(1)
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'weighted_sum')
+        self.assertEqual(objtype, "weighted_sum")
 
     def test_getobjtype_bands(self):
         """Can we guess objective is of type 'bands'?"""
         nmod = 1
         ref = np.random.rand(3, 9)
         objtype = oo.get_type(nmod, ref)
-        self.assertEqual(objtype, 'bands')
+        self.assertEqual(objtype, "bands")
 
 
 class ObjectiveTypesTest(unittest.TestCase):
@@ -386,19 +413,19 @@ class ObjectiveTypesTest(unittest.TestCase):
                 weight: 3.0
         """
         dat = 1.2
-        ow  = 1.
-        spec = yaml.load(yamldata)['objectives'][0]
-        que = 'band_gap'
+        ow = 1.0
+        spec = yaml.load(yamldata)["objectives"][0]
+        que = "band_gap"
         ref = 1.12
         www = 3.0
-        mnm = 'Si/bs'
+        mnm = "Si/bs"
         # set data base
         database = Database()
-        database.update('Si/bs')
-        modeldb = database.get('Si/bs')
+        database.update("Si/bs")
+        modeldb = database.get("Si/bs")
         # check declaration
         objv = oo.get_objective(spec)
-        self.assertEqual(objv.objtype, 'values')
+        self.assertEqual(objv.objtype, "values")
         self.assertEqual(objv.model_names, mnm)
         self.assertEqual(objv.model_weights, ow)
         self.assertEqual(objv.weight, www)
@@ -406,7 +433,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         self.assertEqual(objv.subweights, ow)
         self.assertEqual(objv.query_key, que)
         # check __call__()
-        modeldb['band_gap'] = dat
+        modeldb["band_gap"] = dat
         mdat, rdat, weights = objv.get(database)
         self.assertEqual(mdat, dat)
         self.assertEqual(rdat, ref)
@@ -426,36 +453,72 @@ class ObjectiveTypesTest(unittest.TestCase):
                 options:
                     subweights: [1,1,1,1,1, 2,2,2, 3,3,3,3,3, 2,2,2, 1,1,1,1,1]
         """
-        data = [-20.24,-21.1,-21.83,-22.45,-22.97,
-            -23.4,-23.72,-23.97,
-            -24.2,-24.3,-24.3,-24.35,-24.31, 
-            -24.23,-24.11,-23.9,
-            -23.77,-23.56,-23.3,-23.1,-22.8]
+        data = [
+            -20.24,
+            -21.1,
+            -21.83,
+            -22.45,
+            -22.97,
+            -23.4,
+            -23.72,
+            -23.97,
+            -24.2,
+            -24.3,
+            -24.3,
+            -24.35,
+            -24.31,
+            -24.23,
+            -24.11,
+            -23.9,
+            -23.77,
+            -23.56,
+            -23.3,
+            -23.1,
+            -22.8,
+        ]
         logger.info(data)
-        que = 'Etot(Vol)'
-        ref = [-20.236, -21.099, -21.829, -22.45,-22.967,
-                    -23.387, -23.719, -23.974,
-                    -24.158, -24.278, -24.304,  -24.348, -24.309, 
-                    -24.228, -24.11,  -23.952,
-                    -23.769, -23.559, -23.328,  -23.076, -22.809]
-        sbw = [1,1,1,1,1, 2,2,2, 3,3,3,3,3, 2,2,2, 1,1,1,1,1]
-        sbw = np.asarray(sbw)/np.sum(sbw) # normalise
-        model = 'GaN-W-ac'
+        que = "Etot(Vol)"
+        ref = [
+            -20.236,
+            -21.099,
+            -21.829,
+            -22.45,
+            -22.967,
+            -23.387,
+            -23.719,
+            -23.974,
+            -24.158,
+            -24.278,
+            -24.304,
+            -24.348,
+            -24.309,
+            -24.228,
+            -24.11,
+            -23.952,
+            -23.769,
+            -23.559,
+            -23.328,
+            -23.076,
+            -22.809,
+        ]
+        sbw = [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1]
+        sbw = np.asarray(sbw) / np.sum(sbw)  # normalise
+        model = "GaN-W-ac"
         # set data base
         database = Database()
         database.update(model)
         modeldb = database.get(model)
         # check declaration
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.load(yamldata)["objectives"][0]
         logger.info(spec)
         objv = oo.get_objective(spec)
         self.assertEqual(objv.model_names, model)
-        self.assertEqual(objv.model_weights, 1.)
+        self.assertEqual(objv.model_weights, 1.0)
         self.assertEqual(objv.weight, 1)
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
         nptest.assert_array_equal(objv.subweights, sbw, verbose=True)
         self.assertEqual(objv.query_key, que)
-        self.assertEqual(objv.objtype, 'values')
+        self.assertEqual(objv.objtype, "values")
         # check __call__()
         modeldb[que] = data
         mdata, rdata, weights = objv.get(database)
@@ -474,29 +537,33 @@ class ObjectiveTypesTest(unittest.TestCase):
                     normalise: false
                     subweights: [1., 3., 1.,]
         """
-        spec = yaml.load(yamldata)['objectives'][0]
-        que = 'Etot'
-        ref = [23., 10, 15.]
-        mnm = ['Si/scc-1', 'Si/scc', 'Si/scc+1',]
-        subw = [1., 3., 1.]
+        spec = yaml.load(yamldata)["objectives"][0]
+        que = "Etot"
+        ref = [23.0, 10, 15.0]
+        mnm = [
+            "Si/scc-1",
+            "Si/scc",
+            "Si/scc+1",
+        ]
+        subw = [1.0, 3.0, 1.0]
         # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.model_names, mnm)
         self.assertEqual(objv.weight, 1)
-        nptest.assert_array_equal(objv.model_weights, [1]*3, verbose=True)
+        nptest.assert_array_equal(objv.model_weights, [1] * 3, verbose=True)
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
         self.assertEqual(objv.query_key, que)
-        # set data base: 
+        # set data base:
         # could be done either before or after declaration
         database = Database()
-        database.update('Si/scc-1')
-        database.update('Si/scc')
-        database.update('Si/scc+1')
+        database.update("Si/scc-1")
+        database.update("Si/scc")
+        database.update("Si/scc+1")
         dat = [20, 12, 16]
-        database.update('Si/scc-1', {'Etot': dat[0]})
-        database.update('Si/scc', {'Etot': dat[1]})
-        database.update('Si/scc+1', {'Etot': dat[2]})
+        database.update("Si/scc-1", {"Etot": dat[0]})
+        database.update("Si/scc", {"Etot": dat[1]})
+        database.update("Si/scc+1", {"Etot": dat[2]})
         # check __call__()
         mdat, rdat, weights = objv.get(database)
         nptest.assert_array_equal(mdat, dat, verbose=True)
@@ -526,38 +593,41 @@ class ObjectiveTypesTest(unittest.TestCase):
                         mh_GX_0: 1.
                 weight: 1.5
         """
-        spec = yaml.load(yamldata)['objectives'][0]
-        que = 'meff'
+        spec = yaml.load(yamldata)["objectives"][0]
+        que = "meff"
         # NOTABENE: order here must coincide with order in ref:file
-        ref = np.array([('me_GX_0', 0.916), ('mh_GX_0', -0.276)],
-                       dtype=[('keys', 'S15'), ('values', 'float')])
-        ref = ref['values']
-        subw = np.array([2., 1.])
-        doc = spec[que]['doc']
-        oww = spec[que]['weight']
-        mnm = spec[que]['models']
+        ref = np.array(
+            [("me_GX_0", 0.916), ("mh_GX_0", -0.276)],
+            dtype=[("keys", "S15"), ("values", "float")],
+        )
+        ref = ref["values"]
+        subw = np.array([2.0, 1.0])
+        doc = spec[que]["doc"]
+        oww = spec[que]["weight"]
+        mnm = spec[que]["models"]
         # check declaration
         objv = oo.get_objective(spec)
         logger.debug(objv)
         self.assertEqual(objv.doc, doc)
         self.assertEqual(objv.weight, oww)
         self.assertEqual(objv.model_names, mnm)
-        self.assertEqual(objv.model_weights, 1.)
+        self.assertEqual(objv.model_weights, 1.0)
         nptest.assert_array_equal(objv.ref_data, ref, verbose=True)
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
-        self.assertEqual(objv.query_key, ['me_GX_0', 'mh_GX_0'])
-        self.assertEqual(objv.objtype, 'keyval_pairs')
-        # set data base: 
+        self.assertEqual(objv.query_key, ["me_GX_0", "mh_GX_0"])
+        self.assertEqual(objv.objtype, "keyval_pairs")
+        # set data base:
         # could be done either before or after declaration
         database = Database()
         dat = [0.9, -0.5, 1.2]
-        database.update('Si/bs', {'me_GX_0': dat[0], 'mh_GX_0': dat[1],
-                                     'me_GL_2':dat[2]})
+        database.update(
+            "Si/bs", {"me_GX_0": dat[0], "mh_GX_0": dat[1], "me_GL_2": dat[2]}
+        )
         # check __call__()
         mdat, rdat, weights = objv.get(database)
-        #logger.debug(mdat)
-        #logger.debug(rdat)
-        #logger.debug(weights)
+        # logger.debug(mdat)
+        # logger.debug(rdat)
+        # logger.debug(weights)
         # NOTABENE: order depends on the order in the reference file!!!
         nptest.assert_array_equal(mdat, np.asarray(dat[0:2]), verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
@@ -575,15 +645,15 @@ class ObjectiveTypesTest(unittest.TestCase):
                 ref: 1.8 
                 weight: 1.2
         """
-        spec = yaml.load(yamldata)['objectives'][0]
-        que = 'Etot'
-        ref = spec[que]['ref']
-        doc = spec[que]['doc']
-        oww = spec[que]['weight']
-        mnm = [m[0] for m in spec[que]['models']]
-        mww = np.asarray([m[1] for m in spec[que]['models']])
-        subw = 1.
-        # set data base: 
+        spec = yaml.load(yamldata)["objectives"][0]
+        que = "Etot"
+        ref = spec[que]["ref"]
+        doc = spec[que]["doc"]
+        oww = spec[que]["weight"]
+        mnm = [m[0] for m in spec[que]["models"]]
+        mww = np.asarray([m[1] for m in spec[que]["models"]])
+        subw = 1.0
+        # set data base:
         # could be done either before or after declaration
         database = Database()
         # check declaration
@@ -594,15 +664,17 @@ class ObjectiveTypesTest(unittest.TestCase):
         nptest.assert_array_equal(objv.model_weights, mww, verbose=True)
         self.assertEqual(objv.ref_data, ref)
         self.assertEqual(objv.subweights, subw)
-        self.assertEqual(objv.query_key, 'Etot')
-        self.assertEqual(objv.objtype, 'weighted_sum')
+        self.assertEqual(objv.query_key, "Etot")
+        self.assertEqual(objv.objtype, "weighted_sum")
         dat = [20, 12, 16]
-        database.update('SiO2-quartz/scc', {'Etot': dat[0]})
-        database.update('Si/scc', {'Etot': dat[1]})
-        database.update('O2/scc', {'Etot': dat[2]})
+        database.update("SiO2-quartz/scc", {"Etot": dat[0]})
+        database.update("Si/scc", {"Etot": dat[1]})
+        database.update("O2/scc", {"Etot": dat[2]})
         # check __call__()
         mdat, rdat, weights = objv.get(database)
-        nptest.assert_array_equal(mdat, np.dot(np.asarray(dat), np.asarray(mww)), verbose=True)
+        nptest.assert_array_equal(
+            mdat, np.dot(np.asarray(dat), np.asarray(mww)), verbose=True
+        )
         nptest.assert_array_equal(rdat, ref, verbose=True)
         nptest.assert_array_equal(weights, subw, verbose=True)
 
@@ -651,28 +723,30 @@ class ObjectiveTypesTest(unittest.TestCase):
                         # not supported yet     ipoint:
                 weight: 1.0
             """
-        spec = yaml.load(yamldata)['objectives'][0]
-        que  = 'bands'
-        doc  = spec[que]['doc']
-        model  = 'Si/bs'
+        spec = yaml.load(yamldata)["objectives"][0]
+        que = "bands"
+        doc = spec[que]["doc"]
+        model = "Si/bs"
         mww = [1]
-        oww  = 1
-        ref  = np.loadtxt('reference_data/fakebands.dat', unpack=True)
-        ref  = ref[2:5] # remove 1st col of file(k-pt enum.), consider first 3 bands from 2nd
-        shift = -0.4 # this is the top of the VB (cf: fakebands.dat)
+        oww = 1
+        ref = np.loadtxt("reference_data/fakebands.dat", unpack=True)
+        ref = ref[
+            2:5
+        ]  # remove 1st col of file(k-pt enum.), consider first 3 bands from 2nd
+        shift = -0.4  # this is the top of the VB (cf: fakebands.dat)
         ref -= shift
         shape = ref.shape
         # we have use_model => only a subset of bands is needed
-        subset_ind = np.array([0,1,2])
+        subset_ind = np.array([0, 1, 2])
         # subweights
-        subw  = np.ones(shape)
+        subw = np.ones(shape)
         subw[1:2] = 1.5
         subw[2] = 3.0
         # subweights on value are the last one to be applied
         subw[ref > -0.2] = 3.5
-        subw = subw/np.sum(subw)
+        subw = subw / np.sum(subw)
         database = Database()
-#        # check declaration
+        #        # check declaration
         objv = oo.get_objective(spec)
         self.assertEqual(objv.doc, doc)
         self.assertEqual(objv.query_key, que)
@@ -684,7 +758,7 @@ class ObjectiveTypesTest(unittest.TestCase):
         nptest.assert_array_equal(objv.subweights, subw, verbose=True)
         # check the __call__()
         data = np.loadtxt("reference_data/fakebands-2.dat", unpack=True)
-        database.update('Si/bs', {'bands': data[1:]})
+        database.update("Si/bs", {"bands": data[1:]})
         mdat, rdat, weights = objv.get(database)
         nptest.assert_array_almost_equal(mdat, ref, decimal=2, verbose=True)
         nptest.assert_array_equal(rdat, ref, verbose=True)
@@ -696,15 +770,15 @@ class SetObjectivesTest(unittest.TestCase):
 
     def test_setobjectives(self):
         """Can we create a number of objectives from input spec?"""
-        with open("test_objectives.yaml", 'r') as ff:
+        with open("test_objectives.yaml", "r") as ff:
             try:
-                spec = yaml.load(ff)['objectives']
+                spec = yaml.load(ff)["objectives"]
             except yaml.YAMLError as exc:
-                logger.debug (exc)
+                logger.debug(exc)
         objectives = oo.set_objectives(spec)
         for objv in objectives:
-            #logger.debug ()
-            logger.debug (objv)
+            # logger.debug ()
+            logger.debug(objv)
 
 
 class EvaluateObjectivesTest(unittest.TestCase):
@@ -719,13 +793,13 @@ class EvaluateObjectivesTest(unittest.TestCase):
         """
         # set data base
         database = Database()
-        database.update('A')
-        db = database.get('A')
+        database.update("A")
+        db = database.get("A")
         # declaration of objective
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.load(yamldata)["objectives"][0]
         objv = oo.get_objective(spec)
         # evaluate
-        db['item'] = 1.2
+        db["item"] = 1.2
         self.assertAlmostEqual(0.2, objv(database))
 
     def test_evaluate_multiplemodels_singleitem(self):
@@ -740,16 +814,16 @@ class EvaluateObjectivesTest(unittest.TestCase):
         """
         # set model data
         database = Database()
-        db1 = {'item': 1.0}
-        db2 = {'item': 1.0}
-        db3 = {'item': 1.0}
-        database.update('A', db1)
-        _db = database.get('A')
+        db1 = {"item": 1.0}
+        db2 = {"item": 1.0}
+        db3 = {"item": 1.0}
+        database.update("A", db1)
+        _db = database.get("A")
         self.assertDictEqual(_db, db1)
-        database.update('B', db2)
-        database.update('C', db3)
+        database.update("B", db2)
+        database.update("C", db3)
         # declaration of objective
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.load(yamldata)["objectives"][0]
         objv = oo.get_objective(spec)
         # evaluate
         self.assertAlmostEqual(1.4142135623730951, objv(database))
@@ -768,21 +842,22 @@ class EvaluateObjectivesTest(unittest.TestCase):
         """
         # set model data
         database = Database()
-        database.update('A')
-        db1 = database.get('A')
+        database.update("A")
+        db1 = database.get("A")
         # declaration of objective
-        spec = yaml.load(yamldata)['objectives'][0]
+        spec = yaml.load(yamldata)["objectives"][0]
         objv = oo.get_objective(spec)
-        self.assertAlmostEqual(1., np.sum(objv.subweights))
-        #logger.debug(objv.ref_data)
-        #logger.debug(objv.subweights)
-        db1['bands'] = objv.ref_data * 1.1
-        cost = np.sqrt(np.sum(objv.subweights*relerr(objv.ref_data, db1['bands'])**2))
-        #logger.debug(cost)
+        self.assertAlmostEqual(1.0, np.sum(objv.subweights))
+        # logger.debug(objv.ref_data)
+        # logger.debug(objv.subweights)
+        db1["bands"] = objv.ref_data * 1.1
+        cost = np.sqrt(
+            np.sum(objv.subweights * relerr(objv.ref_data, db1["bands"]) ** 2)
+        )
+        # logger.debug(cost)
         # evaluate
         self.assertAlmostEqual(cost, objv(database))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-

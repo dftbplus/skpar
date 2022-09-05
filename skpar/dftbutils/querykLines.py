@@ -18,27 +18,28 @@ from skpar.dftbutils.lattice import getSymPtLabel
 
 logger = logging.getLogger(__name__)
 
-def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
+
+def get_klines(lattice, hsdfile="dftb_pin.hsd", workdir=None, *args, **kwargs):
     """
-    This routine analyses the KPointsAndWeights stanza in the input file of DFTB+ 
-    (given as an input argument *hsdfile*), and returns the k-path, based on 
+    This routine analyses the KPointsAndWeights stanza in the input file of DFTB+
+    (given as an input argument *hsdfile*), and returns the k-path, based on
     the lattice object (given as an input argument *lattice*).
-    If the file name is not provided, the routine looks in the default 
+    If the file name is not provided, the routine looks in the default
     dftb_pin.hsd, i.e. in the parsed file!
 
     The routine returns a list of tuples (kLines) and a dictionary (kLinesDict)
-    with the symmetry points and indexes of the corresponding k-point in the 
-    output band-structure. 
+    with the symmetry points and indexes of the corresponding k-point in the
+    output band-structure.
 
     kLines is ordered, as per the appearence of symmetry points in the hsd input, e.g.:
 
         * [('L', 0), ('Γ', 50), ('X', 110), ('U', 130), ('K', 131), ('Γ', 181)]
 
     therefore it may contain repetitions (e.g. for 'Γ', in this case).
-    
+
     kLinesDict returns a dictionary of lists, so that there's a single entry for
     non-repetitive k-points, and more than one entries in the list of repetitive
-    symmetry k-points, e.g. (see for 'Γ' above): 
+    symmetry k-points, e.g. (see for 'Γ' above):
 
         * {'X': [110], 'K': [131], 'U': [130], 'L': [0], 'Γ': [50, 181]}
     """
@@ -48,9 +49,9 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
         fhsd = normpath(expanduser(joinpath(workdir, hsdfile)))
     else:
         fhsd = hsdfile
-    with open(fhsd, 'r') as fh:
+    with open(fhsd, "r") as fh:
         for line in fh:
-            if 'KPointsAndWeights = Klines {'.lower() in ' '.join(line.lower().split()):
+            if "KPointsAndWeights = Klines {".lower() in " ".join(line.lower().split()):
                 extraline = next(fh)
                 while not extraline.strip().startswith("}"):
                     # skip over commented line, in case of non-parsed .hsd file
@@ -61,28 +62,33 @@ def get_klines(lattice, hsdfile='dftb_pin.hsd', workdir=None, *args, **kwargs):
                     kLabel = getSymPtLabel(k, lattice)
                     if kLabel:
                         kLines_dftb.append((kLabel, nk))
-                    if len(words)>4 and words[4] == "}":
+                    if len(words) > 4 and words[4] == "}":
                         extraline = "}"
                     else:
                         extraline = next(fh)
 
-    #logger.debug('Parsed {} and obtained:'.format(hsdfile))
+    # logger.debug('Parsed {} and obtained:'.format(hsdfile))
     # At this stage, kLines_dftb contains distances between k points
-    #logger.debug('\tkLines_dftb: {}'.format(kLines_dftb))
+    # logger.debug('\tkLines_dftb: {}'.format(kLines_dftb))
     # Next, we convert it to index, from 0 to nk-1
-    kLines = [(lbl, sum([_dist for (_lbl,_dist) in kLines_dftb[:i+1]])-1) 
-                        for (i,(lbl, dist)) in enumerate(kLines_dftb)]
-    #logger.debug('\tkLines      : {}'.format(kLines))
+    kLines = [
+        (lbl, sum([_dist for (_lbl, _dist) in kLines_dftb[: i + 1]]) - 1)
+        for (i, (lbl, dist)) in enumerate(kLines_dftb)
+    ]
+    # logger.debug('\tkLines      : {}'.format(kLines))
     klbls = set([lbl for (lbl, nn) in kLines])
     kLinesDict = dict.fromkeys(klbls)
     for lbl, nn in kLines:
         if kLinesDict[lbl] is not None:
             kLinesDict[lbl].append(nn)
         else:
-            kLinesDict[lbl] = [nn, ]
-    #logger.debug('\tkLinesDict  : {}'.format(kLinesDict))
+            kLinesDict[lbl] = [
+                nn,
+            ]
+    # logger.debug('\tkLinesDict  : {}'.format(kLinesDict))
     output = kLines, kLinesDict
     return output
+
 
 def greekLabels(kLines):
     """
@@ -99,14 +105,15 @@ def greekLabels(kLines):
     lbls = list(lbls)
 
     for i, lbl in enumerate(lbls):
-        if lbl == 'Gamma':
-            #lbls[i] = r'$\Gamma$'
+        if lbl == "Gamma":
+            # lbls[i] = r'$\Gamma$'
             lbls[i] = "Γ"
     if ixs is not None:
         result = list(zip(lbls, ixs))
     else:
         result = lbls
     return result
+
 
 def get_kvec_abscissa(lat, kLines):
     """Return abscissa values for the reciprocal lengths corresponding
@@ -116,8 +123,8 @@ def get_kvec_abscissa(lat, kLines):
     xt = []
     xl = []
     skipticklabel = False
-    logger.debug('Constructing k-vector abscissa for BS plotting:')
-    logger.debug('kLines:\n{}'.format(kLines))
+    logger.debug("Constructing k-vector abscissa for BS plotting:")
+    logger.debug("kLines:\n{}".format(kLines))
     pos = 0
     xx.append(np.atleast_1d(pos))
     for item1, item2 in zip(kLines[:-1], kLines[1:]):
@@ -126,13 +133,13 @@ def get_kvec_abscissa(lat, kLines):
         l2, i2 = item2
         kp2 = lat.get_kcomp(l2)
         nseg = i2 - i1
-        if l1 == 'Gamma':
-            l1 = 'Γ'
-        if l2 == 'Gamma':
-            l2 = 'Γ'
+        if l1 == "Gamma":
+            l1 = "Γ"
+        if l2 == "Gamma":
+            l2 = "Γ"
         if nseg > 1:
-            seglen = np.linalg.norm(lat.get_kvec(kp2-kp1))
-            xsegm, delta = np.linspace(0, seglen, nseg+1, retstep=True)
+            seglen = np.linalg.norm(lat.get_kvec(kp2 - kp1))
+            xsegm, delta = np.linspace(0, seglen, nseg + 1, retstep=True)
             if not skipticklabel:
                 xt.append(pos)
                 xl.append(l1)
@@ -140,17 +147,20 @@ def get_kvec_abscissa(lat, kLines):
                 skipticklabel = False
         else:
             seglen = 0
-            delta  = 0
-            xsegm  = np.zeros(2)
+            delta = 0
+            xsegm = np.zeros(2)
             xt.append(pos)
             if l1 == l2:
                 xl.append(l1)
             else:
-                xl.append('{}|{}'.format(l1, l2))
-            skipticklabel=True
-        logger.debug('{:>2s} -- {:2s}: {:8.3f} -- {:8.3f} : {:8.3f}/{:<3d}={:8.3f}'.
-                format(l1, l2, pos+xsegm[0], pos+xsegm[-1], seglen, len(xsegm), delta))
-        xx.append(pos+xsegm[1:])
+                xl.append("{}|{}".format(l1, l2))
+            skipticklabel = True
+        logger.debug(
+            "{:>2s} -- {:2s}: {:8.3f} -- {:8.3f} : {:8.3f}/{:<3d}={:8.3f}".format(
+                l1, l2, pos + xsegm[0], pos + xsegm[-1], seglen, len(xsegm), delta
+            )
+        )
+        xx.append(pos + xsegm[1:])
         pos += seglen
     # append the tick and label for the last point
     xt.append(pos)
@@ -159,6 +169,10 @@ def get_kvec_abscissa(lat, kLines):
     for item in xx:
         item = np.array(item)
     xx = np.concatenate(xx)
-    assert xx.shape == (kLines[-1][-1]+1,), (xx.shape, kLines)
-    logger.debug('Tick labels: {}'.format(', '.join(['{}:{:.3f}'.format(l,t) for l,t in zip(xl, xt)])))
+    assert xx.shape == (kLines[-1][-1] + 1,), (xx.shape, kLines)
+    logger.debug(
+        "Tick labels: {}".format(
+            ", ".join(["{}:{:.3f}".format(l, t) for l, t in zip(xl, xt)])
+        )
+    )
     return xx, xt, xl
