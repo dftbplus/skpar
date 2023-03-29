@@ -6,6 +6,7 @@ import logging
 import argparse
 from skpar.dftbutils.utils import get_logger, execute
 
+
 def set_evol_parser(parser=None):
     """Define parser options specific for energy-volume scan.
 
@@ -17,35 +18,60 @@ def set_evol_parser(parser=None):
     # Initialise argument parser if not provided
     if parser is None:
         parser = argparse.ArgumentParser(
-            description="Calculate total energy vs volume dependence.")
+            description="Calculate total energy vs volume dependence."
+        )
         subparser = False
     else:
         subparser = True
     # Once we have a parser, we can add arguments to it
     parser.add_argument(
-            "-v", dest="verbose", default=False, action="store_true",
-            help="Raise verbosity level from INFO to DEBUG for the console.")
+        "-v",
+        dest="verbose",
+        default=False,
+        action="store_true",
+        help="Raise verbosity level from INFO to DEBUG for the console.",
+    )
     parser.add_argument(
-            '-p', "--plot", dest="plot", default=False, action="store_true",
-            help="Unsupported: Plot the energy-volume curve.")
+        "-p",
+        "--plot",
+        dest="plot",
+        default=False,
+        action="store_true",
+        help="Unsupported: Plot the energy-volume curve.",
+    )
     parser.add_argument(
-            "-wd", dest='workdir', type=str, default='.', action="store",
-            help="(default: .) Working directory with sub-folders, "
-                 "each sub-folder is for an scc calculation at a "
-                 "specific volume. The execution is in workdir/strain/scc/)")
+        "-wd",
+        dest="workdir",
+        type=str,
+        default=".",
+        action="store",
+        help="(default: .) Working directory with sub-folders, "
+        "each sub-folder is for an scc calculation at a "
+        "specific volume. The execution is in workdir/strain/scc/)",
+    )
     parser.add_argument(
-            "-sccdir", dest='sccdir', type=str, default='.', action="store",
-            help="(default: the strain folder) Sub-directory under the "
-                 "strain-folders, where the scc calculation for a specific "
-                 "strain is performed. ")
+        "-sccdir",
+        dest="sccdir",
+        type=str,
+        default=".",
+        action="store",
+        help="(default: the strain folder) Sub-directory under the "
+        "strain-folders, where the scc calculation for a specific "
+        "strain is performed. ",
+    )
     parser.add_argument(
-            "-dftb", type=str, default='dftb+', action="store",
-            help="(default: dftb+) dftb executable")
+        "-dftb",
+        type=str,
+        default="dftb+",
+        action="store",
+        help="(default: dftb+) dftb executable",
+    )
     if subparser:
         parser.set_defaults(func=main_evol)
         return None
     else:
         return parser
+
 
 def main_evol(args):
     """
@@ -62,19 +88,20 @@ def main_evol(args):
     # setup logger
     # -------------------------------------------------------------------
     loglevel = logging.DEBUG if args.verbose else logging.INFO
-    logger   = get_logger(name='dftbutils', filename='dftbutils.evol.log',
-                          verbosity=loglevel)
+    logger = get_logger(
+        name="dftbutils", filename="dftbutils.evol.log", verbosity=loglevel
+    )
 
     # any arguments related to the dftb executable
-    dftb    = args.dftb
-    dftblog = 'dftb.log'
+    dftb = args.dftb
+    dftblog = "dftb.log"
 
     # deal with e-vol-specific arguments if any
     # --------------------------------------------------
     # `workdir` is the main directory; under it there should be a
     # sub-folder for each volume.
     workdir = abspath(expanduser(args.workdir))
-    sccdir  = args.sccdir
+    sccdir = args.sccdir
     cwd = os.getcwd()
     os.chdir(workdir)
     # Automatically establish the available directories for different volumes.
@@ -90,5 +117,5 @@ def main_evol(args):
         # diffusing the problem through attempts of subsequent operations.
         # check_dftblog is a bash script in skpar/bin/ but this can be moved to
         # python instead
-        execute(cmd=['check_dftblog', dftblog], workdir=sccdir, outfile='chk.log')
+        execute(cmd=["check_dftblog", dftblog], workdir=sccdir, outfile="chk.log")
     os.chdir(cwd)

@@ -12,19 +12,21 @@ from skpar.core.database import Query
 
 LOGGER = get_logger(__name__)
 
+
 def parse_cmd(cmd):
-    """Parse shell command for globbing and environment variables.
-    """
+    """Parse shell command for globbing and environment variables."""
     if not isinstance(cmd, list):
         cmd = shlex.split(cmd)
-    parsed_cmd = [cmd[0],]
+    parsed_cmd = [
+        cmd[0],
+    ]
     for word in cmd[1:]:
-        if word[0] == '$':
-            var = word[1:].strip('{').strip('}')
+        if word[0] == "$":
+            var = word[1:].strip("{").strip("}")
             varval = os.environ.get(var, word)
             parsed_cmd.append(varval)
         else:
-            if '*' in word:
+            if "*" in word:
                 items = glob.glob(word)
                 for item in items:
                     parsed_cmd.append(item)
@@ -32,8 +34,16 @@ def parse_cmd(cmd):
                 parsed_cmd.append(word)
     return parsed_cmd
 
-def execute(implargs, database, cmd, workdir='.', outfile='run.log',
-            purge_workdir=False, **kwargs):
+
+def execute(
+    implargs,
+    database,
+    cmd,
+    workdir=".",
+    outfile="run.log",
+    purge_workdir=False,
+    **kwargs
+):
     """Execute external command in workdir, streaming output/error to outfile.
 
     Args:
@@ -57,7 +67,7 @@ def execute(implargs, database, cmd, workdir='.', outfile='run.log',
     """
     # prepare workdir
     origdir = os.getcwd()
-    workroot = implargs.get('workroot', '.')
+    workroot = implargs.get("workroot", ".")
     _workdir = os.path.abspath(os.path.join(workroot, workdir))
     try:
         os.makedirs(_workdir)
@@ -69,40 +79,54 @@ def execute(implargs, database, cmd, workdir='.', outfile='run.log',
             os.makedirs(_workdir)
     os.chdir(_workdir)
     # prepare out/err handling
-    filename = kwargs.pop('stdout', outfile)
+    filename = kwargs.pop("stdout", outfile)
     if filename:
-        kwargs['stdout'] = open(filename, 'w')
-    filename = kwargs.pop('stderr', None)
+        kwargs["stdout"] = open(filename, "w")
+    filename = kwargs.pop("stderr", None)
     if filename:
-        kwargs['stderr'] = open(filename, 'w')
+        kwargs["stderr"] = open(filename, "w")
     else:
-        kwargs['stderr'] = subprocess.STDOUT
+        kwargs["stderr"] = subprocess.STDOUT
     # execute the command, make sure output is not streamed
     _cmd = parse_cmd(cmd)
     try:
         returncode = subprocess.call(_cmd, **kwargs)
         if returncode:
-            LOGGER.critical('Execution of %s FAILED with exit status %d',
-                            _cmd, returncode)
+            LOGGER.critical(
+                "Execution of %s FAILED with exit status %d", _cmd, returncode
+            )
             raise RuntimeError
     #
     except subprocess.SubprocessError:
-        LOGGER.critical('Subprocess call of {:s} FAILED'.format(_cmd))
+        LOGGER.critical("Subprocess call of {:s} FAILED".format(_cmd))
         raise
     #
     except (OSError, FileNotFoundError) as exc:
-        LOGGER.critical("Abnormal termination: OS could not execute %s in %s",
-                        _cmd, _workdir)
-        LOGGER.critical("If the command is a script ,"\
-                        "check permissions and that is has a shebang!")
+        LOGGER.critical(
+            "Abnormal termination: OS could not execute %s in %s", _cmd, _workdir
+        )
+        LOGGER.critical(
+            "If the command is a script ,"
+            "check permissions and that is has a shebang!"
+        )
         raise
     #
     finally:
         # make sure we return to where we started from in any case!
         os.chdir(origdir)
 
-def get_model_data(implargs, database, item, source, model,
-                   rm_columns=None, rm_rows=None, scale=1., **kwargs):
+
+def get_model_data(
+    implargs,
+    database,
+    item,
+    source,
+    model,
+    rm_columns=None,
+    rm_rows=None,
+    scale=1.0,
+    **kwargs
+):
     """Get data from file and put it in a database under a given key.
 
     Use numpy.loadtxt to get the data from `source` file and write the data
@@ -120,37 +144,41 @@ def get_model_data(implargs, database, item, source, model,
         rm_rows   : [ index, index, [ilow, ihigh], otherindex, [otherrange]]
         scale(float): multiplier of the data
     """
-    logger = implargs.get('logger', LOGGER)
-    workroot = implargs.get('workroot', '.')
-    assert isinstance(source, str), \
-        "source must be a filename string, but is {} instead.".\
-        format(type(source))
-    assert isinstance(item, str),\
-        "item must be a string naming the data, but is {} instead."\
-            .format(type(item))
+    logger = implargs.get("logger", LOGGER)
+    workroot = implargs.get("workroot", ".")
+    assert isinstance(
+        source, str
+    ), "source must be a filename string, but is {} instead.".format(type(source))
+    assert isinstance(
+        item, str
+    ), "item must be a string naming the data, but is {} instead.".format(type(item))
     # read file
     fname = os.path.abspath(os.path.join(workroot, source))
     try:
         data = np.loadtxt(fname, **kwargs)
     except ValueError:
-        logger.critical('np.loadtxt cannot understand the contents of %s'+\
-            'with the given arguments: %s', fname, **kwargs)
+        logger.critical(
+            "np.loadtxt cannot understand the contents of %s"
+            + "with the given arguments: %s",
+            fname,
+            **kwargs
+        )
         raise
     except (IOError, FileNotFoundError):
-        logger.critical('np.loadtxt cannot open %s', fname)
+        logger.critical("np.loadtxt cannot open %s", fname)
         raise
     # do some filtering on columns and/or rows if requested
     # note that file to 2D-array mapping depends on 'unpack' from
     # kwargs, which transposes the loaded array.
-    postprocess = {'rm_columns': rm_columns, 'rm_rows': rm_rows}
+    postprocess = {"rm_columns": rm_columns, "rm_rows": rm_rows}
     if any(postprocess.values()):
-        if kwargs.get('unpack', False):
+        if kwargs.get("unpack", False):
             # since 'unpack' transposes the array, now row index
             # in the original file is along axis 1, while column index
             # in the original file is along axis 0.
-            key1, key2 = ['rm_columns', 'rm_rows']
+            key1, key2 = ["rm_columns", "rm_rows"]
         else:
-            key1, key2 = ['rm_rows', 'rm_columns']
+            key1, key2 = ["rm_rows", "rm_columns"]
         for axis, key in enumerate([key1, key2]):
             rm_rngs = postprocess.get(key, [])
             if rm_rngs:
@@ -172,26 +200,28 @@ def get_model_data(implargs, database, item, source, model,
 
 
 def substitute_parameters(implargs, database, templatefiles, **kwargs):
-    """Substitute parameters (within implicit arguments) in given templates.
-    """
-    logger = implargs.get('logger', LOGGER)
-    workroot = implargs.get('workroot', '.')
-    iteration = implargs.get('iteration', None)
+    """Substitute parameters (within implicit arguments) in given templates."""
+    logger = implargs.get("logger", LOGGER)
+    workroot = implargs.get("workroot", ".")
+    iteration = implargs.get("iteration", None)
     try:
-        parvalues = implargs['parametervalues']
+        parvalues = implargs["parametervalues"]
     except KeyError:
-        logger.critical('No parameter values found in implicit arguments. '\
-                        'Cannot proceed with parameter substitution.')
+        logger.critical(
+            "No parameter values found in implicit arguments. "
+            "Cannot proceed with parameter substitution."
+        )
         raise
     try:
-        parnames = implargs['parameternames']
+        parnames = implargs["parameternames"]
     except KeyError:
-        logger.critical('No parameter names found in implicit arguments. '\
-                        'Cannot proceed with parameter substitution.')
+        logger.critical(
+            "No parameter names found in implicit arguments. "
+            "Cannot proceed with parameter substitution."
+        )
         raise
-    assert (len(parvalues) == len(parnames)), (len(parvalues), len(parnames))
-    logger.debug("Substituting parameters for iteration %s in %s.",\
-                    iteration, workroot)
+    assert len(parvalues) == len(parnames), (len(parvalues), len(parnames))
+    logger.debug("Substituting parameters for iteration %s in %s.", iteration, workroot)
     update_parameters(workroot, templatefiles, parvalues, parnames)
 
 
@@ -201,22 +231,21 @@ def prepare_for_plotsave(iteration, filename):
     if iteration is not None:
         try:
             # assume iteration is a tuple
-            filename = '{:s}_{:s}'.format(filename,\
-                                            '-'.join([str(it) for it \
-                                                    in iteration]))
+            filename = "{:s}_{:s}".format(
+                filename, "-".join([str(it) for it in iteration])
+            )
         except TypeError:
             # iteration is a single integer, rather than a tuple
             filename = "{:s}_{:d}".format(filename, iteration)
     # Ensure we have a proper extension
-    if os.path.basename(filename).split('.')[-1] not in ['pdf', 'png']:
-        filename = filename + '.pdf'
+    if os.path.basename(filename).split(".")[-1] not in ["pdf", "png"]:
+        filename = filename + ".pdf"
     # Ensure directory where plot is to be saved exists.
     # Note that os.path.dirname may return '', hence the use of abspath.
     # Also, exist_ok = True is a must since if we try to remove/re-create the
     # directory, it may happen to destroy the current directory!
     if not os.path.exists(os.path.abspath(os.path.dirname(filename))):
-        os.makedirs(os.path.abspath(os.path.dirname(filename)),
-                    exist_ok=True)
+        os.makedirs(os.path.abspath(os.path.dirname(filename)), exist_ok=True)
     return filename
 
 
@@ -248,9 +277,9 @@ class PlotTask(object):
     Later – at call time – we do the data queries and call the plot function
     with the latest model data.
     """
+
     def __init__(self, func, plotname, objectives, abscissa_key=None, **kwargs):
-        """Establish which dictionary items make for abscissas and ordinates.
-        """
+        """Establish which dictionary items make for abscissas and ordinates."""
         # func is a string; global taskdict may be passed via env to
         # resolve it at call time
         self.func = func
@@ -260,11 +289,13 @@ class PlotTask(object):
         # of PlotTask initialisation.
         # Therefore, a higher authority must deal with the assignment.
         # Here we can only record user's selection rules.
-        #if isinstance(objectives, list): doesn't work if we give only one objective
+        # if isinstance(objectives, list): doesn't work if we give only one objective
         if islistoflists(objectives) or isinstance(objectives[0], int):
             self.objv_selectors = objectives
         else:
-            self.objv_selectors = [objectives, ]
+            self.objv_selectors = [
+                objectives,
+            ]
         # How to get the abscissas: assume a get-task put it in the model DB
         # We can declare queries, but first we need to have reference to
         # the model_names associated with an objective -> again, a higher
@@ -274,9 +305,11 @@ class PlotTask(object):
         # Extra queries serve to pass extra data to plotting routine,
         # for the decoration of the x and y axes, e.g. k-ticks and
         # k-labels for a bandstructure plot, etc.
-        self.extra_query_keys = kwargs.get('queries', None)
+        self.extra_query_keys = kwargs.get("queries", None)
         if self.extra_query_keys and not isinstance(self.extra_query_keys, list):
-            self.extra_query_keys = [self.extra_query_keys,]
+            self.extra_query_keys = [
+                self.extra_query_keys,
+            ]
         # how to make up the plot name
         self.plotname = plotname
         # The following are passed to the back end plotting routine
@@ -284,7 +317,7 @@ class PlotTask(object):
         self.kwargs = kwargs
         # clean up the kwargs that has been processed here
         try:
-            del self.kwargs['queries']
+            del self.kwargs["queries"]
         except KeyError:
             pass
 
@@ -305,7 +338,7 @@ class PlotTask(object):
             # option for their selection, but may fail if objectives are
             # updated, while the plot task not, etc.
             # -1 below is to allow Fortran indexing by user, starting from 1
-            self.objectives = [objectives[ix-1] for ix in self.objv_selectors]
+            self.objectives = [objectives[ix - 1] for ix in self.objv_selectors]
         else:
             # The more general option assumes [(query_key, model_names), ...]
             # This may capture more than one objectives, but should be OK, since
@@ -321,8 +354,9 @@ class PlotTask(object):
         # and we can create queries for the abscissa key and extra query keys
         if self.abscissa_key is not None:
             for item in self.objectives:
-                self.absc_queries.append(Query(item.model_names,
-                                               self.abscissa_key, database))
+                self.absc_queries.append(
+                    Query(item.model_names, self.abscissa_key, database)
+                )
         if self.extra_query_keys is not None:
             self.extra_queries = []
             # extract all models from the list of objectives and create a
@@ -350,29 +384,31 @@ class PlotTask(object):
         be passed to the backend plotting routine
         """
         # parse implargs first
-        logger = implargs.get('logger', LOGGER)
-        iteration = implargs.get('iteration', None)
-        objectives = implargs.get('objectives', None)
-        logger.debug('Implicit arguments passed to PlotTask\n%s', implargs)
+        logger = implargs.get("logger", LOGGER)
+        iteration = implargs.get("iteration", None)
+        objectives = implargs.get("objectives", None)
+        logger.debug("Implicit arguments passed to PlotTask\n%s", implargs)
         self.pick_objectives(objectives, database)
-        self.func = implargs.get('taskdict', {}).get(self.func, skparplot)
-        logger.debug('Using plotting function %s', self.func)
+        self.func = implargs.get("taskdict", {}).get(self.func, skparplot)
+        logger.debug("Using plotting function %s", self.func)
         # get xy for plotting
-        abscissas  = []
-        ordinates  = []
+        abscissas = []
+        ordinates = []
         subweights = []
         for i, item in enumerate(self.objectives):
             # keep the subweights separate
             objvdata = item.get(database)  # returns model_data, ref_data, subweights
             # make sure ordinates are first, so as to plot ref below model
-            ordinates.append((objvdata[1], objvdata[0])) # ref_data, model_data
-            logger.debug("Ordinates shape for plotted Objective {}: {}{}".
-                         format(i, objvdata[1].shape, objvdata[0].shape))
+            ordinates.append((objvdata[1], objvdata[0]))  # ref_data, model_data
+            logger.debug(
+                "Ordinates shape for plotted Objective {}: {}{}".format(
+                    i, objvdata[1].shape, objvdata[0].shape
+                )
+            )
             subweights.append(objvdata[2])
             # may be we can do this once only and assign self.abscissas...?
             if self.absc_queries:
-                logger.debug("Querying for abscissas {}:".
-                             format(self.absc_queries[i]))
+                logger.debug("Querying for abscissas {}:".format(self.absc_queries[i]))
                 absc = self.absc_queries[i](database)
             else:
                 logger.debug("Constructing abscissas.")
@@ -382,8 +418,9 @@ class PlotTask(object):
                     # assume 1D array... may break for key-value pairs...
                     absc = np.arange(len(objvdata[0]), dtype=int)
             abscissas.append(absc)
-            logger.debug("Abscissas shape for plotted Objective {}: {}".\
-                         format(i, absc.shape))
+            logger.debug(
+                "Abscissas shape for plotted Objective {}: {}".format(i, absc.shape)
+            )
         # Ordinates is now a list of tuples, each tuple being (ref, model)
         # Abscissas is now a list of the same size as ordinates
         # Items in the lists may be of different type and size, depending on
@@ -392,26 +429,34 @@ class PlotTask(object):
         # i.e. key-values by markers, others by lines, etc.
         # But in any case, we must map a set of x and y and provide
         # different colour for model and for ref.
-        logger.debug('Collected {} abscissa and {} ordinate sets'.\
-                     format(len(abscissas), len(ordinates)))
-        assert len(ordinates) and len(abscissas),\
-                '\nMake sure model names in plot arguments are correct!\n'\
-                'Missing data: abscissas: {}; ordinates: {}'.\
-                format(len(abscissas), len(ordinates))
+        logger.debug(
+            "Collected {} abscissa and {} ordinate sets".format(
+                len(abscissas), len(ordinates)
+            )
+        )
+        assert len(ordinates) and len(abscissas), (
+            "\nMake sure model names in plot arguments are correct!\n"
+            "Missing data: abscissas: {}; ordinates: {}".format(
+                len(abscissas), len(ordinates)
+            )
+        )
         xval = []
         yval = []
         for xx, yy in zip(abscissas, ordinates):
-            y1, y2 = yy[0], yy[1] # y1 = list of ref, y2 = list of model data
+            y1, y2 = yy[0], yy[1]  # y1 = list of ref, y2 = list of model data
             yval.append(y1)
             yval.append(y2)
             xval.append(xx)
             xval.append(xx)
         assert len(xval) == len(yval), (len(xval), len(yval))
-        #for x, y in zip(xval, yval):
+        # for x, y in zip(xval, yval):
         #    logger.debug((x.shape, y.shape))
         #    assert x.shape[0] == y.shape[-1], (x.shape, y.shape)
-        logger.debug('Overall length of abscissa and ordinate sets: {} {}'.
-                     format(len(xval), len(yval)))
+        logger.debug(
+            "Overall length of abscissa and ordinate sets: {} {}".format(
+                len(xval), len(yval)
+            )
+        )
         # Get data from extra queries
         if self.extra_query_keys is not None:
             # make a dictionary with query.key for keys and lists of data
@@ -431,22 +476,22 @@ class PlotTask(object):
 
         # Set colors: draw all objectives with the same color, distinguish
         # only ref vs model unless explicit user spec is given
-        if self.kwargs.get('colors', None) is None:
+        if self.kwargs.get("colors", None) is None:
             colors = []
-            for i in range(int(len(yval)/2.)):
+            for i in range(int(len(yval) / 2.0)):
                 # note how yval is composed above:
                 # y1 is ref (blue) y2 is model (orange)
-                colors.append('#1f77b4')
-                colors.append('#ff7f0e')
-            self.kwargs['colors'] = colors
+                colors.append("#1f77b4")
+                colors.append("#ff7f0e")
+            self.kwargs["colors"] = colors
 
         # Tag the plot-name by iteration number; embed it in the plot title
         # and prepare directory where plot is to be saved
         filename = prepare_for_plotsave(iteration, self.plotname)
-        self.kwargs['title'] = os.path.splitext(os.path.basename(filename))[0]
+        self.kwargs["title"] = os.path.splitext(os.path.basename(filename))[0]
         # set legend labels (only 2 labels by default, consistent with
         # the colour setting
-        self.kwargs['linelabels'] = ['ref', 'model']
+        self.kwargs["linelabels"] = ["ref", "model"]
         # Try to plot
         # Ignore subweights for the moment, although these may decorate later,
         # e.g. width of the model bands.
@@ -464,17 +509,17 @@ def wrapper_PlotTask(env, database, *args, **kwargs):
 
 
 TASKDICT = {
-    'set': substitute_parameters,
-    'sub': substitute_parameters,
-    'substitute': substitute_parameters,
+    "set": substitute_parameters,
+    "sub": substitute_parameters,
+    "substitute": substitute_parameters,
     #
-    'run': execute,
-    'exe': execute,
-    'execute': execute,
+    "run": execute,
+    "exe": execute,
+    "execute": execute,
     #
-    'get': get_model_data,
-    'get_data': get_model_data,
+    "get": get_model_data,
+    "get_data": get_model_data,
     #
-    'plot': wrapper_PlotTask,
-    'plot_objectives': wrapper_PlotTask,
-    }
+    "plot": wrapper_PlotTask,
+    "plot_objectives": wrapper_PlotTask,
+}

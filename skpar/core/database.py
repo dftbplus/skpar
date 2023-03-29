@@ -5,6 +5,7 @@ from skpar.core.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
+
 def update(database, model, data=None):
     """Update model storage with input data items.
 
@@ -27,9 +28,9 @@ def update(database, model, data=None):
         database.update(model)
 
 
-class Database():
-    """A database object providing several methods to access/modify the data.
-    """
+class Database:
+    """A database object providing several methods to access/modify the data."""
+
     def __init__(self):
         """Yield an object for data storage, NOT to be accessed directly."""
         self._storage = {}
@@ -61,8 +62,9 @@ class Database():
         return _query(atleast_1d=atleast_1d)
 
 
-class Query():
+class Query:
     """Decouple the declaration of query from performing a query."""
+
     def __init__(self, model_names, key, database=None):
         """Instantiate a query to be performed later by calling it.
 
@@ -108,11 +110,10 @@ class Query():
         return result
 
     def __repr__(self):
-        """Yield a summary of the query.
-        """
+        """Yield a summary of the query."""
         srepr = []
-        srepr.append('\tQuery key: {}'.format(self.key))
-        srepr.append('\tModel Names: {}'.format(self.model_names))
+        srepr.append("\tQuery key: {}".format(self.key))
+        srepr.append("\tModel Names: {}".format(self.model_names))
         if self.database:
-            srepr.append('\tQuery result: {}'.format(self.__call__()))
-        return '\n'+"\n".join(srepr)
+            srepr.append("\tQuery result: {}".format(self.__call__()))
+        return "\n" + "\n".join(srepr)

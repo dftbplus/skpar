@@ -18,23 +18,33 @@ def get_tasklist(userinp):
     for item in userinp:
         # due to json/yaml specifics, a task is represented as a dictionary with
         # one item only, hence the comma after task, avoiding looping over items
-        (taskname, taskargs), = item.items()
+        ((taskname, taskargs),) = item.items()
         task = (taskname, taskargs)
         tasklist.append(task)
     return tasklist
+
 
 def check_taskdict(tasklist, taskdict):
     """Check task names are in the task dictionary; quit otherwise."""
     for task in tasklist:
         if task[0] not in taskdict.keys():
-            LOGGER.critical('Task {:s} not in TASKDICT; Cannot continue'.\
-                            format(task[0]))
-            LOGGER.info('Check spelling and verify import of user modules')
-            LOGGER.info('Use `usermodules: [lisf of modules]` in input')
-            LOGGER.info('TASKDICT currently contains:\n\t{:s}'.\
-                        format('\n\t'.join(['{:s}: {}'.format(name, func) for
-                                         name, func in taskdict.items()])))
+            LOGGER.critical(
+                "Task {:s} not in TASKDICT; Cannot continue".format(task[0])
+            )
+            LOGGER.info("Check spelling and verify import of user modules")
+            LOGGER.info("Use `usermodules: [lisf of modules]` in input")
+            LOGGER.info(
+                "TASKDICT currently contains:\n\t{:s}".format(
+                    "\n\t".join(
+                        [
+                            "{:s}: {}".format(name, func)
+                            for name, func in taskdict.items()
+                        ]
+                    )
+                )
+            )
             sys.exit(1)
+
 
 def initialise_tasks(tasklist, taskdict, report=False):
     """Transform a tasklist into a list of callables as per taskdict.
@@ -46,13 +56,15 @@ def initialise_tasks(tasklist, taskdict, report=False):
     Returns:
         tasks(list): callable objects, instances of Task class
     """
-    LOGGER.info('Initialising tasks')
+    LOGGER.info("Initialising tasks")
     tasks = []
     for taskname, argslist in tasklist:
         func = taskdict[taskname]
-        assert isinstance(argslist, (list, tuple)),\
-            ("Make sure task arguments are within []; IsString?: {}".\
-             format(isinstance(argslist, str)))
+        assert isinstance(
+            argslist, (list, tuple)
+        ), "Make sure task arguments are within []; IsString?: {}".format(
+            isinstance(argslist, str)
+        )
         tasks.append(Task(taskname, func, argslist))
 
     if report:
@@ -62,9 +74,9 @@ def initialise_tasks(tasklist, taskdict, report=False):
     return tasks
 
 
-class Task():
-    """Generic wrapper over functions or executables.
-    """
+class Task:
+    """Generic wrapper over functions or executables."""
+
     def __init__(self, name, func, fargs):
         """Create a callable object from user input.
 
@@ -90,6 +102,7 @@ class Task():
         else:
             self.args = fargs
             self.kwargs = {}
+
     #
     def __call__(self, env, database):
         """Execute the task, let caller handle any exception raised by func
@@ -100,17 +113,26 @@ class Task():
                                       exchange
         """
         self.func(env, database, *self.args, **self.kwargs)
+
     #
     def __repr__(self):
-        """Yield a summary of the task.
-        """
+        """Yield a summary of the task."""
         srepr = []
-        srepr.append('{:s}: {}'.format(self.name, self.func))
+        srepr.append("{:s}: {}".format(self.name, self.func))
         if self.args:
-            srepr.append('\t\t\t  {:d} args: {:s}'.format(len(self.args),
-                ', '.join(['{}'.format(str(arg)) for arg in self.args])))
+            srepr.append(
+                "\t\t\t  {:d} args: {:s}".format(
+                    len(self.args),
+                    ", ".join(["{}".format(str(arg)) for arg in self.args]),
+                )
+            )
         if self.kwargs:
-            srepr.append('\t\t\t{:d} kwargs: {:s}'.format(len(self.kwargs.keys()),
-               ', '.join(['{}: {}'.format(key, val) for key, val in
-                          self.kwargs.items()])))
+            srepr.append(
+                "\t\t\t{:d} kwargs: {:s}".format(
+                    len(self.kwargs.keys()),
+                    ", ".join(
+                        ["{}: {}".format(key, val) for key, val in self.kwargs.items()]
+                    ),
+                )
+            )
         return "\n".join(srepr)

@@ -11,12 +11,12 @@ LOGGER = get_logger(__name__)
 
 TASKDICT = {
     # obtain data from model evaluations
-    'get_data': get_dftbp_data,
-    'get_evol': get_dftbp_evol,
-    'get_bs'  : get_bandstructure,
-    'get_meff': get_effmasses,
-    'get_Ek'  : get_special_Ek,
+    "get_data": get_dftbp_data,
+    "get_evol": get_dftbp_evol,
+    "get_bs": get_bandstructure,
+    "get_meff": get_effmasses,
+    "get_Ek": get_special_Ek,
     # plot data
-# this one is currently used via the wrapper of PlotTask in ../core/taskdict.py
-    'plot_bs' : magic_plot_bs,
-    }
+    # this one is currently used via the wrapper of PlotTask in ../core/taskdict.py
+    "plot_bs": magic_plot_bs,
+}
